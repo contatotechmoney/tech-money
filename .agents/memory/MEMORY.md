@@ -1,0 +1,1 @@
+- [Clerk production hosting](clerk-production-hosting.md) — Clerk proxy authentication needs a server deployment, not static hosting.

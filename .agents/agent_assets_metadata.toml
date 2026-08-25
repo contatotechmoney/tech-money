@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "KYWaxMYuDPF4B85Yeu4kw"
+uri = "file://attached_assets/generated_videos/tech-money-product-trailer.mp4"
+type = "video"
+title = "Tech Money — trailer animado"
+description = "Trailer de produto em 16:9 e 1080p apresentando o login, as áreas empresarial e de investimentos, os ativos BBDC3 e BBAS3 e a carteira de investimentos."
