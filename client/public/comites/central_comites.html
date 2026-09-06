@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central dos Comitês · Tech Money</title>
+<style>
+:root{--teal:#20b0a8;--teal-dark:#0d4f3d;--gold:#f59e0b;--bg:#081311;--card:#0f2926;--line:rgba(255,255,255,.12);}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(1200px 600px at 20% -10%, #0e3b34 0%, var(--bg) 55%);color:#e5e7eb;font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;min-height:100vh;padding:40px 20px 60px}
+.wrap{max-width:1100px;margin:0 auto}
+/* HEADER */
+.brand{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:8px}
+.brand-logo{background:#fff;border-radius:20px;width:104px;height:104px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.45);padding:12px}
+.brand-logo img{width:100%;height:auto}
+.brand h1{font-size:1.9em;font-weight:800;color:#fff;text-align:center;letter-spacing:-.5px}
+.brand p{color:#7f9b96;font-size:.95em;text-align:center;max-width:640px;line-height:1.5}
+.sep{height:1px;background:linear-gradient(90deg,transparent,rgba(32,176,168,.5),transparent);margin:22px auto;max-width:420px}
+/* HUB SELECT */
+.hub{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:10px}
+.hub-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px 26px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+.hub-card:hover{transform:translateY(-4px);border-color:var(--teal);box-shadow:0 14px 34px rgba(32,176,168,.15)}
+.hub-card .icon{font-size:2.4em;margin-bottom:10px}
+.hub-card h2{font-size:1.3em;color:#fff;margin-bottom:6px}
+.hub-card .acr{display:inline-block;background:rgba(32,176,168,.15);color:var(--teal);padding:2px 10px;border-radius:20px;font-size:.75em;font-weight:700;letter-spacing:.4px;margin-bottom:10px}
+.hub-card p{color:#9db3af;font-size:.92em;line-height:1.55;margin-bottom:14px}
+.hub-card .members-row{display:flex;gap:-8px}
+.hub-card .members-row img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--card);margin-left:-8px}
+.hub-card .count{position:absolute;top:18px;right:18px;background:var(--teal-dark);color:#bfece7;font-weight:700;font-size:.8em;padding:5px 11px;border-radius:16px}
+.enter{background:var(--teal);color:#04211c;border:none;border-radius:10px;padding:10px 20px;font-weight:800;font-size:.9em;cursor:pointer;transition:.15s}
+.enter:hover{background:#2fd3ca}
+.back{display:none;background:transparent;border:1px solid var(--line);color:#9db3af;border-radius:10px;padding:9px 18px;font-weight:600;cursor:pointer;margin-bottom:20px;font-size:.9em}
+.back:hover{color:#fff;border-color:var(--teal)}
+/* COMMITTEE PANEL */
+.cpanel{display:none}
+.cpanel.active{display:block}
+.cp-head{text-align:center;margin-bottom:26px}
+.cp-head h2{color:#fff;font-size:1.7em;margin-bottom:4px}
+.cp-head .cp-sub{color:var(--teal);font-weight:600;font-size:.85em;letter-spacing:1px;text-transform:uppercase}
+.cp-head p{color:#7f9b96;font-size:.92em;max-width:620px;margin:8px auto 0;line-height:1.5}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(215px,1fr))}
+.member-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 16px 14px;text-align:center;cursor:pointer;transition:.18s;position:relative}
+.member-card:hover{transform:translateY(-3px);border-color:var(--teal);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.avatar{position:relative;width:82px;height:104px;margin:0 auto 12px}
+.avatar img{width:82px;height:104px;object-fit:cover;border-radius:10px;border:2px solid var(--teal);display:block;background:#d9e2e0}
+.mod-badge{position:absolute;top:-8px;right:-22px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#231302;font-size:.58em;font-weight:800;padding:3px 7px;border-radius:8px;letter-spacing:.3px;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+.m-name{font-weight:700;color:#fff;font-size:1.02em}
+.m-role{color:var(--teal);font-size:.78em;font-weight:600;margin-top:2px;min-height:2.6em;display:flex;align-items:center;justify-content:center}
+.m-att{color:var(--gold);font-size:.78em;font-style:italic;margin-top:2px}
+.m-open{color:#7f9b96;font-size:.74em;margin-top:10px;font-weight:600}
+.member-card:hover .m-open{color:var(--teal)}
+/* CV MODAL */
+.cv-overlay{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.cv-overlay.show{display:flex}
+.cv-modal{background:#0d241f;border:1px solid var(--teal);border-radius:18px;width:100%;max-width:760px;max-height:90vh;overflow-y:auto;padding:28px;position:relative;animation:pop .18s ease}
+@keyframes pop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+.cv-x{position:sticky;top:0;float:right;background:transparent;border:1px solid var(--line);color:#9db3af;width:34px;height:34px;border-radius:10px;font-size:1.1em;cursor:pointer}
+.cv-x:hover{color:#fff;border-color:var(--teal)}
+.cv-head{display:flex;gap:18px;align-items:center;margin-bottom:16px}
+.cv-head img{width:96px;height:122px;object-fit:cover;border-radius:10px;border:2px solid var(--teal);background:#d9e2e0}
+.cv-name{font-size:1.5em;font-weight:800;color:#fff}
+.cv-role{color:var(--teal);font-weight:600}
+.cv-att{color:var(--gold);font-size:.85em;font-style:italic;margin-top:3px}
+.cv-section{background:#0a1f1b;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.cv-section h4{color:var(--teal);font-size:.8em;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.cv-section div,.cv-section li{color:#d6e0de;font-size:.92em;line-height:1.55}
+.cv-section ul{list-style:none}
+.cv-section li{padding:3px 0 3px 18px;position:relative}
+.cv-section li::before{content:'›';color:var(--teal);position:absolute;left:0;font-weight:700}
+.rule{background:rgba(245,158,11,.08);border-left:4px solid var(--gold);padding:12px 16px;border-radius:8px;color:#f3d9a6;font-size:.85em;line-height:1.5;margin-top:14px}
+.legend{text-align:center;color:#5c7a74;font-size:.8em;margin-top:18px}
+@media(max-width:640px){.hub{grid-template-columns:1fr}.brand h1{font-size:1.4em}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-logo"><img src="tech_money_logo.png" alt="Tech Money"></div>
+    <h1>Central dos Comitês de Análise</h1>
+    <p>Selecione o comitê para conhecer os membros e ler o currículo de cada especialista que debate e vota o veredito final.</p>
+  </div>
+  <div class="sep"></div>
+
+  <!-- SELETOR -->
+  <div class="hub" id="hub"></div>
+  <button class="back" id="backBtn" onclick="goHome()">← Voltar à seleção</button>
+
+  <!-- PAINEIS -->
+  <div class="cpanel" id="panel-rv"></div>
+  <div class="cpanel" id="panel-rf"></div>
+
+  <div class="legend">Tech Money · Comitês de análise gerados por IA · Material educacional — não constitui recomendação.</div>
+</div>
+
+<!-- CV MODAL -->
+<div class="cv-overlay" id="cvOverlay" onclick="if(event.target===this)closeCV()">
+  <div class="cv-modal">
+    <button class="cv-x" onclick="closeCV()">✕</button>
+    <div id="cvContent"></div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  rv: {"carlos": {"nome": "Carlos", "gen": "👨", "papel": "CFO Fundamentalista", "atitude": "A Voz dos Números", "resumo": "Executivo financeiro com 22 anos de experiência em gestão financeira, auditoria e estruturação de capital. Reconhecido por rigor analítico e leitura objetiva de balanços; foco exclusivo em dados e números.", "formacao": ["Graduação em Administração (FEA-USP)", "Graduação em Economia (FEA-USP)", "MBA em Finanças — Stanford GSB", "Mestrado em Finanças — Columbia University"], "experiencia": ["Auditor Sênior — Big Four (8 anos): auditoria, due diligence, controles internos", "CFO/Diretor Financeiro — companhias listadas (10 anos): tesouraria, estrutura de capital, RI", "Banco de Investimento — DCM (4 anos): estruturação de dívida e emissões"], "certificacoes": ["CFA Charterholder", "CPA (Auditoria)"], "idiomas": "Português (nativo) · Inglês (fluente)", "especializacoes": "Modelagem financeira, FCF, valuation, estrutura de capital, margens e rentabilidade"}, "helena": {"nome": "Helena", "gen": "👩", "papel": "Moat & Estratégia", "atitude": "Sentinela do Fosso", "resumo": "Estrategista com 18 anos de experiência em consultoria, planejamento estratégico e private equity. Especialista em vantagens competitivas sustentáveis, barreiras de entrada e posicionamento.", "formacao": ["Graduação em Economia (UFRJ)", "Mestrado em Gestão Estratégica — INSEAD", "MBA Executivo — Harvard Business School", "Pós-graduação em Análise Setorial (FGV)"], "experiencia": ["Consultora Sênior — McKinsey (9 anos): estratégia corporativa, M&A, análise setorial", "Head de Planejamento Estratégico — grupo industrial (5 anos)", "Private Equity (4 anos): teses de moat e vantagem competitiva"], "certificacoes": ["Certificação em Estratégia e Competitividade"], "idiomas": "Português (nativo) · Inglês (fluente) · Espanhol (intermediário)", "especializacoes": "Moat, barreiras de entrada, poder de precificação, modelos de negócio, sustentabilidade de ROE"}, "marcos": {"nome": "Marcos", "gen": "👨", "papel": "Risk Officer", "atitude": "Capitão Cautela", "resumo": "Gestor de risco com 21 anos de experiência em risco de crédito, mercado e liquidez. Especialista em cenários pessimistas, stress testing e proteção de capital; planeja sempre para o pior caso.", "formacao": ["Graduação em Engenharia de Produção (Poli-USP)", "Mestrado em Gestão de Riscos — NYU Stern", "Especialização em Derivativos e Stress Testing — Princeton"], "experiencia": ["Gestor de Risco de Crédito — banco de investimento (7 anos)", "Gestor de Risco de Mercado — hedge fund (6 anos)", "Comitê de Risco e Reestruturação (5 anos): covenant breach e turnaround", "Stress Testing e Cenários de Cauda (3 anos)"], "certificacoes": ["FRM (Financial Risk Manager)", "CFA Charterholder"], "idiomas": "Português (nativo) · Inglês (fluente)", "especializacoes": "Downside, cenários pessimistas, alavancagem, risco de payout, stress testing, liquidez"}, "fernanda": {"nome": "Fernanda", "gen": "👩", "papel": "Yield & Valuation", "atitude": "A Calculadora", "resumo": "Especialista em valuation e renda com 19 anos de experiência em equity research, gestão buy-side e modelagem. Formada na China (MBA), fluente em mandarim, com atuação em mercados asiáticos. Foco em preço justo, dividend yield e margem de segurança.", "formacao": ["Graduação em Administração (FGV-SP)", "MBA em Finanças — CEIBS (China Europe International Business School), China", "Mestrado em Finanças — Columbia University", "Especialização em Valuation e Modelagem — NYU Stern"], "experiencia": ["Equity Research Sell-Side (8 anos): bancos, utilities e consumo — renda", "Gestão Buy-Side (6 anos): carteira de dividendos e value investing, com cobertura de mercados asiáticos", "Especialista Sênior de Valuation (5 anos): DCF, múltiplos, Gordon, soma das partes"], "certificacoes": ["CFA Charterholder"], "idiomas": "Português (nativo) · Inglês (fluente) · Mandarim (fluente)", "especializacoes": "Dividend yield, payout sustentável, preço justo/teto, Gordon, múltiplos, margem de segurança"}, "rodrigo": {"nome": "Rodrigo", "gen": "👨", "papel": "Grafista / Análise Técnica", "atitude": "O Chartista", "resumo": "Analista técnico com 16 anos de experiência em trading proprietário e análise quantitativa. Especialista em leitura de gráficos, padrões e timing de entrada; ancorado em indicadores objetivos.", "formacao": ["Graduação em Economia (UnB)", "Mestrado em Estatística Aplicada (IMPA)", "Especialização em Renda Variável e Derivativos (USP)"], "experiencia": ["Trading Proprietário — prop desk (7 anos): ações e derivativos", "Quant / Análise Técnica Sistemática (5 anos): RSI, MACD, Bollinger, momentum", "Head de Análise Técnica — asset manager (4 anos)"], "certificacoes": ["CMT (Chartered Market Technician)"], "idiomas": "Português (nativo) · Inglês (fluente)", "especializacoes": "Suportes e resistências, padrões de candlestick, tendência (MA200), RSI, MACD, Bollinger, timing"}, "juliana": {"nome": "Juliana", "gen": "👩", "papel": "Comunicados ao Mercado / Releases", "atitude": "O Intérprete", "resumo": "Especialista em comunicação financeira com 15 anos de experiência em relações com investidores, jornalismo econômico e monitoramento de Comunicados ao Mercado e Fato Relevante. Foco em interpretar com precisão o que a empresa comunica.", "formacao": ["Graduação em Jornalismo Econômico (ECA-USP)", "Graduação em Economia", "MBA em Comunicação e RI (FGV)"], "experiencia": ["Relações com Investidores — companhia listada (7 anos)", "Jornalismo Financeiro (4 anos): cobertura de resultados", "Monitoramento de Comunicados ao Mercado / Fato Relevante (4 anos)"], "certificacoes": ["CFA nível II"], "idiomas": "Português (nativo) · Inglês (fluente) · Espanhol (intermediário)", "especializacoes": "Comunicados ao Mercado, Fato Relevante, guidance, comentários da gestão, datacom, comunicação financeira"}, "andre": {"nome": "André", "gen": "👨", "papel": "Macro/Micro", "atitude": "O Estrategista", "resumo": "Macroeconomista com 22 anos de experiência em research, gestão macro e cenários. Especialista em conectar o cenário econômico ao posicionamento setorial e do papel.", "formacao": ["Graduação em Economia (FGV-RJ)", "PhD em Macroeconomia — University of Chicago", "Mestrado em Economia Monetária (FGV/EPGE)", "Pós-doutorado em Política Monetária — MIT"], "experiencia": ["Economista-Chefe — banco/asset (9 anos): juros, câmbio, inflação", "Gestão Macro (7 anos): alocação, commodities, ciclos", "Research de Cenário para Comitês (6 anos)"], "certificacoes": ["Doutorado em Macroeconomia"], "idiomas": "Português (nativo) · Inglês (fluente)", "especializacoes": "Selic, inflação, PIB, ciclo de crédito, commodities, câmbio, impacto setorial"}, "marina": {"nome": "Marina", "gen": "👩", "papel": "Gestão & Governança", "atitude": "O Auditor de Gestão", "resumo": "Especialista em governança corporativa com 18 anos de experiência em auditoria, conselhos e compliance. Foco em avaliar qualidade da gestão, alocação de capital, transparência e sinais de insider.", "formacao": ["Graduação em Direito (USP)", "Graduação em Administração", "Mestrado em Governança Corporativa — LSE", "Certificação em Compliance e ESG — Harvard Law School"], "experiencia": ["Auditoria e Consultoria de Governança — Big Four (7 anos)", "Conselho de Administração / Comitê de Auditoria (5 anos)", "Compliance, ESG e Integridade (4 anos)", "Auditoria de Gestão e Alocação de Capital — fundo (2 anos)"], "certificacoes": ["Compliance e ESG", "Direito Societário (GVLaw)"], "idiomas": "Português (nativo) · Inglês (fluente)", "especializacoes": "Controlador, CEO, remuneração, sucessão, transparência, sinais de insider, ESG"}, "otavio": {"nome": "Otávio", "gen": "👨", "papel": "Analista Político-Jurídico", "atitude": "O Analista Político-Jurídico", "resumo": "Especialista em análise política e jurídica com 18 anos de experiência em risco regulatório, insegurança jurídica e judicialização no Brasil. Foco em medir o impacto de questões políticas e da estabilidade legal nas empresas.", "formacao": ["Graduação em Direito (USP)", "Graduação em Ciência Política (USP)", "Mestrado em Políticas Públicas — FGV", "Especialização em Direito Regulatório e Compliance"], "experiencia": ["Analista Político-Regulatório — consultoria (8 anos)", "Assessoria Jurídica e Compliance (5 anos)", "Análise de Risco de Governança e Judicialização (5 anos)"], "certificacoes": ["OAB (advocacia)", "Certificação em Compliance"], "idiomas": "Português (nativo) · Inglês (fluente)", "especializacoes": "Impacto político, insegurança jurídica, risco regulatório, judicialização, reformas, intervenção estatal"}, "rafael": {"nome": "Rafael", "gen": "👨", "papel": "Moderador / Síntese", "atitude": "O Árbitro", "resumo": "Gestor de investimentos com 25 anos de experiência em gestão de grandes portfólios e comitês de investimento. Especialista em sintetizar teses conflitantes e entregar vereditos claros.", "formacao": ["Graduação em Economia (FEA-USP)", "MBA — Wharton (University of Pennsylvania)", "Mestrado em Finanças", "Especialização em Arbitragem de Teses — Chicago Booth"], "experiencia": ["CIO — gestão de grandes portfólios (12 anos)", "Presidente de Comitês de Investimento (6 anos): arbitragem de teses", "Gestão Multiestratégia — renda fixa, ações, multimercado (5 anos)", "Coordenação de Equipes de Análise (2 anos)"], "certificacoes": ["CFA Charterholder"], "idiomas": "Português (nativo) · Inglês (fluente) · Espanhol (intermediário)", "especializacoes": "Síntese de teses, arbitragem de divergências, gestão de portfólio, decisão equilibrada"}},
+  rf: {"ricardo": {"nome": "Ricardo", "gen": "👨", "papel": "Macro & Selic", "atitude": "O Estrategista de Juros", "resumo": "Economista com 20 anos de mercado, ex-integrante da equipe de pesquisa do Banco Central, especializado na reação da política monetária e na trajetória da taxa Selic. Lê ata, comunicado e Focus como poucos.", "formacao": ["Bacharelado em Economia — FEA-USP", "Mestrado em Economia — EPGE/FGV-Rio", "Visiting Researcher — Banco Central (Departamento de Pesquisa)"], "experiencia": ["Economista-Chefe, gestora independente (atual)", "Chefe adjunto de Pesquisa, Banco Central (acompanhava o Copom)", "Head de Macro Research, asset de crédito e renda fixa", "Gestor de fundos DI e Prefixado"], "certificacoes": ["CGA (ANBIMA)", "CFA", "CNPI"], "idiomas": "Português (nativo), Inglês (fluente), Espanhol (intermediário)", "especializacoes": "Trajetória da Selic, função de reação do Copom, hiato do produto, Focus, transmissão da política monetária."}, "beatriz": {"nome": "Beatriz", "gen": "👩", "papel": "Inflação", "atitude": "A Inflacionômetra", "resumo": "Economista com 16 anos dedicados ao IPCA, ex-técnica do IBGE, responsável por traduzir núcleos, inércia e repasse cambial em projeção de inflação. Decide se o IPCA+ protege de verdade.", "formacao": ["Bacharelado em Economia — PUC-Rio", "Mestrado em Estatística — IME-USP"], "experiencia": ["Head de Inflação, asset macro (atual)", "Economista, IBGE (Coordenação de Índices de Preços — IPCA)", "Analista de inflação, banco de investimento", "Economista de pesquisa, consultoria macro"], "certificacoes": ["CGA (ANBIMA)", "CPA-20"], "idiomas": "Português (nativo), Inglês (fluente)", "especializacoes": "Decomposição do IPCA, núcleos, inércia inflacionária, inflação de serviços, repasse cambial, inflação implícita vs Focus."}, "eduardo": {"nome": "Eduardo", "gen": "👨", "papel": "Curva & Prêmios", "atitude": "O Quant da Curva", "resumo": "Ex-trader de mesa de juros e quant com 18 anos de renda fixa, especialista em estrutura a termo e derivativos de juros. Lê o que o mercado já precifica na curva e calcula a taxa real justa.", "formacao": ["Bacharelado em Engenharia de Produção — Poli-USP", "Mestrado em Finanças Quantitativas — Insper"], "experiencia": ["Gestor de fundo multimercado macro (atual)", "Trader de renda fixa, mesa de juros de banco", "Head de Macro Trading, mesa proprietária", "Quant Research, modelagem de curvas e volatilidade"], "certificacoes": ["CGE (ANBIMA)", "CGA (ANBIMA)", "CQF"], "idiomas": "Português (nativo), Inglês (fluente)", "especializacoes": "Estrutura a termo, breakeven de inflação, carry vs rolldown, NTN-B vs NTN-F, DI futuro, taxa real justa, derivativos de juros."}, "camila": {"nome": "Camila", "gen": "👩", "papel": "Fiscal & Dívida", "atitude": "A Sentinela Fiscal", "resumo": "Economista com 17 anos em finanças públicas, ex-analista do Tesouro Nacional, dona da leitura sobre resultado primário, dívida/PIB e o prêmio que o mercado cobra pela parte longa.", "formacao": ["Bacharelado em Economia — UFRJ", "Mestrado em Finanças Públicas — FGV-EESP"], "experiencia": ["Head de Política Fiscal, banco de investimento (atual)", "Analista, Tesouro Nacional (dívida pública)", "Economista fiscal, corretora", "Consultora, agência de classificação de risco"], "certificacoes": ["CGA (ANBIMA)", "CPA-20"], "idiomas": "Português (nativo), Inglês (fluente), Espanhol (fluente)", "especializacoes": "Resultado primário, dívida/PIB, arcabouço fiscal, LDO/LOA, credibilidade do âncora fiscal, crédito soberano, prêmio de risco fiscal."}, "patricia": {"nome": "Patrícia", "gen": "👩", "papel": "Risk Officer", "atitude": "A Capitã Cautela", "resumo": "Risk manager com 19 anos, ex-CRO de asset, dona do mark-to-market, da duration e do custo de oportunidade. Tem peso de veto (>8,5) quando o risco é extremo.", "formacao": ["Bacharelado em Administração — FGV-EAESP", "Mestrado em Finanças — FGV-EESP"], "experiencia": ["CRO, asset independente (atual)", "Risk Manager, mesa de tesouraria de banco", "Head de Risco de Mercado, gestora", "Análise de estresse, VaR e liquidez de carteiras"], "certificacoes": ["FRM (GARP)", "CGA (ANBIMA)", "CPA-20"], "idiomas": "Português (nativo), Inglês (fluente)", "especializacoes": "Mark-to-market, duration e convexidade, risco de reinvestimento, liquidez, custo de oportunidade, stress test de renda fixa."}, "henrique": {"nome": "Henrique", "gen": "👨", "papel": "Moderador / Síntese", "atitude": "O Árbitro", "resumo": "CIO com 22 anos de mercado, ex-gestor de fundos multimercado e chairman de comitês de investimento. Pondera os votos, desafia premissas e emite o veredito final do comitê.", "formacao": ["Bacharelado em Economia — UFRJ", "Mestrado em Economia — PUC-Rio", "MBA Executivo — INSEAD"], "experiencia": ["CIO, gestora de recursos (atual)", "Chairman, comitê de investimentos", "Gestor de fundos multimercado e renda fixa", "Conselheiro de asset e previdência"], "certificacoes": ["CGA (ANBIMA)", "CFA", "CNPI"], "idiomas": "Português (nativo), Inglês (fluente), Espanhol (fluente)", "especializacoes": "Alocação de ativos, coordenação de comitê, síntese de teses concorrentes, decisão de portfólio, horizonte e perfil de risco."}}
+};
+const ORDER = { rv: ["carlos", "helena", "marcos", "fernanda", "rodrigo", "juliana", "andre", "marina", "otavio", "rafael"], rf: ["ricardo", "beatriz", "eduardo", "camila", "patricia", "henrique"] };
+const META = {
+  rv: {folder:'personas_fotos', title:'Comitê de Renda Variável', acr:'AÇÕES · B3', mod:'rafael',
+        desc:'Nove especialistas — fundamentalista, moat, risco, valuation, análise técnica, releases, macro, governança e jurídico — debatem e votam. O Moderador Rafael arbitra e emite o veredito final com faixa de entrada.'},
+  rf: {folder:'personas_fotos_rf', title:'Comitê de Renda Fixa', acr:'SELIC · TESOURO DIRETO', mod:'henrique',
+        desc:'Cinco especialistas — macro e Selic, inflação, curva e prêmios, fiscal e dívida, e risco — votam entre Prefixado, IPCA+ e Selic. O Moderador Henrique pondera e entrega o veredito.'}
+};
+
+function buildHub(){let h='';
+  ['rv','rf'].forEach(k=>{
+    const m=META[k]; const arr=ORDER[k];
+    h+=`<div class="hub-card" onclick="enter('${k}')">
+      <div class="count">${arr.length} membros</div>
+      <div class="icon">${k==='rv'?'📈':'📊'}</div>
+      <span class="acr">${m.acr}</span>
+      <h2>${m.title}</h2><p>${m.desc}</p>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="display:flex">${arr.slice(0,8).map(key=>`<img src="${m.folder}/${key}.png">`).join('')}${arr.length>8?`<img style="background:#0d4f3d;color:#bfece7;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.7em">+${arr.length-8}</img>`:''}</div>
+        <button class="enter">Entrar no comitê →</button>
+      </div>
+    </div>`;});
+  document.getElementById('hub').innerHTML=h;}
+
+function cardGrid(key){
+  const m=META[key]; let g='';
+  ORDER[key].forEach(k=>{
+    const c=DATA[key][k]; const isMod=(k===m.mod);
+    g+=`<div class="member-card" onclick="openCV('${key}','${k}')">
+      <div class="avatar"><img src="${m.folder}/${k}.png" alt="${c.nome}">${isMod?'<div class="mod-badge">VEREDITO</div>':''}</div>
+      <div class="m-name">${c.gen} ${c.nome}</div>
+      <div class="m-role">${c.papel}</div>
+      <div class="m-att">${c.atitude}</div>
+      <div class="m-open">📄 Ver currículo</div>
+    </div>`;});
+  const panel=document.getElementById('panel-'+key);
+  panel.innerHTML=`<div class="cp-head"><div class="cp-sub">${m.acr}</div><h2>${m.title}</h2><p>${m.desc}</p></div>
+    <div class="grid">${g}</div>
+    <div class="legend">Clique em um membro para ler o currículo completo.</div>`;
+}
+
+function enter(key){document.getElementById('hub').style.display='none';
+  ['rv','rf'].forEach(k=>document.getElementById('panel-'+k).classList.remove('active'));
+  cardGrid(key);
+  document.getElementById('panel-'+key).classList.add('active');
+  document.getElementById('backBtn').style.display='inline-block';window.scrollTo(0,0);}
+function goHome(){document.getElementById('hub').style.display='grid';
+  ['rv','rf'].forEach(k=>document.getElementById('panel-'+k).classList.remove('active'));
+  document.getElementById('backBtn').style.display='none';window.scrollTo(0,0);}
+
+function openCV(com,key){const c=DATA[com][key];const m=META[com];
+  const sec=(t,body)=>`<div class="cv-section"><h4>${t}</h4>${body}</div>`;
+  const lis=a=>`<ul>${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  document.getElementById('cvContent').innerHTML=
+    `<div class="cv-head"><img src="${m.folder}/${key}.png" alt="${c.nome}">
+      <div><div class="cv-name">${c.gen} ${c.nome}</div>
+      <div class="cv-role">${c.papel}</div><div class="cv-att">${c.atitude}</div></div></div>`
+    +sec('📌 Resumo',`<div>${c.resumo}</div>`)
+    +sec('🎓 Formação',lis(c.formacao))
+    +sec('💼 Experiência',lis(c.experiencia))
+    +sec('📜 Certificações',lis(c.certificacoes))
+    +sec('🌐 Idiomas',`<div>${c.idiomas}</div>`)
+    +sec('🎯 Especializações',`<div>${c.especializacoes}</div>`)
+    +`<div class="rule">⚖️ Regra de conduta: o agente age conforme o currículo, mas <strong>nunca</strong> usa vieses comportamentais ou achismos — toda conclusão é ancorada em dados e números.</div>`;
+  document.getElementById('cvOverlay').classList.add('show');}
+function closeCV(){document.getElementById('cvOverlay').classList.remove('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCV();});
+buildHub();
+</script>
+</body>
+</html>
