@@ -26,9 +26,35 @@ export default function AIAgents() {
     refetchOnWindowFocus: true,
   });
   const reports = reportsQuery.data?.reports || [];
+  const comiteUrl = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/comites/central_comites.html`;
 
   return (
     <div className="space-y-8">
+      <a
+        href={comiteUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group block overflow-hidden rounded-2xl border border-[#2a9d8f]/30 bg-gradient-to-r from-[#143d31] via-[#1b4d3e] to-[#0f2f27] shadow-md transition-all hover:shadow-lg"
+      >
+        <div className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#2a9d8f]/20 text-2xl">
+              🏛️
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Central dos Comitês</h2>
+              <p className="mt-0.5 max-w-xl text-sm text-white/75">
+                Conheça os analistas que debatem e votam: comitê de renda variável (ações) e renda fixa (Selic · Tesouro). Veja o currículo de cada especialista.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#2a9d8f] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors group-hover:bg-[#238276]">
+            Conheça os comitês
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </span>
+        </div>
+      </a>
+
       <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
