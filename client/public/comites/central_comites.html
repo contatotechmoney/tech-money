@@ -18,16 +18,17 @@ body{background:radial-gradient(1200px 600px at 20% -10%, #0e3b34 0%, var(--bg) 
 .sep{height:1px;background:linear-gradient(90deg,transparent,rgba(32,176,168,.5),transparent);margin:22px auto;max-width:420px}
 /* HUB SELECT */
 .hub{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:10px}
-.hub-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px 26px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+.hub-card{background:var(--card);border:1px solid var(--line);border-radius:20px;cursor:pointer;transition:.2s;position:relative;overflow:hidden;display:flex}
 .hub-card:hover{transform:translateY(-4px);border-color:var(--teal);box-shadow:0 14px 34px rgba(32,176,168,.15)}
-.hub-card .icon{font-size:2.4em;margin-bottom:10px}
-.hub-card h2{font-size:1.3em;color:#fff;margin-bottom:6px}
-.hub-card .acr{display:inline-block;background:rgba(32,176,168,.15);color:var(--teal);padding:2px 10px;border-radius:20px;font-size:.75em;font-weight:700;letter-spacing:.4px;margin-bottom:10px}
-.hub-card p{color:#9db3af;font-size:.92em;line-height:1.55;margin-bottom:14px}
-.hub-card .members-row{display:flex;gap:-8px}
-.hub-card .members-row img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--card);margin-left:-8px}
-.hub-card .count{position:absolute;top:18px;right:18px;background:var(--teal-dark);color:#bfece7;font-weight:700;font-size:.8em;padding:5px 11px;border-radius:16px}
-.enter{background:var(--teal);color:#04211c;border:none;border-radius:10px;padding:10px 20px;font-weight:800;font-size:.9em;cursor:pointer;transition:.15s}
+.hub-photo{width:46%;flex:0 0 auto;position:relative;min-height:100%}
+.hub-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.hub-photo .ph-caption{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;font-size:.6em;font-weight:700;padding:4px 8px;border-radius:6px;backdrop-filter:blur(3px)}
+.hub-body{padding:22px 20px;display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
+.hub-card h2{font-size:1.28em;color:#fff;line-height:1.15}
+.hub-card .acr{display:inline-block;background:rgba(32,176,168,.15);color:var(--teal);padding:2px 10px;border-radius:20px;font-size:.72em;font-weight:700;letter-spacing:.4px;align-self:flex-start}
+.hub-card p{color:#9db3af;font-size:.88em;line-height:1.5;flex:1}
+.hub-card .count{position:absolute;top:14px;left:14px;background:rgba(8,19,17,.72);color:#bfece7;font-weight:700;font-size:.74em;padding:4px 10px;border-radius:14px;z-index:2;backdrop-filter:blur(2px);border:1px solid rgba(32,176,168,.4)}
+.enter{align-self:flex-start;background:var(--teal);color:#04211c;border:none;border-radius:10px;padding:10px 18px;font-weight:800;font-size:.88em;cursor:pointer;transition:.15s;margin-top:4px}
 .enter:hover{background:#2fd3ca}
 .back{display:none;background:transparent;border:1px solid var(--line);color:#9db3af;border-radius:10px;padding:9px 18px;font-weight:600;cursor:pointer;margin-bottom:20px;font-size:.9em}
 .back:hover{color:#fff;border-color:var(--teal)}
@@ -69,7 +70,7 @@ body{background:radial-gradient(1200px 600px at 20% -10%, #0e3b34 0%, var(--bg) 
 .cv-section li::before{content:'›';color:var(--teal);position:absolute;left:0;font-weight:700}
 .rule{background:rgba(245,158,11,.08);border-left:4px solid var(--gold);padding:12px 16px;border-radius:8px;color:#f3d9a6;font-size:.85em;line-height:1.5;margin-top:14px}
 .legend{text-align:center;color:#5c7a74;font-size:.8em;margin-top:18px}
-@media(max-width:640px){.hub{grid-template-columns:1fr}.brand h1{font-size:1.4em}}
+@media(max-width:640px){.hub{grid-template-columns:1fr}.hub-photo{width:40%}.hub-body{padding:16px}.hub-card h2{font-size:1.1em}.brand h1{font-size:1.4em}}
 </style>
 </head>
 <body>
@@ -107,9 +108,9 @@ const DATA = {
 };
 const ORDER = { rv: ["carlos", "helena", "marcos", "fernanda", "rodrigo", "juliana", "andre", "marina", "otavio", "rafael"], rf: ["ricardo", "beatriz", "eduardo", "camila", "patricia", "henrique"] };
 const META = {
-  rv: {folder:'personas_fotos', title:'Comitê de Renda Variável', acr:'AÇÕES · B3', mod:'rafael',
+  rv: {folder:'personas_fotos', photo:'comite_rv.jpg', cap:'AÇÕES · B3', title:'Comitê de Renda Variável', acr:'AÇÕES · B3', mod:'rafael',
         desc:'Nove especialistas — fundamentalista, moat, risco, valuation, análise técnica, releases, macro, governança e jurídico — debatem e votam. O Moderador Rafael arbitra e emite o veredito final com faixa de entrada.'},
-  rf: {folder:'personas_fotos_rf', title:'Comitê de Renda Fixa', acr:'SELIC · TESOURO DIRETO', mod:'henrique',
+  rf: {folder:'personas_fotos_rf', photo:'comite_rf.jpg', cap:'SELIC · TESOURO DIRETO', title:'Comitê de Renda Fixa', acr:'SELIC · TESOURO DIRETO', mod:'henrique',
         desc:'Cinco especialistas — macro e Selic, inflação, curva e prêmios, fiscal e dívida, e risco — votam entre Prefixado, IPCA+ e Selic. O Moderador Henrique pondera e entrega o veredito.'}
 };
 
@@ -117,12 +118,10 @@ function buildHub(){let h='';
   ['rv','rf'].forEach(k=>{
     const m=META[k]; const arr=ORDER[k];
     h+=`<div class="hub-card" onclick="enter('${k}')">
-      <div class="count">${arr.length} membros</div>
-      <div class="icon">${k==='rv'?'📈':'📊'}</div>
-      <span class="acr">${m.acr}</span>
-      <h2>${m.title}</h2><p>${m.desc}</p>
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <div style="display:flex">${arr.slice(0,8).map(key=>`<img src="${m.folder}/${key}.png">`).join('')}${arr.length>8?`<img style="background:#0d4f3d;color:#bfece7;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.7em">+${arr.length-8}</img>`:''}</div>
+      <div class="hub-photo"><img src="${m.photo}" alt="${m.title}" loading="lazy"><span class="count">${arr.length} especialistas</span><span class="ph-caption">${m.cap}</span></div>
+      <div class="hub-body">
+        <span class="acr">${m.acr}</span>
+        <h2>${m.title}</h2><p>${m.desc}</p>
         <button class="enter">Entrar no comitê →</button>
       </div>
     </div>`;});
