@@ -8,6 +8,7 @@ import {
   storage,
   type InvestmentReport,
 } from "./storage";
+import { runAgents } from "./agents";
 
 declare global {
   namespace Express {
@@ -54,6 +55,29 @@ export async function registerRoutes(
       res.json({ quotes, source: "Yahoo Finance", updatedAt: new Date().toISOString() });
     } catch (error) {
       sendMarketDataError(res, "consultar cotações", error);
+    }
+  });
+
+  app.post("/api/investments/agents/run", requireAuth, async (req, res) => {
+    const parsed = z
+      .object({
+        ticker: z.string().min(1).max(12),
+        dados: z.string().min(1).max(20000).default("(sem dados-base informados)"),
+        comite: z.enum(["rv", "rf"]).default("rv"),
+      })
+      .safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Parâmetros inválidos: informe ticker e comite (rv|rf)." });
+    }
+    try {
+      const resultado = await runAgents({
+        ticker: parsed.data.ticker.toUpperCase(),
+        dados: parsed.data.dados,
+        comite: parsed.data.comite,
+      });
+      res.json(resultado);
+    } catch (error) {
+      sendInternalError(res, "rodar comitê de agentes", error);
     }
   });
 
