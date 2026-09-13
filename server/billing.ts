@@ -16,31 +16,92 @@ import { createHmac, timingSafeEqual } from "crypto";
 import type { CreditStore } from "./credits";
 
 export type Modo = "payment" | "subscription";
+export type Ciclo = "mensal" | "anual";
 
 export interface Plano {
   id: string;
   nome: string;
   descricao: string;
   creditos: number;
-  precoCentavos: number;
+  precoMensalCentavos: number;
+  precoUnicoCentavos?: number;
   modo: Modo;
+  sobConsulta?: boolean;
+  destaque?: boolean;
+  recursos: string[];
 }
 
-/** Catálogo de créditos — preços em centavos de BRL. */
+/** Anual = 12 meses pagando 10 (2 meses grátis ≈ 17%). Não usar 40%: destrói o ARPU. */
+export const MESES_GRATIS_ANUAL = 2;
+
 export const CATALOGO: Record<string, Plano> = {
-  pack1: {
-    id: "pack1", nome: "1 consulta", descricao: "Uma análise completa do comitê",
-    creditos: 1, precoCentavos: 4900, modo: "payment",
+  avulso: {
+    id: "avulso",
+    nome: "Avulso",
+    descricao: "Para análises pontuais",
+    creditos: 5,
+    precoMensalCentavos: 0,
+    precoUnicoCentavos: 4990,
+    modo: "payment",
+    recursos: [
+      "5 créditos — R$ 9,98 por análise",
+      "Validade de 90 dias",
+      "Todos os tipos de relatório",
+    ],
   },
-  pack5: {
-    id: "pack5", nome: "Pacote 5 consultas", descricao: "5 análises — economize 18%",
-    creditos: 5, precoCentavos: 19900, modo: "payment",
+  essencial: {
+    id: "essencial",
+    nome: "Essencial",
+    descricao: "Para investidores ativos",
+    creditos: 15,
+    precoMensalCentavos: 11990,
+    modo: "subscription",
+    recursos: [
+      "15 créditos por mês — R$ 7,99 por análise",
+      "Créditos não usados acumulam",
+      "Relatórios completos do comitê",
+      "Suporte por e-mail",
+    ],
   },
-  sub_mensal: {
-    id: "sub_mensal", nome: "Assinatura mensal", descricao: "6 consultas por mês",
-    creditos: 6, precoCentavos: 14900, modo: "subscription",
+  profissional: {
+    id: "profissional",
+    nome: "Profissional",
+    descricao: "Para consultores e contadores",
+    creditos: 45,
+    precoMensalCentavos: 27990,
+    modo: "subscription",
+    destaque: true,
+    recursos: [
+      "45 créditos por mês — R$ 6,22 por análise",
+      "Créditos não usados acumulam",
+      "Relatórios white-label (sua marca)",
+      "Suporte prioritário",
+    ],
+  },
+  enterprise: {
+    id: "enterprise",
+    nome: "Enterprise",
+    descricao: "Para escritórios e family offices",
+    creditos: 0,
+    precoMensalCentavos: 0,
+    modo: "subscription",
+    sobConsulta: true,
+    recursos: [
+      "Uso justo, sem limite fixo",
+      "API de integração",
+      "Múltiplos usuários",
+      "Gerente de conta dedicado",
+    ],
   },
 };
+
+export function precoAnualCentavos(plano: Plano): number {
+  return plano.precoMensalCentavos * (12 - MESES_GRATIS_ANUAL);
+}
+
+export function mesEquivalenteCentavos(plano: Plano): number {
+  return plano.precoMensalCentavos;
+}
 
 const key = () => process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || "";
 const webhookSecret = () => process.env.STRIPE_WEBHOOK_SECRET || "";
@@ -59,15 +120,28 @@ export function formEncode(obj: Record<string, string | number>, prefix = ""): s
   return parts.join("&");
 }
 
+/** Total de créditos concedidos a cada cobrança (anual credita 12× de uma vez). */
+export function creditosPorCobranca(plano: Plano, ciclo: Ciclo): number {
+  if (plano.modo === "payment") return plano.creditos;
+  return ciclo === "anual" ? plano.creditos * 12 : plano.creditos;
+}
+
 /** Cria a Checkout Session e devolve a URL de pagamento. */
 export async function criarCheckout(opts: {
   planoId: string;
+  ciclo?: Ciclo;
   userId: string;
   baseUrl: string;
 }): Promise<{ url: string }> {
   const plano = CATALOGO[opts.planoId];
   if (!plano) throw new Error(`plano inválido: ${opts.planoId}`);
+  if (plano.sobConsulta) {
+    throw new Error("O plano Enterprise é sob consulta — fale com o time comercial.");
+  }
   if (!billingConfigurado()) throw new Error("Stripe não configurado (STRIPE_SECRET_KEY ausente).");
+
+  const ciclo: Ciclo = plano.modo === "payment" ? "mensal" : (opts.ciclo ?? "mensal");
+  const creditos = creditosPorCobranca(plano, ciclo);
 
   const sucesso = `${opts.baseUrl}/credits?status=sucesso`;
   const cancelado = `${opts.baseUrl}/credits?status=cancelado`;
@@ -79,22 +153,29 @@ export async function criarCheckout(opts: {
     "client_reference_id": opts.userId,
     "metadata[userId]": opts.userId,
     "metadata[planoId]": plano.id,
-    "metadata[creditos]": plano.creditos,
+    "metadata[ciclo]": ciclo,
+    "metadata[creditos]": creditos,
   };
 
   if (plano.modo === "subscription") {
-    const priceId = process.env.STRIPE_PRICE_SUB_MENSAL || "";
-    if (!priceId) {
-      throw new Error(
-        "Assinatura requer STRIPE_PRICE_SUB_MENSAL (crie o Price recorrente no Stripe).",
-      );
+    // Preferir o Price criado no Stripe (env); senão, criar o preço recorrente inline.
+    const envKey = `STRIPE_PRICE_${plano.id.toUpperCase()}_${ciclo.toUpperCase()}`;
+    const priceId = (process.env[envKey] || "").trim();
+    if (priceId) {
+      campos["line_items[0][price]"] = priceId;
+    } else {
+      const unit =
+        ciclo === "anual" ? precoAnualCentavos(plano) : plano.precoMensalCentavos;
+      campos["line_items[0][price_data][currency]"] = "brl";
+      campos["line_items[0][price_data][product_data][name]"] = `Tech Money — Plano ${plano.nome}`;
+      campos["line_items[0][price_data][unit_amount]"] = unit;
+      campos["line_items[0][price_data][recurring][interval]"] = ciclo === "anual" ? "year" : "month";
     }
-    campos["line_items[0][price]"] = priceId;
     campos["line_items[0][quantity]"] = 1;
   } else {
     campos["line_items[0][price_data][currency]"] = "brl";
     campos["line_items[0][price_data][product_data][name]"] = `Tech Money — ${plano.nome}`;
-    campos["line_items[0][price_data][unit_amount]"] = plano.precoCentavos;
+    campos["line_items[0][price_data][unit_amount]"] = plano.precoUnicoCentavos ?? 0;
     campos["line_items[0][quantity]"] = 1;
   }
 
@@ -175,11 +256,11 @@ export async function processarEvento(
   }
 
   if (evento.type === "invoice.paid") {
-    // renovação de assinatura: os metadados vivem na subscription (subscription_details.metadata)
+    // renovação: os metadados vivem na subscription (subscription_details.metadata)
     const meta = obj?.subscription_details?.metadata ?? obj?.metadata ?? {};
-    const qtd = Number(meta?.creditos ?? 0) || 6;
+    const qtd = Number(meta?.creditos ?? 0);
     const userId = meta?.userId;
-    if (!userId) return { concedido: false, motivo: "invoice sem userId" };
+    if (!userId || !qtd) return { concedido: false, motivo: "invoice sem userId/creditos" };
     const concedido = await store.grantOnce(userId, qtd, `stripe:${evento.id}`);
     return { concedido, creditos: qtd };
   }

@@ -12,8 +12,10 @@ import { runAgents } from "./agents";
 import { guardRun, PostgresCreditStore, grantSignupCredits, GUARD_CONFIG } from "./credits";
 import {
   CATALOGO,
+  MESES_GRATIS_ANUAL,
   billingConfigurado,
   criarCheckout,
+  precoAnualCentavos,
   processarEvento,
   verificarAssinatura,
   type EventoStripe,
@@ -148,21 +150,39 @@ export async function registerRoutes(
   app.get("/api/investments/billing/catalog", (_req, res) => {
     res.json({
       configurado: billingConfigurado(),
+      mesesGratisAnual: MESES_GRATIS_ANUAL,
       planos: Object.values(CATALOGO).map((p) => ({
-        id: p.id, nome: p.nome, descricao: p.descricao,
-        creditos: p.creditos, precoCentavos: p.precoCentavos, precoBrl: p.precoCentavos / 100,
+        id: p.id,
+        nome: p.nome,
+        descricao: p.descricao,
+        creditos: p.creditos,
         modo: p.modo,
+        sobConsulta: !!p.sobConsulta,
+        destaque: !!p.destaque,
+        recursos: p.recursos,
+        precoUnicoBrl: p.precoUnicoCentavos != null ? p.precoUnicoCentavos / 100 : null,
+        precoMensalBrl: p.precoMensalCentavos ? p.precoMensalCentavos / 100 : null,
+        precoAnualBrl: p.precoMensalCentavos ? precoAnualCentavos(p) / 100 : null,
+        precoMensalEquivalenteAnualBrl: p.precoMensalCentavos
+          ? p.precoMensalCentavos * (12 - MESES_GRATIS_ANUAL) / 12 / 100
+          : null,
       })),
     });
   });
 
   app.post("/api/investments/billing/checkout", requireAuth, async (req, res) => {
-    const parsed = z.object({ planoId: z.string().min(1).max(40) }).safeParse(req.body);
+    const parsed = z
+      .object({
+        planoId: z.string().min(1).max(40),
+        ciclo: z.enum(["mensal", "anual"]).optional(),
+      })
+      .safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: "Informe planoId." });
     try {
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       const { url } = await criarCheckout({
         planoId: parsed.data.planoId,
+        ciclo: parsed.data.ciclo,
         userId: req.userId!,
         baseUrl,
       });
