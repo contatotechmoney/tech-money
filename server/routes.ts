@@ -9,6 +9,13 @@ import {
   type InvestmentReport,
 } from "./storage";
 import { runAgents } from "./agents";
+import { guardRun, PostgresCreditStore, grantSignupCredits, GUARD_CONFIG } from "./credits";
+
+let _creditsStore: PostgresCreditStore | null = null;
+function getCreditStore(): PostgresCreditStore {
+  if (!_creditsStore) _creditsStore = new PostgresCreditStore();
+  return _creditsStore;
+}
 
 declare global {
   namespace Express {
@@ -36,6 +43,13 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Cria ledger de créditos + log de auditoria (idempotente).
+  try {
+    await getCreditStore().ensureSchema();
+  } catch (error) {
+    console.error("[credits] falha ao criar schema (seguindo, rotas vão falhar):", (error as Error).message);
+  }
+
   app.get("/api/auth/session", requireAuth, (req, res) => {
     res.json({ authenticated: true, userId: req.userId });
   });
@@ -69,15 +83,56 @@ export async function registerRoutes(
     if (!parsed.success) {
       return res.status(400).json({ error: "Parâmetros inválidos: informe ticker e comite (rv|rf)." });
     }
+    const userId = req.userId!;
+    const store = getCreditStore();
+
+    // Travas ANTES de gastar qualquer token: idempotência, teto global, rate limit,
+    // concorrência e débito atômico de crédito.
+    const guard = await guardRun(store, {
+      userId,
+      ticker: parsed.data.ticker.toUpperCase(),
+      comite: parsed.data.comite,
+      idempotencyKey: req.header("Idempotency-Key") ?? req.header("idempotency-key") ?? null,
+      ip: req.ip ?? null,
+    });
+    if (!guard.ok) {
+      return res.status(guard.status).json({ error: guard.reason });
+    }
+    if (guard.replay) {
+      return res.json({ replay: true, run: guard.replay });
+    }
+
     try {
       const resultado = await runAgents({
         ticker: parsed.data.ticker.toUpperCase(),
         dados: parsed.data.dados,
         comite: parsed.data.comite,
       });
-      res.json(resultado);
+      const custoBrl = await guard.finalize!(resultado.uso);
+      const creditos = await store.balance(userId);
+      res.json({ ...resultado, runId: guard.runId, custoBrl, creditos });
     } catch (error) {
+      await guard.fail!((error as Error).message);
       sendInternalError(res, "rodar comitê de agentes", error);
+    }
+  });
+
+  app.get("/api/investments/credits", requireAuth, async (req, res) => {
+    try {
+      const store = getCreditStore();
+      res.json({ creditos: await store.balance(req.userId!), limites: GUARD_CONFIG });
+    } catch (error) {
+      sendInternalError(res, "consultar créditos", error);
+    }
+  });
+
+  app.post("/api/investments/credits/signup-grant", requireAuth, async (req, res) => {
+    try {
+      const store = getCreditStore();
+      const concedido = await grantSignupCredits(store, req.userId!);
+      res.json({ concedido, creditos: await store.balance(req.userId!) });
+    } catch (error) {
+      sendInternalError(res, "conceder créditos de cadastro", error);
     }
   });
 

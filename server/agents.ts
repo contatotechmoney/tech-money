@@ -36,7 +36,14 @@ export interface AgentVote {
   numero: string;
   nota: number | null;
   raciocinio: string;
+  tokensIn?: number;
+  tokensOut?: number;
   erro?: string;
+}
+
+/** Estimativa de tokens (PT-BR ≈ 3,6 chars/token) — usada para o teto de gasto. */
+export function estimarTokens(texto: string): number {
+  return Math.ceil(texto.length / 3.6);
 }
 
 export interface Consenso {
@@ -119,7 +126,12 @@ export async function runAgent(
   };
   try {
     const texto = await callLLM(prompt);
-    return { ...base, ...parseResposta(texto) };
+    return {
+      ...base,
+      ...parseResposta(texto),
+      tokensIn: estimarTokens(prompt),
+      tokensOut: estimarTokens(texto),
+    };
   } catch (error) {
     return { ...base, erro: (error as Error).message };
   }
@@ -176,7 +188,12 @@ export async function runAgents(opts: {
   ticker: string;
   dados: string;
   comite?: Comite;
-}): Promise<{ comite: Comite; votos: AgentVote[]; consenso: Consenso }> {
+}): Promise<{
+  comite: Comite;
+  votos: AgentVote[];
+  consenso: Consenso;
+  uso: { tokensIn: number; tokensOut: number };
+}> {
   const comite: Comite = opts.comite ?? "rv";
   const moderador = MODERADOR[comite];
   const codigos = listarAgentes(comite).filter((c) => c !== moderador);
@@ -189,5 +206,9 @@ export async function runAgents(opts: {
     );
     votos.push(...res);
   }
-  return { comite, votos, consenso: consenso(votos) };
+  const uso = {
+    tokensIn: votos.reduce((a, v) => a + (v.tokensIn ?? 0), 0),
+    tokensOut: votos.reduce((a, v) => a + (v.tokensOut ?? 0), 0),
+  };
+  return { comite, votos, consenso: consenso(votos), uso };
 }
