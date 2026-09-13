@@ -10,6 +10,14 @@ import {
 } from "./storage";
 import { runAgents } from "./agents";
 import { guardRun, PostgresCreditStore, grantSignupCredits, GUARD_CONFIG } from "./credits";
+import {
+  CATALOGO,
+  billingConfigurado,
+  criarCheckout,
+  processarEvento,
+  verificarAssinatura,
+  type EventoStripe,
+} from "./billing";
 
 let _creditsStore: PostgresCreditStore | null = null;
 function getCreditStore(): PostgresCreditStore {
@@ -133,6 +141,56 @@ export async function registerRoutes(
       res.json({ concedido, creditos: await store.balance(req.userId!) });
     } catch (error) {
       sendInternalError(res, "conceder créditos de cadastro", error);
+    }
+  });
+
+  // ---- Billing (Stripe) ----
+  app.get("/api/investments/billing/catalog", (_req, res) => {
+    res.json({
+      configurado: billingConfigurado(),
+      planos: Object.values(CATALOGO).map((p) => ({
+        id: p.id, nome: p.nome, descricao: p.descricao,
+        creditos: p.creditos, precoCentavos: p.precoCentavos, precoBrl: p.precoCentavos / 100,
+        modo: p.modo,
+      })),
+    });
+  });
+
+  app.post("/api/investments/billing/checkout", requireAuth, async (req, res) => {
+    const parsed = z.object({ planoId: z.string().min(1).max(40) }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Informe planoId." });
+    try {
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const { url } = await criarCheckout({
+        planoId: parsed.data.planoId,
+        userId: req.userId!,
+        baseUrl,
+      });
+      res.json({ url });
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  // Webhook do Stripe — SEM requireAuth (o Stripe não tem sessão Clerk).
+  // A autenticidade vem da assinatura HMAC verificada com o webhook secret.
+  app.post("/api/investments/billing/webhook", async (req, res) => {
+    const secret = process.env.STRIPE_WEBHOOK_SECRET || "";
+    const payload =
+      typeof (req as any).rawBody === "object" && (req as any).rawBody
+        ? (req as any).rawBody.toString("utf8")
+        : JSON.stringify(req.body ?? {});
+
+    const check = verificarAssinatura(payload, req.header("stripe-signature"), secret);
+    if (!check.ok) {
+      return res.status(400).json({ error: `assinatura rejeitada: ${check.motivo}` });
+    }
+    try {
+      const evento = JSON.parse(payload) as EventoStripe;
+      const resultado = await processarEvento(getCreditStore(), evento);
+      res.json({ received: true, ...resultado });
+    } catch (error) {
+      sendInternalError(res, "processar webhook do Stripe", error);
     }
   });
 
