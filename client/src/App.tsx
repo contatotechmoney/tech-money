@@ -1,8 +1,9 @@
 import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
-import { useEffect, useRef, type ComponentType, type ReactNode } from "react";
-import { Router as WouterRouter, Switch, Route, useLocation } from "wouter";
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { Router as WouterRouter, Switch, Route, useLocation, useSearch } from "wouter";
+import { authLink, getAuthRedirect, withAppBase } from "@/lib/auth-redirect";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -101,7 +102,10 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      const redirect = `${window.location.pathname}${window.location.search}`;
+      const redirect = getAuthRedirect(
+        `?redirect=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`,
+        basePath,
+      );
       navigate(`/?redirect=${encodeURIComponent(redirect)}`, { replace: true });
     }
   }, [isLoaded, isSignedIn, navigate]);
@@ -145,24 +149,35 @@ function ProtectedAreaSelection() {
 }
 
 function SignInPage() {
+  const search = useSearch();
+  // Keep the initial destination if Clerk drops our query on a verification step.
+  const [redirectPath] = useState(() => getAuthRedirect(search, basePath));
+  const destination = withAppBase(redirectPath, basePath);
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
       <SignIn
         routing="path"
         path={`${basePath}/sign-in`}
-        signUpUrl={`${basePath}/sign-up`}
+        signUpUrl={withAppBase(authLink("/sign-up", redirectPath), basePath)}
+        forceRedirectUrl={destination}
+        signUpForceRedirectUrl={destination}
       />
     </div>
   );
 }
 
 function SignUpPage() {
+  const search = useSearch();
+  const [redirectPath] = useState(() => getAuthRedirect(search, basePath));
+  const destination = withAppBase(redirectPath, basePath);
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
       <SignUp
         routing="path"
         path={`${basePath}/sign-up`}
-        signInUrl={`${basePath}/sign-in`}
+        signInUrl={withAppBase(authLink("/sign-in", redirectPath), basePath)}
+        forceRedirectUrl={destination}
+        signInForceRedirectUrl={destination}
       />
     </div>
   );

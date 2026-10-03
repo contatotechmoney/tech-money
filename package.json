@@ -9,7 +9,7 @@
     "build": "tsx script/build.ts",
     "start": "npm run db:migrate && NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
-    "test": "npm run db:migrate && NODE_ENV=test tsx --test server/storage.test.ts server/routes.test.ts",
+    "test": "npm run db:migrate && NODE_ENV=test tsx --test server/storage.test.ts server/routes.test.ts server/auth-redirect.test.ts",
     "validate": "npm run check && npm test",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate"
