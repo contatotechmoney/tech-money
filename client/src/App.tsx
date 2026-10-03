@@ -1,7 +1,7 @@
 import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
-import { useEffect, useRef, type ComponentType, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { Router as WouterRouter, Switch, Route, useLocation, useSearch } from "wouter";
 import { authLink, getAuthRedirect, withAppBase } from "@/lib/auth-redirect";
 import { queryClient } from "./lib/queryClient";
@@ -149,7 +149,9 @@ function ProtectedAreaSelection() {
 }
 
 function SignInPage() {
-  const redirectPath = getAuthRedirect(useSearch(), basePath);
+  const search = useSearch();
+  // Keep the initial destination if Clerk drops our query on a verification step.
+  const [redirectPath] = useState(() => getAuthRedirect(search, basePath));
   const destination = withAppBase(redirectPath, basePath);
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
@@ -165,7 +167,8 @@ function SignInPage() {
 }
 
 function SignUpPage() {
-  const redirectPath = getAuthRedirect(useSearch(), basePath);
+  const search = useSearch();
+  const [redirectPath] = useState(() => getAuthRedirect(search, basePath));
   const destination = withAppBase(redirectPath, basePath);
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">

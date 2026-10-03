@@ -84,6 +84,7 @@ describe("investment entry and authentication destination", () => {
     assert.equal((app.match(/forceRedirectUrl=\{destination\}/g) || []).length, 2);
     assert.match(app, /signUpForceRedirectUrl=\{destination\}/);
     assert.match(app, /signInForceRedirectUrl=\{destination\}/);
+    assert.equal((app.match(/useState\(\(\) => getAuthRedirect\(search, basePath\)\)/g) || []).length, 2);
     assert.match(login, /navigate\(redirectPath, \{ replace: true \}\)/);
     assert.match(login, /href=\{authLink\("\/sign-up", redirectPath\)\}/);
     assert.match(login, /navigate\(authLink\("\/sign-in", redirectPath\)\)/);
