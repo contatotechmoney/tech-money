@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Apple, Github } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
+import { authLink, getAuthRedirect, withAppBase } from "@/lib/auth-redirect";
 import { useLanguage } from "@/contexts/LanguageContext";
 import heroBg from "@assets/generated_images/clean_corporate_data_background.png";
 import { useState, useEffect } from "react";
@@ -30,6 +31,8 @@ const HEADLINES = [
   }
 ];
 
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 export default function Login() {
   const { t } = useLanguage();
   const [, navigate] = useLocation();
@@ -50,12 +53,7 @@ export default function Login() {
 
   const currentLang = HEADLINES[currentIndex].lang as 'pt' | 'en' | 'es';
   const tDynamic = (key: string) => translations[currentLang][key as keyof typeof translations['pt']] || key;
-  const redirectPath = (() => {
-    const redirect = new URLSearchParams(window.location.search).get("redirect");
-    return redirect && redirect.startsWith("/") && !redirect.startsWith("//")
-      ? redirect
-      : "/areas";
-  })();
+  const redirectPath = getAuthRedirect(useSearch(), basePath);
 
   useEffect(() => {
     if (isAuthLoaded && isSignedIn) {
@@ -80,7 +78,7 @@ export default function Login() {
         await setActive({ session: result.createdSessionId });
         navigate(redirectPath, { replace: true });
       } else {
-        navigate("/sign-in");
+        navigate(authLink("/sign-in", redirectPath));
       }
     } catch (signInError: any) {
       setError(
@@ -102,8 +100,8 @@ export default function Login() {
     try {
       await signIn.authenticateWithRedirect({
         strategy,
-        redirectUrl: `${window.location.origin}/sign-in/sso-callback`,
-        redirectUrlComplete: `${window.location.origin}${redirectPath}`,
+        redirectUrl: `${window.location.origin}${basePath}/sign-in/sso-callback?redirect=${encodeURIComponent(redirectPath)}`,
+        redirectUrlComplete: `${window.location.origin}${withAppBase(redirectPath, basePath)}`,
       });
     } catch (signInError: any) {
       setError(
@@ -264,7 +262,7 @@ export default function Login() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">{tDynamic("password")}</Label>
-                    <Link href="/sign-in" className="text-sm text-primary hover:underline">{tDynamic("forgotPassword")}</Link>
+                    <Link href={authLink("/sign-in", redirectPath)} className="text-sm text-primary hover:underline">{tDynamic("forgotPassword")}</Link>
                   </div>
                   <Input
                     id="password"
@@ -291,7 +289,7 @@ export default function Login() {
               
               <p className="text-center text-sm text-muted-foreground">
                 {tDynamic("noAccount")}{" "}
-                <Link href="/sign-up" className="text-primary hover:underline font-medium">
+                <Link href={authLink("/sign-up", redirectPath)} className="text-primary hover:underline font-medium">
                   {tDynamic("registerCompany")}
                 </Link>
               </p>
