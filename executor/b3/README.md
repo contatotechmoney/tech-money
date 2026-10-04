@@ -41,3 +41,12 @@ python3 -m unittest discover -s executor/b3 -p 'test_*.py' -v
 ```
 
 15 testes em bancos descartáveis: concorrência entre conexões, idempotência, mudança de payload/política, teto conjunto, tokens, chamadas, paralelismo, prazo, estorno da diferença, ausência de usage, restart, overrun e histórico imutável. Preços/modelos sintéticos; nenhuma rede ou chave.
+
+
+## Nous: identificação e contrato offline de resposta
+
+O usuário confirmou em 4 de outubro de 2026 o provedor `nous` e o nome apresentado `Nous/Deepseek4.1-Flash`. O identificador de API exato e a tarifa da conta não foram confirmados; nenhum preço da API direta DeepSeek foi adotado. A documentação oficial descreve o Nous como gateway faturado pela assinatura e mostra `https://inference-api.nousresearch.com/v1` como base de inferência. Isso não confirma limites financeiros por chave ou o uso comercial do plano contratado. Fonte: https://hermes-agent.nousresearch.com/docs/integrations/nous-portal .
+
+`response_contract.py` valida somente envelopes simulados compatíveis com OpenAI e reconcilia respostas de um adaptador confiável. Não faz HTTP, login, dispatch ou leitura de credenciais. Exige o modelo fixado, usage integral e totais consistentes. Raciocínio informado como decomposição da saída não é somado novamente nem retornado no resultado. Usage/modelo inválido mantém reserva e interrompe o job. Saída truncada ou pedido de ferramenta contabiliza usage, mas não é entregue como estudo completo. Isso não certifica a contabilização Nous: contrato real e todos os custos devem ser verificados antes da ativação.
+
+22 testes offline aprovados, incluindo 7 de validação/reconciliação de resposta. Transporte, OAuth de serviço isolado, tokenizador, identificação de requests, tarifas verificadas, teto no provedor, integração portal e scheduler multiagente continuam pendentes.
