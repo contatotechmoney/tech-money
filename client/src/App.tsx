@@ -26,7 +26,9 @@ import InvestmentReport from "@/pages/investment-report";
 import InvestmentPlaceholder from "@/pages/investment-placeholder";
 import InvestmentReports from "@/pages/investment-reports";
 import InvestmentPortfolio from "@/pages/investment-portfolio";
+import Suitability from "@/pages/suitability";
 import Settings from "@/pages/settings";
+import InvestmentReview from "@/pages/investment-review";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -229,9 +231,15 @@ function Router() {
       />
       <ProtectedRoute
         investment
+        path="/investments/suitability"
+        component={Suitability}
+      />
+      <ProtectedRoute
+        investment
         path="/investments/reports"
         component={InvestmentReports}
       />
+      <ProtectedRoute investment path="/investments/review" component={InvestmentReview} />
       <ProtectedRoute
         investment
         path="/investments/credits"
