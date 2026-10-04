@@ -63,3 +63,7 @@ GET autenticado `/api/investments/credits` retorna apenas a carteira da conta. N
 O orçamento técnico retém a estimativa máxima por execução durante solicitações ativas e por 24h após a última atualização. Falhas também retêm orçamento técnico, pois podem ter gasto tokens; seus créditos comerciais são devolvidos. Essa estimativa só constitui teto real após o executor garantir que nenhuma execução, ferramenta ou fallback ultrapasse o valor reservado.
 
 `npm run validate:synthetic` usa PostgreSQL descartável e testa concorrência, idempotência, estorno, conclusão, isolamento e imutabilidade. Nenhum banco de cliente ou provedor de IA é chamado.
+
+## Núcleo do executor dedicado (offline)
+
+`executor/b3/budget.py` implementa uma reserva técnica persistente compartilhada por chamadas, com testes de concorrência e interrupção. Não está conectado à Runs API, não limita o Hermes pessoal e não habilita execução real. Adaptador de modelo, contagem de tokens, limites do provedor, ferramentas e reconciliação ainda faltam. Detalhes e testes em `executor/b3/README.md`.

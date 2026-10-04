@@ -22,3 +22,5 @@ Fonte Replit auditada: 53 testes gerais, 5 de banco de revisão e 72 de qualidad
 A checagem da composição com os arquivos exclusivos do GitHub é registrada no PR. Nenhuma migração de produção, cobrança ou envio de mensagem é executada por esta branch.
 
 Validação da carteira: PostgreSQL descartável, testes de concorrência, orçamento, idempotência, estorno, configuração e isolamento de conta. Resultado final registrado no PR.
+
+Núcleo offline do orçamento técnico em `executor/b3/`: 15 testes Python adicionais aprovados, sem rede/provedor. Não está conectado ao portal/Hermes; o bloqueio de ativação continua.
