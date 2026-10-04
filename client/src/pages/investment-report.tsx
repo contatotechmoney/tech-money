@@ -43,63 +43,13 @@ type ReportListResponse = { reports: Report[]; source?: string };
 
 export default function InvestmentReport({ ticker }: { ticker?: string }) {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const asset = ticker || "BBDC3";
   const detailKey = [`/api/investments/reports/${asset}`];
-  const listKey = ["/api/investments/reports"];
   const reportQuery = useQuery<ReportResponse>({
     queryKey: detailKey,
     refetchOnWindowFocus: true,
     staleTime: 0,
     refetchInterval: 30_000,
-  });
-  const refresh = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/investments/reports/${asset}/refresh`);
-      return await response.json() as Report;
-    },
-    onSuccess: (freshReport) => {
-      trackEvent("report_refresh_completed", { ticker: asset, location: "report_detail" });
-
-      // Publish the exact returned presentation first; a failed refresh may intentionally return "outdated".
-      queryClient.setQueryData<ReportResponse>(detailKey, (current) => ({
-        latest: freshReport,
-        history: current?.latest && current.latest.id !== freshReport.id
-          ? [current.latest, ...(current.history ?? [])]
-          : current?.history ?? [],
-        source: freshReport.source ?? current?.source ?? "",
-      }));
-      queryClient.setQueryData<ReportListResponse>(listKey, (current) => {
-        if (!current) return current;
-        const exists = current.reports.some((item) => item.ticker === asset);
-        return {
-          ...current,
-          reports: exists
-            ? current.reports.map((item) => item.ticker === asset ? freshReport : item)
-            : [freshReport, ...current.reports],
-        };
-      });
-      void queryClient.invalidateQueries({ queryKey: detailKey });
-      void queryClient.invalidateQueries({ queryKey: listKey });
-    },
-    onError: () => {
-      const markOutdated = (current: Report): Report => ({
-        ...current,
-        analysisStatus: "outdated",
-        analysisReason: "A atualização falhou. Este documento anterior não foi atualizado; confira as datas.",
-        consensusScore: null,
-        riskScore: null,
-        signal: "Recomendação pendente",
-        recommendation: {
-          status: "pending", professionalReview: "pending", profileStatus: "pending",
-          reasons: ["Atualização frustrada; revisão do consultor pendente."],
-        },
-      });
-      queryClient.setQueryData<ReportResponse>(detailKey, (current) => current
-        ? { ...current, latest: markOutdated(current.latest) } : current);
-      queryClient.setQueryData<ReportListResponse>(listKey, (current) => current
-        ? { ...current, reports: current.reports.map((entry) => entry.ticker === asset ? markOutdated(entry) : entry) } : current);
-    },
   });
   const report = reportQuery.data?.latest;
   const quality = report ? toQuality(report) : null;
@@ -154,21 +104,9 @@ export default function InvestmentReport({ ticker }: { ticker?: string }) {
           <Card>
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div><CardTitle className="flex items-center gap-2"><BrainCircuit className="h-5 w-5 text-primary" />{t("reportAnalysis")}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{report.companyName}</p></div>
-              <Button variant="outline" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
-                <RefreshCw className={refresh.isPending ? "animate-spin" : ""} />{t("refreshReport")}
-              </Button>
+              <Button variant="outline" asChild><Link href="/investments/agents">Solicitar nova análise</Link></Button>
             </CardHeader>
             <CardContent className="space-y-6">
-              {refresh.isError && (
-                <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                  Não foi possível atualizar o relatório. O documento exibido pode estar desatualizado. Tente novamente.
-                </p>
-              )}
-              {refresh.isSuccess && refresh.data?.analysisStatus === "outdated" && (
-                <p role="alert" className="rounded-md border border-orange-300 bg-orange-50 p-3 text-sm text-orange-950">
-                  A atualização não produziu dados atuais. O relatório abaixo está marcado como desatualizado; consulte a data dos dados de mercado antes de utilizá-lo.
-                </p>
-              )}
               {hasInformativeAnalysis ? (
                 <>
                   <p className="rounded-lg bg-muted/30 p-4 text-sm leading-6">{report.summary}</p>

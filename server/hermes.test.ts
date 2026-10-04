@@ -7,7 +7,7 @@ import { HermesClient, hermesConfig, type HermesConfig } from "./hermes-client";
 import { registerHermesRoutes } from "./hermes-routes";
 import { closeHermesJobs, publicJob, type AnalysisJob, type AnalysisStore } from "./hermes-jobs";
 
-const config: HermesConfig = { url: "https://synthetic.invalid", key: "synthetic-not-a-secret", models: [{ id: "standard", label: "Sintético", provider: "test", model: "model" }], users: ["owner"], tickers: ["BBDC3"], dailyLimit: 3, globalLimit: 10, globalConcurrent: 2 };
+const config: HermesConfig = { url: "https://synthetic.invalid", key: "synthetic-not-a-secret", models: [{ id: "standard", label: "Sintético", provider: "test", model: "model", credits: 2, maxCostMicroUsd: 1000000 }], users: ["owner"], tickers: ["BBDC3"], dailyLimit: 3, globalLimit: 10, globalConcurrent: 2, dailyBudgetMicroUsd: 10000000 };
 let servers: Server[] = [];
 afterEach(async () => { await Promise.all(servers.map(s => new Promise<void>(resolve => s.close(() => resolve())))); servers = []; });
 after(closeHermesJobs);
@@ -16,6 +16,7 @@ function fixture(): AnalysisJob {
 }
 function memoryStore(job: AnalysisJob): AnalysisStore {
   return {
+    async wallet() { return { available: 10, reserved: 0, entries: [] }; },
     async ready() { return true; }, async list(user) { return user === job.user_id ? [job] : []; },
     async get(user, id) { return user === job.user_id && id === job.id ? job : null; },
     async reserve(user, key, ticker, model) {
@@ -40,6 +41,25 @@ describe("Hermes bridge: synthetic inputs, no DB or external provider", () => {
     assert.equal(hermesConfig({}), null);
     assert.equal(hermesConfig({ HERMES_ANALYSIS_ENABLED: "true", HERMES_API_URL: "http://example.invalid" }), null);
     assert.equal(hermesConfig({ HERMES_ANALYSIS_ENABLED: "true", HERMES_API_URL: "https://example.invalid" }), null);
+  });
+  it("rejects missing cost budgets and invalid commercial prices", () => {
+    const env = { HERMES_ANALYSIS_ENABLED: "true", HERMES_API_URL: config.url, HERMES_API_KEY: config.key,
+      HERMES_ALLOWED_USER_IDS: "owner", HERMES_MODELS_JSON: JSON.stringify(config.models), HERMES_GLOBAL_DAILY_BUDGET_MICRO_USD: "10000000" };
+    assert.ok(hermesConfig(env));
+    assert.equal(hermesConfig({...env,HERMES_GLOBAL_DAILY_BUDGET_MICRO_USD: ""}),null);
+    assert.equal(hermesConfig({...env,HERMES_GLOBAL_DAILY_BUDGET_MICRO_USD: "100"}),null);
+    assert.equal(hermesConfig({...env,HERMES_MODELS_JSON: JSON.stringify([{...config.models[0],credits: 0}])}),null);
+  });
+  it("wallet requires authentication and always uses the authenticated owner", async () => {
+    const store=memoryStore(fixture()); const seen: string[]=[];
+    store.wallet=async user => { seen.push(user); return {available: 2,reserved: 0,entries: []}; };
+    const anonymous=await start(null,store,forbiddenClient);
+    assert.equal((await fetch(anonymous+"/api/investments/credits")).status,401);
+    assert.deepEqual(seen,[]);
+    const own=await start("owner",store,forbiddenClient);
+    const response=await fetch(own+"/api/investments/credits?userId=other");
+    assert.equal(response.status,200); assert.deepEqual(seen,["owner"]);
+    assert.equal((await response.json()).available,2);
   });
   it("submission sends explicit model/provider and a stable idempotency key, without customer data", async () => {
     let seen: RequestInit | undefined;
@@ -96,7 +116,7 @@ describe("Hermes bridge: synthetic inputs, no DB or external provider", () => {
     assert.equal(response.status, 409);
   });
   it("maps budget and concurrency limits to actionable responses", async () => {
-    for (const [error, status] of [["GLOBAL_LIMIT", 429], ["GLOBAL_BUSY", 429], ["DAILY_LIMIT", 429], ["ANALYSIS_ACTIVE", 409], ["IDEMPOTENCY_CONFLICT", 409]] as const) {
+    for (const [error, status] of [["INSUFFICIENT_CREDITS", 402], ["FINANCIAL_BUDGET", 429], ["GLOBAL_LIMIT", 429], ["GLOBAL_BUSY", 429], ["DAILY_LIMIT", 429], ["ANALYSIS_ACTIVE", 409], ["IDEMPOTENCY_CONFLICT", 409]] as const) {
       const job = fixture(); const store = memoryStore(job); store.reserve = async () => { throw Error(error); };
       const url = await start("owner", store, forbiddenClient);
       assert.equal((await fetch(url + "/api/investments/analyses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker: job.ticker, modelId: job.model_id, idempotencyKey: job.idempotency_key }) })).status, status);

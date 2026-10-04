@@ -99,6 +99,13 @@
       "when": 1791036002000,
       "tag": "0011_investment_professional_review",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791122400000,
+      "tag": "0012_analysis_credit_reservations",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
-export type HermesModel = { id: string; label: string; provider: string; model: string };
-export type HermesConfig = { url: string; key: string; models: HermesModel[]; tickers: string[]; users: string[]; dailyLimit: number; globalLimit: number; globalConcurrent: number };
+export type HermesModel = { id: string; label: string; provider: string; model: string; credits: number; maxCostMicroUsd: number };
+export type HermesConfig = { url: string; key: string; models: HermesModel[]; tickers: string[]; users: string[]; dailyLimit: number; globalLimit: number; globalConcurrent: number; dailyBudgetMicroUsd: number };
 export type HermesRun = { status: "running" | "completed" | "failed"; output: string | null; runtime: { provider: string; model: string } | null };
 
 export function hermesConfig(env: NodeJS.ProcessEnv = process.env): HermesConfig | null {
@@ -14,12 +14,15 @@ export function hermesConfig(env: NodeJS.ProcessEnv = process.env): HermesConfig
     const tickers = (env.HERMES_ALLOWED_TICKERS || "BBDC3,BBAS3").split(",").map(v => v.trim().toUpperCase());
     if (!tickers.every(t => /^[A-Z0-9]{4}\d{1,2}$/.test(t))) return null;
     const users = (env.HERMES_ALLOWED_USER_IDS || "").split(",").map(v => v.trim()).filter(Boolean);
+    const dailyBudgetMicroUsd = Number(env.HERMES_GLOBAL_DAILY_BUDGET_MICRO_USD);
+    if (!Number.isSafeInteger(dailyBudgetMicroUsd) || dailyBudgetMicroUsd <= 0) return null;
+    if (!models.every(m => Number.isSafeInteger(m.credits) && m.credits > 0 && m.credits <= 1000000 && Number.isSafeInteger(m.maxCostMicroUsd) && m.maxCostMicroUsd > 0 && m.maxCostMicroUsd <= dailyBudgetMicroUsd)) return null;
     const dailyLimit = Number(env.HERMES_DAILY_LIMIT || "3");
     const globalLimit = Number(env.HERMES_GLOBAL_DAILY_LIMIT || "10");
     const globalConcurrent = Number(env.HERMES_GLOBAL_CONCURRENT || "2");
     if (!Number.isInteger(globalLimit) || globalLimit < 1 || globalLimit > 1000 || !Number.isInteger(globalConcurrent) || globalConcurrent < 1 || globalConcurrent > 10) return null;
     if (!env.HERMES_API_KEY || !users.length || !Number.isInteger(dailyLimit) || dailyLimit < 1 || dailyLimit > 100) return null;
-    return { url: url.toString().replace(/\/$/, ""), key: env.HERMES_API_KEY, models: models as HermesModel[], tickers, users, dailyLimit, globalLimit, globalConcurrent };
+    return { url: url.toString().replace(/\/$/, ""), key: env.HERMES_API_KEY, models: models as HermesModel[], tickers, users, dailyLimit, globalLimit, globalConcurrent, dailyBudgetMicroUsd };
   } catch { return null; }
 }
 

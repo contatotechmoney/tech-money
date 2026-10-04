@@ -24,4 +24,4 @@ env -u PGHOST -u PGPORT -u PGUSER -u PGPASSWORD -u PGDATABASE \
   -u CLERK_SECRET_KEY -u CLERK_PUBLISHABLE_KEY -u VITE_CLERK_PUBLISHABLE_KEY \
   -u SESSION_SECRET \
   DATABASE_URL="postgresql://synthetic@/synthetic_invest?host=$root/socket&port=6543" \
-  SYNTHETIC_DATABASE=1 bash -c 'npm run validate && npm run test:review-db && npm run test:quality'
+  SYNTHETIC_DATABASE=1 bash -c 'npm run validate && npm run test:review-db && npm run test:wallet-db && npm run test:quality'

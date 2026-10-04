@@ -16,7 +16,8 @@
     "test:review-db": "NODE_ENV=test tsx --test server/professional-review-db.test.ts",
     "test:quality": "env -u HERMES_ANALYSIS_ENABLED -u HERMES_API_KEY -u DATABASE_URL -u LLM_API_KEY -u OPENAI_API_KEY -u LLM_API_BASE -u LLM_MODEL tsx --tsconfig tsconfig.quality.json --test server/agents.test.ts server/report-policy.test.ts server/quality-routes.test.ts server/quality-ui.test.ts server/suitability.test.ts server/hermes.test.ts server/hermes-ui.test.ts server/professional-review.test.ts",
     "db:push": "drizzle-kit push",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "test:wallet-db": "NODE_ENV=test tsx --test server/analysis-wallet-db.test.ts"
   },
   "dependencies": {
     "@babel/traverse": "^7.29.8",

@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type Options = { available: boolean; models: { id: string; label: string }[]; tickers: string[]; dailyLimit?: number; message?: string };
+type Options = { available: boolean; models: { id: string; label: string; credits: number }[]; tickers: string[]; dailyLimit?: number; wallet?: { available: number; reserved: number }; message?: string };
 type Job = { id: string; requestKey: string; ticker: string; modelId: string; status: "submitting" | "running" | "completed" | "failed"; output: string | null; runtime: { provider: string; model: string } | null; createdAt: string };
 const labels = { submitting: "Solicitação aguardando confirmação", running: "Comitê em execução", completed: "Execução concluída — conteúdo não revisado", failed: "Execução interrompida ou frustrada" };
 
@@ -41,8 +41,19 @@ export function HermesAnalysisPanel() {
       setActiveId(job.id); request.current = null;
       cache.setQueryData([`/api/investments/analyses/${job.id}`], job);
       void cache.invalidateQueries({ queryKey: ["/api/investments/analyses"] });
+      void cache.invalidateQueries({ queryKey: ["/api/investments/analysis-options"] });
+      void cache.invalidateQueries({ queryKey: ["/api/investments/credits"] });
     },
   });
+  useEffect(() => {
+    if (detail.data?.status === "completed" || detail.data?.status === "failed") {
+      void cache.invalidateQueries({ queryKey: ["/api/investments/analysis-options"] });
+      void cache.invalidateQueries({ queryKey: ["/api/investments/credits"] });
+      void cache.invalidateQueries({ queryKey: ["/api/investments/analyses"] });
+    }
+  }, [detail.data?.status, cache]);
+  const selectedPrice = options.data?.models.find(m => m.id === modelId)?.credits;
+  const affordable = selectedPrice !== undefined && (options.data?.wallet?.available ?? 0) >= selectedPrice;
   const job = detail.data;
   const busy = submit.isPending || job?.status === "running" || job?.status === "submitting" || Boolean(request.current);
   return <Card>
@@ -51,14 +62,15 @@ export function HermesAnalysisPanel() {
     </CardHeader>
     <CardContent className="space-y-5">
       {options.isLoading ? <p role="status">Verificando disponibilidade…</p> : options.isError ? <div role="alert"><p>Não foi possível verificar a conexão.</p><Button variant="outline" onClick={() => options.refetch()}>Tentar novamente</Button></div>
-      : !options.data?.available ? <p className="rounded-lg bg-muted p-4 text-sm">{options.data?.message || "Integração em preparação."} As análises do módulo atual abaixo usam outro motor.</p>
+      : !options.data?.available ? <p className="rounded-lg bg-muted p-4 text-sm">{options.data?.message || "Integração em preparação."} Novas execuções aguardam a validação dos limites de consumo.</p>
       : <>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-2 text-sm font-medium"><span>Ação</span><select className="block w-full rounded-md border bg-background p-3" value={ticker} onChange={e => setTicker(e.target.value)} disabled={busy}>{options.data.tickers.map(t => <option key={t}>{t}</option>)}</select></label>
           <label className="space-y-2 text-sm font-medium"><span>Modelo da análise</span><select className="block w-full rounded-md border bg-background p-3" value={modelId} onChange={e => setModelId(e.target.value)} disabled={busy}>{options.data.models.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}</select></label>
         </div>
         <p className="text-xs text-muted-foreground">Piloto: até {options.data.dailyLimit} solicitações em 24 horas e uma análise em andamento por conta.</p>
-        <Button onClick={() => submit.mutate(undefined)} disabled={!ticker || !modelId || busy}>{submit.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Solicitar análise</Button>
+        <p className="rounded-md border p-3 text-sm">Saldo disponível: {options.data.wallet?.available ?? 0} créditos · Reservados: {options.data.wallet?.reserved ?? 0}.<br />Esta análise reserva {selectedPrice ?? "—"} créditos. O consumo ocorre ao concluir o estudo informativo, antes da revisão profissional. Falha confirmada devolve os créditos; confirmação incerta mantém a reserva.</p>
+        <Button onClick={() => submit.mutate(undefined)} disabled={!ticker || !modelId || busy || !affordable}>{submit.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Solicitar análise</Button>
         {submit.isError && <div role="alert" className="space-y-2 text-sm"><p>{submit.error.message}</p><Button variant="outline" disabled={submit.isPending} onClick={() => submit.mutate(undefined)}>Confirmar a mesma solicitação</Button></div>}
         {history.isError && <div role="alert"><p>Não foi possível carregar o histórico.</p><Button variant="outline" onClick={() => history.refetch()}>Recarregar histórico</Button></div>}
         {detail.isError && <div role="alert"><p>Andamento temporariamente indisponível. Isso não confirma falha da execução.</p><Button variant="outline" onClick={() => detail.refetch()}>Consultar novamente</Button></div>}

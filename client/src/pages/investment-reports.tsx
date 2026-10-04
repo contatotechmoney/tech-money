@@ -34,72 +34,11 @@ type ReportListResponse = { reports: Report[]; source: string };
 
 export default function InvestmentReports() {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const reportsQuery = useQuery<{ reports: Report[]; source: string }>({
     queryKey: ["/api/investments/reports"],
     refetchOnWindowFocus: true,
     staleTime: 0,
     refetchInterval: 30_000,
-  });
-  const refresh = useMutation({
-    mutationFn: async (ticker: string) => {
-      const response = await apiRequest("POST", `/api/investments/reports/${ticker}/refresh`);
-      return await response.json() as Report;
-    },
-    onSuccess: (freshReport, ticker) => {
-      trackEvent("report_refresh_completed", {
-        ticker,
-        location: "report_list",
-      });
-      queryClient.setQueryData<ReportListResponse>(
-        ["/api/investments/reports"],
-        (current) => {
-          const reports = current?.reports ?? [];
-          const exists = reports.some((item) => item.ticker === ticker);
-          return {
-            ...current,
-            source: current?.source ?? "",
-            reports: exists
-              ? reports.map((item) => item.ticker === ticker ? freshReport : item)
-              : [freshReport, ...reports],
-          };
-        },
-      );
-      void queryClient.invalidateQueries({ queryKey: ["/api/investments/reports"] });
-    },
-    onError: (_error, ticker) => {
-      queryClient.setQueryData<ReportListResponse>(["/api/investments/reports"], (current) => current ? {
-        ...current,
-        reports: current.reports.map((report) => report.ticker === ticker ? {
-          ...report,
-          analysisStatus: "outdated",
-          analysisReason: "A atualização falhou. Este documento anterior não foi atualizado; confira as datas.",
-          consensusScore: null,
-          signal: "Recomendação pendente",
-          recommendation: {
-            status: "pending", professionalReview: "pending", profileStatus: "pending",
-            reasons: ["Atualização frustrada; revisão do consultor pendente."],
-          },
-        } : report),
-      } : current);
-      queryClient.setQueryData<{ latest: Report; history: Report[]; source: string }>(
-        [`/api/investments/reports/${ticker}`],
-        (current) => current ? {
-          ...current,
-          latest: {
-            ...current.latest,
-            analysisStatus: "outdated",
-            analysisReason: "A atualização falhou. Este documento anterior não foi atualizado; confira as datas.",
-            consensusScore: null,
-            signal: "Recomendação pendente",
-            recommendation: {
-              status: "pending", professionalReview: "pending", profileStatus: "pending",
-              reasons: ["Atualização frustrada; revisão do consultor pendente."],
-            },
-          },
-        } : current,
-      );
-    },
   });
 
   return (
@@ -127,10 +66,7 @@ export default function InvestmentReports() {
             <ReportListCard
               key={report.ticker}
               report={report}
-              onRefresh={() => refresh.mutate(report.ticker)}
-              refreshing={refresh.isPending && refresh.variables === report.ticker}
-              refreshError={refresh.isError && refresh.variables === report.ticker}
-              refreshOutdated={refresh.isSuccess && refresh.variables === report.ticker && refresh.data?.analysisStatus === "outdated"}
+
             />
           ))}
         </div>
@@ -144,13 +80,7 @@ export default function InvestmentReports() {
   );
 }
 
-function ReportListCard({ report, onRefresh, refreshing, refreshError, refreshOutdated }: {
-  report: Report;
-  onRefresh: () => void;
-  refreshing: boolean;
-  refreshError: boolean;
-  refreshOutdated: boolean;
-}) {
+function ReportListCard({ report }: { report: Report }) {
   const { t } = useLanguage();
   const quality = toQuality(report);
   const hasFullAnalysis = quality.analysisStatus === "complete" && !quality.historical;
@@ -171,12 +101,10 @@ function ReportListCard({ report, onRefresh, refreshing, refreshError, refreshOu
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                   <span className="text-xs text-muted-foreground">Documento: {formatDate(report.generatedAt)} · Variação informativa da cotação: {formatPercent(report.changePercent)}</span>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={onRefresh} disabled={refreshing}><RefreshCw className={refreshing ? "animate-spin" : ""} />{refreshing ? "Atualizando..." : "Atualizar relatório"}</Button>
+                    <Button variant="outline" size="sm" asChild><Link href="/investments/agents">Solicitar análise</Link></Button>
                     <Button asChild size="sm"><Link href={`/investments/agents/${report.ticker}`}>{t("viewReport")}<ArrowRight /></Link></Button>
                   </div>
                 </div>
-                {refreshError && <p role="alert" className="mt-3 text-sm text-destructive">Não foi possível atualizar. O relatório apresentado pode estar desatualizado. Tente novamente.</p>}
-                {refreshOutdated && <p role="alert" className="mt-3 text-sm text-orange-900">A atualização não trouxe dados atuais. O documento foi marcado como desatualizado.</p>}
                 <p className="mt-3 text-xs text-muted-foreground">Recomendação pendente de revisão profissional. Não há envio ou publicação aprovado.</p>
               </CardContent>
     </Card>

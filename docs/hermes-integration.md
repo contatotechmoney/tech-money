@@ -21,7 +21,8 @@ O Hermes do Marlon está no notebook. Nenhum serviço remoto ou credencial foi c
 - `HERMES_API_URL`: raiz HTTPS da API dedicada.
 - `HERMES_API_KEY`: segredo de autenticação server-to-server.
 - `HERMES_ALLOWED_USER_IDS`: IDs Clerk das contas aprovadas para o piloto, separados por vírgulas. Não é um sistema de assinatura.
-- `HERMES_MODELS_JSON`: lista de `{ "id": "standard", "label": "Modelo aprovado", "provider": "provedor", "model": "id-do-modelo" }`. O cliente só escolhe o `id` da lista.
+- `HERMES_MODELS_JSON`: lista de `{ "id": "standard", "label": "Modelo aprovado", "provider": "provedor", "model": "id-do-modelo", "credits": 2, "maxCostMicroUsd": 1000000 }`. O cliente só escolhe o `id` da lista.
+- `HERMES_GLOBAL_DAILY_BUDGET_MICRO_USD`: reserva global conservadora de orçamento técnico em micros de dólar (1.000.000 = US$ 1). Obrigatória e positiva. O custo máximo de cada modelo deve caber nesse orçamento. Esses valores são técnicos, não preços comerciais.
 - `HERMES_ALLOWED_TICKERS`: universo validado no piloto, inicialmente `BBDC3,BBAS3`. Não confirma existência ou cobertura de qualquer ticker arbitrário.
 - `HERMES_GLOBAL_DAILY_LIMIT`: limite global em 24 horas, padrão 10.
 - `HERMES_GLOBAL_CONCURRENT`: máximo global de execuções em andamento, padrão 2.
@@ -43,7 +44,7 @@ O Hermes do Marlon está no notebook. Nenhum serviço remoto ou credencial foi c
 
 Limites de solicitações não são limites de tokens ou dinheiro. Uma única análise multiagente pode fazer muitas chamadas. Antes de habilitar o piloto com provedor real, configurar uma chave exclusiva com orçamento efetivo (não apenas alertas), modelos e fallbacks autorizados e limites finitos para rodadas do orquestrador e dos agentes delegados na versão instalada do Hermes. Medir custo de ponta a ponta incluindo delegações, revisões, pesquisa e ferramentas. Não usar uma chave pessoal sem teto verificável. As configurações de limite do Hermes variam por versão e precisam ser conferidas no servidor; este portal não impõe sozinho um teto monetário por execução.
 
-A rota legada de atualização manual do comitê de nove perspectivas ainda não está integrada a esta quota Hermes. O carregamento automático foi removido dos GETs de relatórios, mas os POSTs legados precisam receber quotas/créditos antes de acesso comercial. Não considerar o teto Hermes uma proteção global de todos os provedores do aplicativo.
+A rota legada de atualização manual está bloqueada (503), sem chamada aos provedores ou alteração dos documentos. Os botões levam ao painel com reserva de créditos. A reserva financeira não interrompe o motor remoto: a integração continua desativada até validar o teto efetivo de tokens e custo no executor.
 
 ## Próximas fases comerciais
 
@@ -52,3 +53,13 @@ Contrato estruturado de resultados (contribuições e fontes por agente), progre
 ## Testes sem custo
 
 `npm run test:quality` remove as variáveis de DB e LLM, inclusive a ativação do Hermes. Testes utilizam armazenamento sintético e HTTP local. `npx tsc --noEmit --incremental false` e `npm run build` não executam migrações.
+
+## Carteira de créditos implementada
+
+A migração 0012 adiciona um histórico imutável de concessão, reserva, consumo e estorno. Criação da solicitação e reserva de saldo/orçamento ocorrem na mesma transação, protegida contra concorrência. Repetir a chave da mesma solicitação não reserva novamente. Ausência de confirmação mantém o saldo reservado; falha confirmada devolve uma única vez; conclusão consome, sem aprovar o estudo profissionalmente.
+
+GET autenticado `/api/investments/credits` retorna apenas a carteira da conta. Não existe endpoint público de concessão, compra ou expiração. `grantAnalysisCredits` é uma primitiva restrita ao servidor, idempotente por evento verificado. Antes de habilitar assinaturas, implementar webhook de pagamento validado, vínculo com plano/período e regras comerciais de validade, renovação e reembolso. O saldo da implementação legada não foi migrado: reconciliar eventos verificados antes de conceder saldo na nova carteira.
+
+O orçamento técnico retém a estimativa máxima por execução durante solicitações ativas e por 24h após a última atualização. Falhas também retêm orçamento técnico, pois podem ter gasto tokens; seus créditos comerciais são devolvidos. Essa estimativa só constitui teto real após o executor garantir que nenhuma execução, ferramenta ou fallback ultrapasse o valor reservado.
+
+`npm run validate:synthetic` usa PostgreSQL descartável e testa concorrência, idempotência, estorno, conclusão, isolamento e imutabilidade. Nenhum banco de cliente ou provedor de IA é chamado.

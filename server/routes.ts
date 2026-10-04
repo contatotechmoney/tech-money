@@ -410,15 +410,10 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Relatório não disponível para esse ativo." });
     }
 
-    try {
-      const result = await refreshReport(req.userId!, ticker);
-      const profile = await safeProfileCheck(req.userId!, ticker, result.latest, checkProfile);
-      res.status(result.refreshFailure ? 200 : 201).json(
-        await reviewedReport(result.latest, { refreshFailure: result.refreshFailure, profileCheck: profile }),
-      );
-    } catch (error) {
-      sendMarketDataError(res, "gerar relatório", error);
-    }
+    return res.status(503).json({
+      error: "Solicite uma nova análise no painel dos agentes, com reserva de créditos.",
+      code: "LEGACY_ANALYSIS_DISABLED",
+    });
   });
 
   app.post("/api/investments/reports/:ticker/delivery", requireAuth, async (req, res) => {

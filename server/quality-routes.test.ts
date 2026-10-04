@@ -86,37 +86,19 @@ describe("Invest quality API with isolated in-memory synthetic storage", () => {
     assert.equal(body.latest.recommendation.professionalReview, "pending");
     assert.equal(body.latest.recommendation.status, "pending");
   });
-  it("failed refresh preserves prior document and exposes outdated state across subsequent requests", async () => {
+  it("legacy refresh cannot spend tokens, mutate reports or bypass the wallet", async () => {
     documents = [fixture("owner"), fixture("other")];
     const original = structuredClone(documents);
     const url = await start("owner");
     const refreshed = await originalFetch(`${url}/api/investments/reports/BBDC3/refresh`, { method: "POST" });
-    const body = await refreshed.json() as PublicReport;
-    assert.equal(refreshed.status, 200);
-    assert.equal(body.id, original[0].id);
-    assert.equal(body.generatedAt, original[0].generatedAt);
-    assert.equal(body.analysisStatus, "outdated");
-    assert.equal(body.consensusScore, null);
-    assert.match(body.analysisReason, /tentativa de atualização/);
-    assert.deepEqual(documents.find((d) => d.id === original[0].id), original[0]);
-    assert.deepEqual(documents.find((d) => d.id === original[1].id), original[1]);
-    assert.equal(documents.length, 3); // Separate dated failure attempt, no update/backfill.
-    const next = await (await originalFetch(`${url}/api/investments/reports/BBDC3`)).json() as { latest: PublicReport; history: PublicReport[] };
-    assert.equal(next.latest.id, original[0].id);
-    assert.equal(next.latest.analysisStatus, "outdated");
-    assert.ok(next.history.every((r) => r.historical && r.consensusScore === null));
-  });
-  it("listing also carries the failed refresh reason and never leaks another owner's report", async () => {
-    documents = [fixture("owner"), fixture("other")];
-    const url = await start("owner");
-    await originalFetch(`${url}/api/investments/reports/BBDC3/refresh`, { method: "POST" });
+    assert.equal(refreshed.status, 503);
+    assert.equal((await refreshed.json()).code, "LEGACY_ANALYSIS_DISABLED");
+    assert.deepEqual(documents, original);
     const response = await originalFetch(`${url}/api/investments/reports`);
     const body = await response.json() as { reports: PublicReport[] };
     assert.equal(response.status, 200);
-    assert.equal(body.reports.length, 1);
-    assert.equal(body.reports[0].analysisStatus, "outdated");
-    assert.ok(body.reports.every((r) => r.userId === "owner"));
-    assert.ok(seenOwners.every((owner) => owner === "owner"));
+    assert.ok(body.reports.every(r => r.userId === "owner"));
+    assert.ok(seenOwners.every(owner => owner === "owner"));
   });
   it("partial and unavailable documents have no public consensus or valid financial signal", async () => {
     for (const status of ["partial", "unavailable"] as const) {

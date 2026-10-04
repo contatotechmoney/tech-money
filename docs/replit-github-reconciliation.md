@@ -9,9 +9,9 @@ Esta branch reúne a implementação de suitability, política de qualidade dos 
 
 Os arquivos exclusivos do GitHub `server/credits.ts`, `server/billing.ts`, `shared/personas.ts`, `script/build.ts` e os recursos estáticos permanecem. As antigas rotas e a antiga tela de créditos estão preservadas em `docs/legacy-github/` para portabilidade e comparação.
 
-**Bloqueio de merge/publicação:** o Replit substituiu a cobrança integrada do GitHub por uma tela ilustrativa. As rotas de cobrança do GitHub não foram ativadas nesta consolidação. É necessário reconciliar a carteira e a interface antes de comercializar; preservar o código não significa que a cobrança está integrada. O catálogo antigo contém preços e benefícios não aprovados nesta revisão.
+**Bloqueio de merge/publicação:** a nova carteira reserva saldo e orçamento técnico antes de solicitar análise. A interface mostra saldo e histórico, sem planos ilustrativos ou checkout. As rotas de pagamento antigas permanecem inativas; ainda falta reconciliar eventos de saldo legado, definir regras dos planos e integrar pagamentos verificados. Os preços antigos não foram aprovados.
 
-O piloto Hermes controla quantidades de solicitações e concorrência, não constitui orçamento monetário ou de tokens. Não habilitar `HERMES_ANALYSIS_ENABLED` para clientes até implementar reserva de créditos, teto financeiro global, limites no motor e reconciliação do consumo. A rota legada de refresh de relatórios também precisa entrar no controle de consumo. Não migrar memórias pessoais ou credenciais do notebook.
+A reserva usa transação e trava global, histórico imutável, idempotência e estorno único após falha confirmada. Retentativas são vinculadas à configuração original (modelo, provedor, preço, custo estimado e API). A rota legada de refresh está bloqueada, sem execução paga. O orçamento técnico é uma estimativa conservadora: não interrompe o motor remoto. Não habilitar `HERMES_ANALYSIS_ENABLED` até validar limites efetivos no executor, ferramentas, delegações e fallbacks, além de reconciliação de execuções incertas. Não migrar memórias pessoais ou credenciais do notebook.
 
 A tarefa de aviso visual de confirmação atrasada ainda aguarda revisão no Replit e não faz parte desta fonte. Currículos e retratos dos agentes são personas virtuais, não credenciais humanas.
 
@@ -20,3 +20,5 @@ A tarefa de aviso visual de confirmação atrasada ainda aguarda revisão no Rep
 Fonte Replit auditada: 53 testes gerais, 5 de banco de revisão e 72 de qualidade (130 aprovados), TypeScript e build aprovados. Banco PostgreSQL temporário isolado, sem chamadas pagas ou uso do banco de clientes.
 
 A checagem da composição com os arquivos exclusivos do GitHub é registrada no PR. Nenhuma migração de produção, cobrança ou envio de mensagem é executada por esta branch.
+
+Validação da carteira: PostgreSQL descartável, testes de concorrência, orçamento, idempotência, estorno, configuração e isolamento de conta. Resultado final registrado no PR.

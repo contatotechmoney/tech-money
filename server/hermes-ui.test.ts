@@ -16,12 +16,12 @@ describe("Hermes panel with synthetic cache and no network", () => {
   it("disabled connection shows its actual state and offers no submission", () => {
     const html = render({ available: false, models: [], tickers: [], message: "Conexão de teste desativada" });
     assert.ok(html.includes("Conexão de teste desativada"));
-    assert.ok(html.includes("As análises do módulo atual abaixo usam outro motor"));
+    assert.ok(html.includes("Novas execuções aguardam a validação dos limites de consumo"));
     assert.ok(!html.includes("<select"));
     assert.ok(!html.includes(">Solicitar análise</button>"));
   });
   it("enabled pilot exposes approved choices and its budget without implying client approval", () => {
-    const html = render({ available: true, models: [{ id: "standard", label: "Modelo sintético" }], tickers: ["BBDC3"], dailyLimit: 3 });
+    const html = render({ available: true, models: [{ id: "standard", label: "Modelo sintético", credits: 2 }], tickers: ["BBDC3"], dailyLimit: 3, wallet: { available: 10, reserved: 2 } });
     assert.ok(html.includes("BBDC3") && html.includes("Modelo sintético"));
     assert.ok(html.includes("até 3 solicitações em 24 horas"));
     assert.ok(html.includes("Recomendações para clientes exigem uma etapa própria"));

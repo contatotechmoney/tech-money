@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Express, RequestHandler } from "express";
 import { z } from "zod";
 import { HermesClient, hermesConfig, type HermesConfig } from "./hermes-client";
@@ -17,9 +18,15 @@ export function registerHermesRoutes(app: Express, auth: RequestHandler, options
   app.get("/api/investments/analysis-options", auth, async (req, res) => {
     try {
       const current = await enabled(req.userId!);
-      return res.json(current ? { available: true, models: current.models.map(m => ({ id: m.id, label: m.label })), tickers: current.tickers, dailyLimit: current.dailyLimit }
+      return res.json(current ? { available: true, models: current.models.map(m => ({ id: m.id, label: m.label, credits: m.credits })), tickers: current.tickers, dailyLimit: current.dailyLimit, wallet: await store.wallet(req.userId!) }
         : { available: false, models: [], tickers: [], message: "A conexão com o comitê Hermes ainda não está habilitada para esta conta." });
     } catch { return res.status(503).json({ error: "Não foi possível verificar a conexão do comitê." }); }
+  });
+  app.get("/api/investments/credits", auth, async (req, res) => {
+    try {
+      if (!await store.ready()) return res.status(503).json({ error: "Carteira em preparação." });
+      return res.json(await store.wallet(req.userId!));
+    } catch { return res.status(503).json({ error: "Não foi possível consultar os créditos." }); }
   });
   app.get("/api/investments/analyses", auth, async (req, res) => {
     try {
@@ -36,7 +43,7 @@ export function registerHermesRoutes(app: Express, auth: RequestHandler, options
       const { ticker, modelId, idempotencyKey } = input.data;
       const model = current.models.find(m => m.id === modelId);
       if (!model || !current.tickers.includes(ticker)) return res.status(400).json({ error: "Ação ou modelo não habilitado para este piloto." });
-      let job = await store.reserve(req.userId!, idempotencyKey, ticker, modelId, current.dailyLimit, current.globalLimit, current.globalConcurrent);
+      let job = await store.reserve(req.userId!, idempotencyKey, ticker, modelId, current.dailyLimit, current.globalLimit, current.globalConcurrent, { credits: model.credits, maxCostMicroUsd: model.maxCostMicroUsd, dailyBudgetMicroUsd: current.dailyBudgetMicroUsd, executionFingerprint: createHash("sha256").update(JSON.stringify([model.provider,model.model,model.credits,model.maxCostMicroUsd,current.url])).digest("hex") });
       if (job.status === "submitting") {
         if (Date.now() - new Date(job.created_at).getTime() > 23 * 60 * 60 * 1000) return res.status(409).json({ error: "Solicitação antiga sem confirmação. O consultor deve conferir o histórico do Hermes antes de iniciar outra." });
         // Retrying an uncertain submission uses the same durable Hermes idempotency key.
@@ -47,6 +54,8 @@ export function registerHermesRoutes(app: Express, auth: RequestHandler, options
       return res.status(202).json(publicJob(job));
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
+      if (code === "INSUFFICIENT_CREDITS") return res.status(402).json({ error: "Saldo de créditos insuficiente. Nenhuma nova análise foi iniciada." });
+      if (code === "FINANCIAL_BUDGET") return res.status(429).json({ error: "Limite financeiro de processamento atingido. Nenhuma nova análise foi iniciada." });
       if (code === "GLOBAL_LIMIT") return res.status(429).json({ error: "O orçamento diário de solicitações do piloto foi atingido. Nenhuma nova análise foi iniciada." });
       if (code === "GLOBAL_BUSY") return res.status(429).json({ error: "O comitê atingiu o limite de execuções simultâneas. Tente mais tarde." });
       if (code === "DAILY_LIMIT") return res.status(429).json({ error: "Limite de análises das últimas 24 horas atingido." });
