@@ -4,7 +4,7 @@ import express from "express";
 import { after, afterEach, describe, it } from "node:test";
 import type { Server } from "node:http";
 import { HermesClient, hermesConfig, type HermesConfig } from "./hermes-client";
-import { registerHermesRoutes } from "./hermes-routes";
+import { analysisPriceVersion, registerHermesRoutes } from "./hermes-routes";
 import { closeHermesJobs, publicJob, type AnalysisJob, type AnalysisStore } from "./hermes-jobs";
 
 const config: HermesConfig = { url: "https://synthetic.invalid", key: "synthetic-not-a-secret", models: [{ id: "standard", label: "Sintético", provider: "test", model: "model", credits: 2, maxCostMicroUsd: 1000000 }], users: ["owner"], tickers: ["BBDC3"], dailyLimit: 3, globalLimit: 10, globalConcurrent: 2, dailyBudgetMicroUsd: 10000000 };
@@ -93,6 +93,17 @@ describe("Hermes bridge: synthetic inputs, no DB or external provider", () => {
       assert.equal((await fetch(url + "/api/investments/analyses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, idempotencyKey: randomUUID() }) })).status, 400);
     }
   });
+  it("rejects missing approval and stale prices before reserving or dispatching", async () => {
+    const store = memoryStore(fixture());
+    store.reserve = async () => { throw Error("RESERVE_SHOULD_NOT_RUN"); };
+    const url = await start("owner", store, forbiddenClient);
+    const base = { ticker: "BBDC3", modelId: "standard", idempotencyKey: randomUUID() };
+    const send = (body: unknown) => fetch(url + "/api/investments/analyses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    assert.equal((await send(base)).status, 400);
+    assert.equal((await send({ ...base, confirmedCredits: 1, priceVersion: analysisPriceVersion(config, config.models[0]) })).status, 409);
+    assert.equal((await send({ ...base, confirmedCredits: 2, priceVersion: "0".repeat(64) })).status, 409);
+    assert.notEqual(analysisPriceVersion(config, config.models[0]), analysisPriceVersion(config, { ...config.models[0], model: "changed" }));
+  });
   it("verifies ownership before querying the remote run", async () => {
     const job = fixture(); job.user_id = "someone-else"; job.status = "running"; job.run_id = "private-run";
     const url = await start("owner", memoryStore(job), forbiddenClient);
@@ -102,7 +113,7 @@ describe("Hermes bridge: synthetic inputs, no DB or external provider", () => {
     const job = fixture(); const seen: string[] = [];
     const client = { async start(id: string) { seen.push(id); if (seen.length === 1) throw Error("UNCERTAIN"); return "private-run"; }, async poll() { return { status: "completed" as const, output: "Conteúdo sintético", runtime: null }; } };
     const url = await start("owner", memoryStore(job), client);
-    const send = () => fetch(url + "/api/investments/analyses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker: job.ticker, modelId: job.model_id, idempotencyKey: job.idempotency_key }) });
+    const send = () => fetch(url + "/api/investments/analyses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker: job.ticker, modelId: job.model_id, idempotencyKey: job.idempotency_key, confirmedCredits: 2, priceVersion: analysisPriceVersion(config, config.models[0]) }) });
     assert.equal((await send()).status, 503); const response = await send(); assert.equal(response.status, 202);
     assert.deepEqual(seen, [job.id, job.id]);
     const body = await response.json(); assert.equal(body.run_id, undefined); assert.equal(body.user_id, undefined);
@@ -112,14 +123,14 @@ describe("Hermes bridge: synthetic inputs, no DB or external provider", () => {
   it("does not automatically resubmit uncertain jobs after provider key retention", async () => {
     const job = fixture(); job.created_at = new Date(Date.now() - 24 * 3600_000).toISOString();
     const url = await start("owner", memoryStore(job), forbiddenClient);
-    const response = await fetch(url + "/api/investments/analyses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker: job.ticker, modelId: job.model_id, idempotencyKey: job.idempotency_key }) });
+    const response = await fetch(url + "/api/investments/analyses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker: job.ticker, modelId: job.model_id, idempotencyKey: job.idempotency_key, confirmedCredits: 2, priceVersion: analysisPriceVersion(config, config.models[0]) }) });
     assert.equal(response.status, 409);
   });
   it("maps budget and concurrency limits to actionable responses", async () => {
     for (const [error, status] of [["INSUFFICIENT_CREDITS", 402], ["FINANCIAL_BUDGET", 429], ["GLOBAL_LIMIT", 429], ["GLOBAL_BUSY", 429], ["DAILY_LIMIT", 429], ["ANALYSIS_ACTIVE", 409], ["IDEMPOTENCY_CONFLICT", 409]] as const) {
       const job = fixture(); const store = memoryStore(job); store.reserve = async () => { throw Error(error); };
       const url = await start("owner", store, forbiddenClient);
-      assert.equal((await fetch(url + "/api/investments/analyses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker: job.ticker, modelId: job.model_id, idempotencyKey: job.idempotency_key }) })).status, status);
+      assert.equal((await fetch(url + "/api/investments/analyses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker: job.ticker, modelId: job.model_id, idempotencyKey: job.idempotency_key, confirmedCredits: 2, priceVersion: analysisPriceVersion(config, config.models[0]) }) })).status, status);
     }
   });
   it("public history excludes user IDs, remote run IDs and never claims review", () => {

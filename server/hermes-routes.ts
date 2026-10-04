@@ -1,10 +1,15 @@
 import { createHash } from "node:crypto";
 import type { Express, RequestHandler } from "express";
 import { z } from "zod";
-import { HermesClient, hermesConfig, type HermesConfig } from "./hermes-client";
+import { HermesClient, hermesConfig, type HermesConfig, type HermesModel } from "./hermes-client";
 import { analysisStore, publicJob, type AnalysisStore } from "./hermes-jobs";
 
-const inputSchema = z.object({ ticker: z.string().trim().toUpperCase(), modelId: z.string().max(120), idempotencyKey: z.string().uuid() }).strict();
+// Public revision binds the displayed commercial price to the execution configuration.
+// It is not authentication; ownership and model permissions remain server-side.
+export function analysisPriceVersion(config: HermesConfig, model: HermesModel) {
+  return createHash("sha256").update(JSON.stringify(["fixed-analysis-v1",model.id,model.provider,model.model,model.credits,model.maxCostMicroUsd,config.url])).digest("hex");
+}
+const inputSchema = z.object({ ticker: z.string().trim().toUpperCase(), modelId: z.string().max(120), idempotencyKey: z.string().uuid(), confirmedCredits: z.number().int().positive().max(1000000), priceVersion: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
 export function registerHermesRoutes(app: Express, auth: RequestHandler, options: {
   config?: () => HermesConfig | null; store?: AnalysisStore; client?: Pick<HermesClient, "start" | "poll">;
 } = {}) {
@@ -18,7 +23,7 @@ export function registerHermesRoutes(app: Express, auth: RequestHandler, options
   app.get("/api/investments/analysis-options", auth, async (req, res) => {
     try {
       const current = await enabled(req.userId!);
-      return res.json(current ? { available: true, models: current.models.map(m => ({ id: m.id, label: m.label, credits: m.credits })), tickers: current.tickers, dailyLimit: current.dailyLimit, wallet: await store.wallet(req.userId!) }
+      return res.json(current ? { available: true, models: current.models.map(m => ({ id: m.id, label: m.label, credits: m.credits, priceVersion: analysisPriceVersion(current, m) })), tickers: current.tickers, dailyLimit: current.dailyLimit, wallet: await store.wallet(req.userId!) }
         : { available: false, models: [], tickers: [], message: "A conexão com o comitê Hermes ainda não está habilitada para esta conta." });
     } catch { return res.status(503).json({ error: "Não foi possível verificar a conexão do comitê." }); }
   });
@@ -43,6 +48,9 @@ export function registerHermesRoutes(app: Express, auth: RequestHandler, options
       const { ticker, modelId, idempotencyKey } = input.data;
       const model = current.models.find(m => m.id === modelId);
       if (!model || !current.tickers.includes(ticker)) return res.status(400).json({ error: "Ação ou modelo não habilitado para este piloto." });
+      if (input.data.confirmedCredits !== model.credits || input.data.priceVersion !== analysisPriceVersion(current, model)) {
+        return res.status(409).json({ code: "PRICE_CHANGED", error: "O preço ou as condições da análise mudaram. Confira a nova oferta e confirme novamente. Nenhuma nova análise foi iniciada." });
+      }
       let job = await store.reserve(req.userId!, idempotencyKey, ticker, modelId, current.dailyLimit, current.globalLimit, current.globalConcurrent, { credits: model.credits, maxCostMicroUsd: model.maxCostMicroUsd, dailyBudgetMicroUsd: current.dailyBudgetMicroUsd, executionFingerprint: createHash("sha256").update(JSON.stringify([model.provider,model.model,model.credits,model.maxCostMicroUsd,current.url])).digest("hex") });
       if (job.status === "submitting") {
         if (Date.now() - new Date(job.created_at).getTime() > 23 * 60 * 60 * 1000) return res.status(409).json({ error: "Solicitação antiga sem confirmação. O consultor deve conferir o histórico do Hermes antes de iniciar outra." });

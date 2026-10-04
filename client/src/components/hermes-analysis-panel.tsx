@@ -4,9 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrainCircuit, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type Options = { available: boolean; models: { id: string; label: string; credits: number }[]; tickers: string[]; dailyLimit?: number; wallet?: { available: number; reserved: number }; message?: string };
+type Options = { available: boolean; models: { id: string; label: string; credits: number; priceVersion: string }[]; tickers: string[]; dailyLimit?: number; wallet?: { available: number; reserved: number }; message?: string };
 type Job = { id: string; requestKey: string; ticker: string; modelId: string; status: "submitting" | "running" | "completed" | "failed"; output: string | null; runtime: { provider: string; model: string } | null; createdAt: string };
 const labels = { submitting: "Solicitação aguardando confirmação", running: "Comitê em execução", completed: "Execução concluída — conteúdo não revisado", failed: "Execução interrompida ou frustrada" };
 
@@ -17,7 +18,8 @@ export function HermesAnalysisPanel() {
   const [ticker, setTicker] = useState("");
   const [modelId, setModelId] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
-  const request = useRef<{ key: string; ticker: string; modelId: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ ticker: string; modelId: string; label: string; credits: number; priceVersion: string } | null>(null);
+  const request = useRef<{ key: string; ticker: string; modelId: string; confirmedCredits: number; priceVersion: string } | null>(null);
   useEffect(() => {
     if (!ticker && options.data?.tickers[0]) setTicker(options.data.tickers[0]);
     if (!modelId && options.data?.models[0]) setModelId(options.data.models[0].id);
@@ -32,10 +34,22 @@ export function HermesAnalysisPanel() {
   });
   const submit = useMutation({
     mutationFn: async (retryJob?: Job) => {
-      if (retryJob) request.current = { key: retryJob.requestKey, ticker: retryJob.ticker, modelId: retryJob.modelId };
-      if (!request.current) request.current = { key: crypto.randomUUID(), ticker, modelId };
-      const response = await apiRequest("POST", "/api/investments/analyses", { ticker: request.current.ticker, modelId: request.current.modelId, idempotencyKey: request.current.key });
+      if (retryJob) {
+        const model = options.data?.models.find(m => m.id === retryJob.modelId);
+        if (!model) throw new Error("Modelo indisponível. Solicite a conferência do consultor.");
+        // Retry uses the same request key; the store rejects changed execution pricing.
+        request.current = { key: retryJob.requestKey, ticker: retryJob.ticker, modelId: retryJob.modelId, confirmedCredits: model.credits, priceVersion: model.priceVersion };
+      }
+      if (!request.current) throw new Error("Confirme o preço antes de iniciar a análise.");
+      const response = await apiRequest("POST", "/api/investments/analyses", { ticker: request.current.ticker, modelId: request.current.modelId, idempotencyKey: request.current.key, confirmedCredits: request.current.confirmedCredits, priceVersion: request.current.priceVersion });
       return await response.json() as Job;
+    },
+    onError: error => {
+      if (error.message.includes("PRICE_CHANGED")) {
+        request.current = null;
+        setConfirmation(null);
+        void cache.invalidateQueries({ queryKey: ["/api/investments/analysis-options"] });
+      }
     },
     onSuccess: job => {
       setActiveId(job.id); request.current = null;
@@ -52,7 +66,8 @@ export function HermesAnalysisPanel() {
       void cache.invalidateQueries({ queryKey: ["/api/investments/analyses"] });
     }
   }, [detail.data?.status, cache]);
-  const selectedPrice = options.data?.models.find(m => m.id === modelId)?.credits;
+  const selectedModel = options.data?.models.find(m => m.id === modelId);
+  const selectedPrice = selectedModel?.credits;
   const affordable = selectedPrice !== undefined && (options.data?.wallet?.available ?? 0) >= selectedPrice;
   const job = detail.data;
   const busy = submit.isPending || job?.status === "running" || job?.status === "submitting" || Boolean(request.current);
@@ -70,8 +85,24 @@ export function HermesAnalysisPanel() {
         </div>
         <p className="text-xs text-muted-foreground">Piloto: até {options.data.dailyLimit} solicitações em 24 horas e uma análise em andamento por conta.</p>
         <p className="rounded-md border p-3 text-sm">Saldo disponível: {options.data.wallet?.available ?? 0} créditos · Reservados: {options.data.wallet?.reserved ?? 0}.<br />Esta análise reserva {selectedPrice ?? "—"} créditos. O consumo ocorre ao concluir o estudo informativo, antes da revisão profissional. Falha confirmada devolve os créditos; confirmação incerta mantém a reserva.</p>
-        <Button onClick={() => submit.mutate(undefined)} disabled={!ticker || !modelId || busy || !affordable}>{submit.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Solicitar análise</Button>
-        {submit.isError && <div role="alert" className="space-y-2 text-sm"><p>{submit.error.message}</p><Button variant="outline" disabled={submit.isPending} onClick={() => submit.mutate(undefined)}>Confirmar a mesma solicitação</Button></div>}
+        <Button onClick={() => { if (selectedModel) { submit.reset(); setConfirmation({ ticker, modelId, label: selectedModel.label, credits: selectedModel.credits, priceVersion: selectedModel.priceVersion }); } }} disabled={!ticker || !modelId || busy || !affordable}>{submit.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Revisar preço e análise</Button>
+        <Dialog open={Boolean(confirmation)} onOpenChange={open => { if (!open) setConfirmation(null); }}>
+          <DialogContent><DialogHeader><DialogTitle>Confirmar análise</DialogTitle><DialogDescription>Confira o modelo e o preço total antes de iniciar.</DialogDescription></DialogHeader>
+            {confirmation && <div className="space-y-3 text-sm">
+              <p>Ação: <strong>{confirmation.ticker}</strong> · Modelo: <strong>{confirmation.label}</strong></p>
+              <p className="text-lg font-semibold">Preço fixo: {confirmation.credits} créditos</p>
+              <p>Saldo disponível: {options.data?.wallet?.available ?? 0} créditos. Após a reserva: {(options.data?.wallet?.available ?? 0) - confirmation.credits} créditos.</p>
+              <p>Você receberá o estudo informativo do comitê, ainda pendente de revisão profissional. Não há cobrança adicional automática.</p>
+              <p>Falha confirmada devolve os créditos; execução com confirmação incerta mantém a reserva até conferência.</p>
+            </div>}
+            <DialogFooter><Button variant="outline" onClick={() => setConfirmation(null)}>Voltar</Button><Button disabled={!confirmation || submit.isPending || !options.data?.available || (options.data.wallet?.available ?? 0) < (confirmation?.credits ?? Infinity)} onClick={() => {
+              if (!confirmation) return;
+              request.current = { key: crypto.randomUUID(), ticker: confirmation.ticker, modelId: confirmation.modelId, confirmedCredits: confirmation.credits, priceVersion: confirmation.priceVersion };
+              setConfirmation(null); submit.mutate(undefined);
+            }}>Confirmar e iniciar análise</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+        {submit.isError && <div role="alert" className="space-y-2 text-sm"><p>{submit.error.message}</p>{request.current && <Button variant="outline" disabled={submit.isPending} onClick={() => submit.mutate(undefined)}>Confirmar a mesma solicitação</Button>}</div>}
         {history.isError && <div role="alert"><p>Não foi possível carregar o histórico.</p><Button variant="outline" onClick={() => history.refetch()}>Recarregar histórico</Button></div>}
         {detail.isError && <div role="alert"><p>Andamento temporariamente indisponível. Isso não confirma falha da execução.</p><Button variant="outline" onClick={() => detail.refetch()}>Consultar novamente</Button></div>}
         {job && <div className="space-y-3 rounded-lg border p-4" aria-live="polite">
