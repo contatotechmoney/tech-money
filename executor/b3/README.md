@@ -55,3 +55,10 @@ O usuário confirmou em 4 de outubro de 2026 o provedor `nous` e o nome apresent
 `request_plan.py` prepara envelopes offline do Nous e reserva o custo antes de devolver o plano. Modelo e teto vêm da política; ferramentas, overrides, streaming e fallback não são aceitos. Não reivindica dispatch nem envia requests. Contagem da entrada permanece responsabilidade de um contador validado futuro; o teste usa contagem sintética. Não interpretar este arquivo como integração ativa.
 
 O catálogo público consultado em 04/10/2026 mostrou duas entradas V4.1 Flash: USD 0,00/2,40 e USD 0,36/1,09 por milhão de tokens de entrada/saída. O endpoint público de recomendações anunciou o candidato `deepseek/deepseek-v4.1-flash:US`, porém sem preço. Não foi possível relacionar de forma verificável cada tarifa à variante do usuário. Nenhuma tarifa foi ativada. Fonte do catálogo: https://portal.nousresearch.com/models . A identificação selecionada no Hermes e o preço na conta ainda precisam ser conferidos. Total atual: 27 testes offline.
+
+
+## Simulação determinística do comitê
+
+`simulate_committee.py` percorre 9 agentes em duas rodadas, 2 lotes de revisão e 1 síntese por Rafael: 21 respostas fabricadas. Exercita os módulos reais de reserva, preparação, dispatch local e reconciliação em SQLite descartável. Os dados e preços são sintéticos; não produz análise de ações. Não usa credenciais, HTTP ou carteira do portal.
+
+Cenários: execução completa, usage ausente (reserva conservada e job interrompido), saída truncada (não segue à síntese) e orçamento insuficiente (próximo agente bloqueado antes do dispatch). Os testes proíbem conexão de socket e urllib; 32 testes Python aprovados. O saldo comercial e aprovação de preço do portal são testados separadamente com mocks; esta simulação ainda não demonstra a ponte portal–executor ou qualidade de análises reais.
