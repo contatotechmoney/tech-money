@@ -10,7 +10,9 @@
     "server/committee-local-fixture.test.ts",
     "server/committee-local-main.ts",
     "server/committee-authenticated-simulation.test.ts",
-    "client/src/components/authenticated-committee-simulation.tsx"
+    "client/src/components/authenticated-committee-simulation.tsx",
+    "server/committee-auth-harness.ts",
+    "client/src/committee-auth-demo.tsx"
   ],
   "exclude": []
 }

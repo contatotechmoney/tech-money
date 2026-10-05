@@ -3,8 +3,9 @@ import { registerHermesRoutes } from "./hermes-routes";
 import { registerAuthenticatedSimulation } from "./committee-authenticated-simulation";
 import { registerProfessionalReviewRoutes } from "./professional-review-routes";
 import { reviewedReport } from "./professional-review";
-import type { NextFunction, Request, Response } from "express";
-import { getAuth } from "@clerk/express";
+import type {Request,Response} from "express";
+import { requireAuth } from "./require-auth";
+export { requireAuth } from "./require-auth";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import {
@@ -39,20 +40,6 @@ declare global {
       rawBody?: Buffer;
     }
   }
-}
-
-export function requireAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  const { userId } = getAuth(req);
-  if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  req.userId = userId;
-  next();
 }
 
 export async function registerRoutes(
