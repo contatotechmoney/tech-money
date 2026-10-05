@@ -1,7 +1,7 @@
 import { clerkClient, getAuth } from "@clerk/express";
 import type { Express, Request, RequestHandler } from "express";
 import { z } from "zod";
-import { BUSINESS_EMAIL_MESSAGE, normalizeBusinessEmail } from "../shared/business-email";
+import { EMAIL_MESSAGE, normalizeEmail } from "../shared/business-email";
 
 type Identity = {
   id: string;
@@ -22,13 +22,13 @@ export class LeadPolicyError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
 }
 
-export function verifiedBusinessIdentity(user: Identity) {
+export function verifiedEmailIdentity(user: Identity) {
   const primary = user.emailAddresses.find(email => email.id === user.primaryEmailAddressId);
   if (!primary || primary.verification?.status !== "verified") {
-    throw new LeadPolicyError(403, "email_unverified", "Confirme seu e-mail empresarial antes de continuar.");
+    throw new LeadPolicyError(403, "email_unverified", "Confirme seu e-mail antes de continuar.");
   }
-  const email = normalizeBusinessEmail(primary.emailAddress);
-  if (!email) throw new LeadPolicyError(403, "business_email_required", BUSINESS_EMAIL_MESSAGE);
+  const email = normalizeEmail(primary.emailAddress);
+  if (!email) throw new LeadPolicyError(403, "valid_email_required", EMAIL_MESSAGE);
   if (!/^user_[A-Za-z0-9]+$/.test(user.id) || !Number.isFinite(user.createdAt)) throw new Error("Invalid identity");
   return { userId: user.id, email, registeredAt: new Date(user.createdAt).toISOString() };
 }
@@ -89,7 +89,7 @@ export function createPortalLeadHandlers(deps: {
     if (!userId) throw new LeadPolicyError(401, "unauthorized", "Entre na sua conta para continuar.");
     const user = await fetchUser(userId);
     if (user.id !== userId) throw new Error("Identity mismatch");
-    return verifiedBusinessIdentity(user);
+    return verifiedEmailIdentity(user);
   }
   function failure(res: Parameters<RequestHandler>[1], error: unknown) {
     res.setHeader("Cache-Control", "no-store");
@@ -125,7 +125,7 @@ export function createPortalLeadHandlers(deps: {
     try {
       const owner = await identity(req);
       const profile = await deps.store.profile(owner.userId);
-      if (!profile.registered) throw new LeadPolicyError(403, "profile_required", "Conclua seu cadastro empresarial antes de usar o sistema.");
+      if (!profile.registered) throw new LeadPolicyError(403, "profile_required", "Conclua seu cadastro antes de usar o sistema.");
       next();
     } catch (error) { failure(res, error); }
   };
@@ -145,7 +145,7 @@ export function registerPortalLeadRoutes(app: Express, options: {
     handlers.profile(req,res,next);
   });
   app.post("/api/leads/profile", (req, res, next) => {
-    if (!enabled()) { res.status(503).json({ error: "Cadastro empresarial ainda não ativado.", code: "lead_capture_disabled" }); return; }
+    if (!enabled()) { res.status(503).json({ error: "Cadastro ainda não ativado.", code: "lead_capture_disabled" }); return; }
     handlers.capture(req,res,next);
   });
   const gate: RequestHandler = (req,res,next) => {

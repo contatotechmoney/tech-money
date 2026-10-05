@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import express from "express";
-import { BUSINESS_EMAIL_MESSAGE, normalizeBusinessEmail } from "../shared/business-email";
-import { createPortalLeadHandlers, registerPortalLeadRoutes, SupabaseLeadStore, verifiedBusinessIdentity, type CaptureInput, type LeadStore } from "./portal-leads";
+import { EMAIL_MESSAGE, normalizeEmail } from "../shared/business-email";
+import { createPortalLeadHandlers, registerPortalLeadRoutes, SupabaseLeadStore, verifiedEmailIdentity, type CaptureInput, type LeadStore } from "./portal-leads";
 
 const user = (email = "diretoria@techmoney.com.br", status = "verified") => ({
   id: "user_businessA", primaryEmailAddressId: "email_primary",
@@ -41,20 +41,17 @@ const capture = (url: string, extra: Record<string, unknown> = {}, owner?: strin
   body: JSON.stringify({ nome: "Nome Empresarial", marketingOptIn: false, ...extra }),
 });
 
-test("rejects personal, temporary and provider subdomains without matching lookalike corporate domains", () => {
-  for (const email of ["x@gmail.com", "x@HOTMAIL.COM", "x@icloud.com", "x@proton.me", "x@mail.gmail.com", "x@foo.yopmail.com", "x@yopmail.com", "x@example.com", "x@test.invalid"])
-    assert.equal(normalizeBusinessEmail(email), null, email);
-  assert.equal(normalizeBusinessEmail("  Diretor+finance@TechMoney.com.br  "), "diretor+finance@techmoney.com.br");
-  assert.equal(normalizeBusinessEmail("x@gmail-business.com.br"), "x@gmail-business.com.br");
+test("accepts personal and corporate addresses", () => {
+ for (const email of ["x@gmail.com", "x@hotmail.com", "x@outlook.com", "x@yahoo.com", "x@icloud.com", "x@techmoney.com.br"]) assert.equal(normalizeEmail(email), email);
 });
 test("rejects malformed domains and e-mail separators", () => {
   for (const email of ["x@@empresa.com", "x@-empresa.com", "x@empresa..com", ".x@empresa.com", "x..y@empresa.com", "x\r\n@empresa.com", "x@empresa", "x@127.0.0.1"])
-    assert.equal(normalizeBusinessEmail(email), null, email);
+    assert.equal(normalizeEmail(email), null, email);
 });
-test("secondary verified business address cannot bypass personal or unverified primary email", () => {
+test("verified personal primary address is accepted; unverified primary is rejected", () => {
   const identity = user("x@gmail.com"); identity.emailAddresses.push({ id: "email_secondary", emailAddress: "x@techmoney.com.br", verification: { status: "verified" } });
-  assert.throws(() => verifiedBusinessIdentity(identity), /domínio próprio/);
-  assert.throws(() => verifiedBusinessIdentity(user(undefined, "unverified")), /Confirme/);
+  assert.equal(verifiedEmailIdentity(identity).email, "x@gmail.com");
+  assert.throws(() => verifiedEmailIdentity(user(undefined, "unverified")), /Confirme/);
 });
 test("anonymous profile and capture cannot write a lead", async () => {
   const f = fixture({ authenticated: false }); await withServer(f, async url => {
@@ -62,12 +59,16 @@ test("anonymous profile and capture cannot write a lead", async () => {
     assert.equal((await capture(url)).status, 401); assert.equal(f.queries(), 0);
   });
 });
-test("personal address is refused server-side even when bypassing sign-up screen", async () => {
-  const f = fixture({ email: "x@gmail.com" }); await withServer(f, async url => {
-    const response = await capture(url); assert.equal(response.status, 403);
-    assert.equal((await response.json()).error, BUSINESS_EMAIL_MESSAGE); assert.equal(f.queries(), 0);
-    assert.equal((await fetch(url + "/api/investments/protected")).status, 403);
-  });
+test("verified personal address can complete registration and use Invest", async () => {
+ const f = fixture({email:"x@gmail.com"}); await withServer(f, async url => {
+ assert.equal((await capture(url)).status,200); assert.equal(f.calls[0].email,"x@gmail.com");
+ assert.equal((await fetch(url+"/api/investments/protected")).status,200);
+ });
+});
+test("unverified personal address cannot write a lead", async () => {
+ const f = fixture({email:"x@gmail.com",verification:"unverified"}); await withServer(f, async url => {
+ assert.equal((await capture(url)).status,403); assert.equal(f.queries(),0);
+ });
 });
 test("unverified corporate email is refused before any storage", async () => {
   const f = fixture({ verification: "unverified" }); await withServer(f, async url => {
