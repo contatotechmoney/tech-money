@@ -8,7 +8,9 @@
   "include": [
     "client/src/committee-executor-demo.tsx",
     "server/committee-local-fixture.test.ts",
-    "server/committee-local-main.ts"
+    "server/committee-local-main.ts",
+    "server/committee-authenticated-simulation.test.ts",
+    "client/src/components/authenticated-committee-simulation.tsx"
   ],
   "exclude": []
 }

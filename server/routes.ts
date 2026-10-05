@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { registerHermesRoutes } from "./hermes-routes";
+import { registerAuthenticatedSimulation } from "./committee-authenticated-simulation";
 import { registerProfessionalReviewRoutes } from "./professional-review-routes";
 import { reviewedReport } from "./professional-review";
 import type { NextFunction, Request, Response } from "express";
@@ -61,6 +62,7 @@ export async function registerRoutes(
 ): Promise<Server> {
   const checkProfile = options.checkProfile ?? validarConformidade;
   registerHermesRoutes(app, requireAuth);
+  registerAuthenticatedSimulation(app, requireAuth);
   registerProfessionalReviewRoutes(app, requireAuth);
   app.get("/api/webhooks/whatsapp", (req, res) => {
     const mode = req.query["hub.mode"];

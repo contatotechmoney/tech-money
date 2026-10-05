@@ -1,4 +1,5 @@
 import { HermesAnalysisPanel } from "@/components/hermes-analysis-panel";
+import { AuthenticatedCommitteeSimulation } from "@/components/authenticated-committee-simulation";
 import { Link } from "wouter";
 import { ArrowRight, BrainCircuit, FileText, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -56,6 +57,7 @@ export default function AIAgents() {
       </div>
 
       <HermesAnalysisPanel />
+      <AuthenticatedCommitteeSimulation />
 
       <div>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.15em] text-muted-foreground">{t("generatedByAgents")}</h2>

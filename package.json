@@ -22,7 +22,7 @@
     "dev:committee-demo": "vite --config vite.committee-demo.config.ts",
     "test:committee-preview": "tsc --project tsconfig.committee-preview.json && TSX_TSCONFIG_PATH=tsconfig.committee-preview.json node --import tsx --test server/committee-preview.test.ts server/hermes-ui.test.ts",
     "dev:committee-executor": "TSX_TSCONFIG_PATH=tsconfig.committee-local.json node --import tsx server/committee-local-main.ts --offline-fixture",
-    "test:committee-local": "tsc --project tsconfig.committee-local.json && TSX_TSCONFIG_PATH=tsconfig.committee-local.json node --import tsx --test server/committee-local-fixture.test.ts"
+    "test:committee-local": "tsc --project tsconfig.committee-local.json && TSX_TSCONFIG_PATH=tsconfig.committee-local.json node --import tsx --test server/committee-local-fixture.test.ts server/committee-authenticated-simulation.test.ts"
   },
   "dependencies": {
     "@babel/traverse": "^7.29.8",
