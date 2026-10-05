@@ -1,4 +1,4 @@
-import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, useAuth, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
@@ -28,6 +28,8 @@ import InvestmentReports from "@/pages/investment-reports";
 import InvestmentPortfolio from "@/pages/investment-portfolio";
 import Suitability from "@/pages/suitability";
 import Settings from "@/pages/settings";
+import { PortalRegistration } from "@/components/portal-registration";
+import { BusinessSignUp } from "@/components/business-sign-up";
 import InvestmentReview from "@/pages/investment-review";
 
 const clerkPubKey = publishableKeyFromHost(
@@ -98,7 +100,7 @@ function LoadingScreen() {
   );
 }
 
-function AuthGuard({ children }: { children: ReactNode }) {
+function AuthGuard({ children, registerPortal = false }: { children: ReactNode; registerPortal?: boolean }) {
   const { isLoaded, isSignedIn } = useAuth();
   const [, navigate] = useLocation();
 
@@ -115,7 +117,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
   if (!isLoaded) return <LoadingScreen />;
   if (!isSignedIn) return null;
 
-  return <>{children}</>;
+  return registerPortal ? <PortalRegistration>{children}</PortalRegistration> : <>{children}</>;
 }
 
 function ProtectedRoute({
@@ -132,7 +134,7 @@ function ProtectedRoute({
   return (
     <Route {...routeProps}>
       {(params) => (
-        <AuthGuard>
+        <AuthGuard registerPortal={investment}>
           <PageLayout>
             <Component {...params} />
           </PageLayout>
@@ -174,7 +176,7 @@ function SignUpPage() {
   const destination = withAppBase(redirectPath, basePath);
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <SignUp
+      <BusinessSignUp
         routing="path"
         path={`${basePath}/sign-up`}
         signInUrl={withAppBase(authLink("/sign-in", redirectPath), basePath)}

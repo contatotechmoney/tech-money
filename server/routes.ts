@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { registerHermesRoutes } from "./hermes-routes";
+import { registerPortalLeadRoutes } from "./portal-leads";
 import { registerAuthenticatedSimulation } from "./committee-authenticated-simulation";
 import { registerProfessionalReviewRoutes } from "./professional-review-routes";
 import { reviewedReport } from "./professional-review";
@@ -47,6 +48,7 @@ export async function registerRoutes(
   app: Express,
   options: { checkProfile?: typeof validarConformidade } = {},
 ): Promise<Server> {
+  registerPortalLeadRoutes(app);
   const checkProfile = options.checkProfile ?? validarConformidade;
   registerHermesRoutes(app, requireAuth);
   registerAuthenticatedSimulation(app, requireAuth);
