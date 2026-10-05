@@ -9,6 +9,7 @@ import {
   LogOut,
   Menu,
   Settings,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -16,6 +17,8 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSelector } from "@/components/language-selector";
 import { useClerk, useUser } from "@clerk/react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function InvestmentLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -23,6 +26,12 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
   const { t } = useLanguage();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const reviewAccess = useQuery<{ assignments: { clientId: string }[] }>({
+    queryKey: ["/api/investments/review-access"],
+    staleTime: 0,
+    queryFn: async () => (await apiRequest("GET", "/api/investments/review-access")).json(),
+    refetchOnWindowFocus: true,
+  });
   const userName =
     user?.fullName ||
     user?.primaryEmailAddress?.emailAddress ||
@@ -38,6 +47,10 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
     { label: t("aiAgents"), icon: BrainCircuit, href: "/investments/agents" },
     { label: t("portfolio"), icon: BriefcaseBusiness, href: "/investments/portfolio" },
     { label: t("investmentReports"), icon: ChartNoAxesCombined, href: "/investments/reports" },
+    { label: "Perfil do investidor", icon: ShieldCheck, href: "/investments/suitability" },
+    ...(reviewAccess.data?.assignments?.length
+      ? [{ label: "Revisão profissional", icon: ShieldCheck, href: "/investments/review" }]
+      : []),
     { label: t("creditsPlans"), icon: CreditCard, href: "/investments/credits" },
     { label: t("investmentSettings"), icon: Settings, href: "/investments/settings" },
   ];

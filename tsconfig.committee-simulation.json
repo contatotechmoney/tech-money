@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.quality.json",
+  "include": [
+    "server/committee-simulation-db.test.ts"
+  ],
+  "exclude": []
+}

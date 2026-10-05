@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "jsx": "react-jsx", "incremental": false },
+  "include": ["client/src/committee-demo.tsx", "server/committee-preview.test.ts", "server/hermes-ui.test.ts"],
+  "exclude": []
+}

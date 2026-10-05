@@ -1,91 +1,16 @@
+import type { ReactNode } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, BrainCircuit, CheckCircle2, Clock3, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
+import { ArrowLeft, BrainCircuit, CheckCircle2, Clock3, Mail, RefreshCw, ShieldAlert } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest } from "@/lib/queryClient";
-
-export default function InvestmentReport({ ticker }: { ticker?: string }) {
-  const { t } = useLanguage();
-  const queryClient = useQueryClient();
-  const asset = ticker || "BBDC3";
-  const reportQuery = useQuery<ReportResponse>({
-    queryKey: [`/api/investments/reports/${asset}`],
-    refetchOnWindowFocus: true,
-  });
-  const refresh = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/investments/reports/${asset}/refresh`),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [`/api/investments/reports/${asset}`] });
-      void queryClient.invalidateQueries({ queryKey: ["/api/investments/reports"] });
-    },
-  });
-  const report = reportQuery.data?.latest;
-
-  return (
-    <div className="space-y-6">
-      <Link href="/investments/agents">
-        <Button variant="ghost" className="px-0 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t("backToAgents")}
-        </Button>
-      </Link>
-      <div>
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1b4d3e] text-sm font-bold text-white">{asset.slice(0, 2)}</div>
-          <div>
-            <p className="text-sm text-muted-foreground">{t("generatedByAgents")}</p>
-            <h1 className="text-3xl font-bold tracking-tight">{report?.companyName || asset}</h1>
-          </div>
-        </div>
-      </div>
-      {reportQuery.isLoading ? (
-        <div className="flex min-h-64 items-center justify-center text-muted-foreground"><Loader2 className="mr-2 animate-spin" />{t("loading")}</div>
-      ) : reportQuery.isError || !report ? (
-        <Card><CardContent className="p-8 text-center text-sm text-destructive">{t("reportsError")}</CardContent></Card>
-      ) : (
-        <>
-          <div className="grid gap-4 md:grid-cols-3">
-            <MetricCard label={t("currentQuote")} value={currency.format(report.price)} detail={formatPercent(report.changePercent)} positive={report.changePercent >= 0} />
-            <MetricCard label={t("agentSignal")} value={report.signal} detail={`${t("generatedOn")} ${formatDate(report.generatedAt)}`} />
-            <Card><CardContent className="flex h-full flex-col justify-center p-5"><p className="text-sm text-muted-foreground">{t("dataSource")}</p><p className="mt-2 font-semibold">{report.source}</p><p className="mt-1 text-xs text-muted-foreground">{t("updatedMarketData")}</p></CardContent></Card>
-          </div>
-          <Card>
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div><CardTitle className="flex items-center gap-2"><BrainCircuit className="h-5 w-5 text-primary" />{t("reportAnalysis")}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{report.companyName}</p></div>
-              <Button variant="outline" onClick={() => refresh.mutate()} disabled={refresh.isPending}><RefreshCw className={refresh.isPending ? "animate-spin" : ""} />{t("refreshReport")}</Button>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <p className="rounded-lg bg-muted/30 p-4 text-sm leading-6">{report.summary}</p>
-              <div className="grid gap-5 md:grid-cols-2">
-                <InsightList icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />} title={t("reportStrengths")} items={report.strengths} />
-                <InsightList icon={<ShieldAlert className="h-4 w-4 text-amber-600" />} title={t("reportRisks")} items={report.risks} />
-              </div>
-              <div className="border-t pt-5"><p className="text-sm font-semibold">{t("agentOutlook")}</p><p className="mt-2 text-sm leading-6 text-muted-foreground">{report.outlook}</p></div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-primary" />{t("reportHistory")}</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {(reportQuery.data?.history || []).map((entry) => (
-                  <div key={entry.id} className="flex flex-col gap-2 rounded-lg border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-muted-foreground">{formatDate(entry.generatedAt)}</span>
-                    <span className="font-medium">{currency.format(entry.price)}</span>
-                    <Badge variant="outline" className={entry.changePercent >= 0 ? "border-emerald-200 text-emerald-700" : "border-red-200 text-red-700"}>{formatPercent(entry.changePercent)}</Badge>
-                    <span className="text-xs text-muted-foreground">{entry.signal}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
-    </div>
-  );
-}
+import { trackEvent } from "@/lib/analytics";
+import { ConformidadeGate } from "@/components/conformidade-gate";
+import { ReportQualityNotice, type ReportQuality } from "@/components/report-quality-notice";
 
 type Report = {
   id: string;
@@ -98,19 +23,284 @@ type Report = {
   summary: string;
   strengths: string[];
   risks: string[];
+  riskScore: number | null;
   outlook: string;
   source: string;
+  analysisStatus?: ReportQuality["analysisStatus"];
+  analysisReason?: string;
+  availableAgents?: number;
+  expectedAgents?: number;
+  consensusScore?: number | null;
+  highRisk?: boolean;
+  marketDataAt?: string | null;
+  fundamentalsPeriod?: string | null;
+  historical?: boolean;
+  recommendation?: ReportQuality["recommendation"];
 };
 
 type ReportResponse = { latest: Report; history: Report[]; source: string };
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+type ReportListResponse = { reports: Report[]; source?: string };
 
-function MetricCard({ label, value, detail, positive }: { label: string; value: string; detail?: string; positive?: boolean }) {
-  return <Card><CardContent className="p-5"><p className="text-sm text-muted-foreground">{label}</p><p className="mt-2 text-xl font-bold">{value}</p>{detail && <p className={`mt-1 text-xs ${positive === undefined ? "text-muted-foreground" : positive ? "text-emerald-700" : "text-red-700"}`}>{detail}</p>}</CardContent></Card>;
+export default function InvestmentReport({ ticker }: { ticker?: string }) {
+  const { t } = useLanguage();
+  const asset = ticker || "BBDC3";
+  const detailKey = [`/api/investments/reports/${asset}`];
+  const reportQuery = useQuery<ReportResponse>({
+    queryKey: detailKey,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    refetchInterval: 30_000,
+  });
+  const report = reportQuery.data?.latest;
+  const quality = report ? toQuality(report) : null;
+  const isApproved = report?.recommendation?.status === "approved";
+  const isRejected = report?.recommendation?.status === "rejected";
+  const hasInformativeAnalysis = (quality?.analysisStatus === "complete" || quality?.analysisStatus === "partial") && !quality.historical;
+
+  return (
+    <div className="space-y-6">
+      <Link href="/investments/agents" className="inline-flex items-center px-0 text-sm font-medium text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        {t("backToAgents")}
+      </Link>
+      <div>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1b4d3e] text-sm font-bold text-white">{asset.slice(0, 2)}</div>
+          <div>
+            <p className="text-sm text-muted-foreground">{t("generatedByAgents")}</p>
+            <h1 className="text-3xl font-bold tracking-tight">{report?.companyName || asset}</h1>
+          </div>
+        </div>
+      </div>
+      {reportQuery.isLoading ? (
+        <div className="space-y-4" aria-label={t("loading")}>
+          <div className="h-24 animate-pulse rounded-xl bg-muted/60" />
+          <div className="h-48 animate-pulse rounded-xl bg-muted/60" />
+        </div>
+      ) : reportQuery.isError || !report ? (
+        <Card><CardContent className="space-y-3 p-8 text-center text-sm text-destructive">
+          <p>{t("reportsError")}</p>
+          <Button variant="outline" onClick={() => reportQuery.refetch()}>Tentar novamente</Button>
+        </CardContent></Card>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-3">
+            <MetricCard label="Cotação registrada no documento" value={currency.format(report.price)} detail={`Variação informativa: ${formatPercent(report.changePercent)}`} />
+            <MetricCard
+              label="Status da recomendação"
+              value={isApproved ? "Recomendação aprovada" : isRejected ? "Rejeitada" : "Pendente"}
+              detail={isApproved ? "Revisada por consultor" : isRejected ? "Não disponível para entrega" : "Aguardando revisão profissional"}
+            />
+            <Card><CardContent className="flex h-full flex-col justify-center p-5">
+              <p className="text-sm text-muted-foreground">{t("dataSource")}</p>
+              <p className="mt-2 font-semibold">{report.source || reportQuery.data?.source || "Não informado"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Documento: {formatDate(report.generatedAt)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Dados de mercado: {quality?.marketDataAt ? formatDate(quality.marketDataAt) : "Não informado"}</p>
+            </CardContent></Card>
+          </div>
+          {quality && <ReportQualityNotice quality={quality} source={report.source || reportQuery.data?.source} generatedAt={report.generatedAt} />}
+          <ReportDeliveryCard ticker={asset} enabled={isApproved} />
+          <ConformidadeGate ticker={asset} />
+          <Card>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div><CardTitle className="flex items-center gap-2"><BrainCircuit className="h-5 w-5 text-primary" />{t("reportAnalysis")}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{report.companyName}</p></div>
+              <Button variant="outline" asChild><Link href="/investments/agents">Solicitar nova análise</Link></Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {hasInformativeAnalysis ? (
+                <>
+                  <p className="rounded-lg bg-muted/30 p-4 text-sm leading-6">{report.summary}</p>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <InsightList icon={<CheckCircle2 className="h-4 w-4 text-sky-700" />} title={t("reportStrengths")} items={report.strengths} />
+                    <InsightList icon={<ShieldAlert className="h-4 w-4 text-amber-700" />} title={t("reportRisks")} items={report.risks} />
+                  </div>
+                  <div className="border-t pt-5">
+                    <p className="text-sm font-semibold">{isApproved ? "Recomendação aprovada" : "Recomendação profissional"}</p>
+                    {isApproved ? (
+                      <>
+                        <p className="mt-2 text-xs font-semibold text-emerald-800">Recomendação aprovada</p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground">{report.recommendation?.review?.recommendationText || report.outlook}</p>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {isRejected
+                          ? "Esta recomendação foi rejeitada pelo consultor. O texto de recomendação não está disponível para o cliente."
+                          : "O texto de recomendação permanece oculto até a revisão profissional. A análise acima é informativa e não constitui aconselhamento personalizado."}
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                  {quality?.analysisReason || "Não há conteúdo suficiente para apresentar conclusões."} Este conteúdo é apenas informativo; não há sinal financeiro nem pontuação de consenso.
+                </p>
+              )}
+                <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">
+                 {isApproved
+                   ? "A recomendação foi revisada por consultor. A entrega só fica disponível após aprovação e permanece sujeita ao consentimento e aos controles aplicáveis."
+                   : "Informações gerais, não aconselhamento personalizado. A recomendação não está aprovada para divulgação."}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-primary" />{t("reportHistory")}</CardTitle></CardHeader>
+            <CardContent>
+              {(reportQuery.data?.history ?? []).length === 0 ? (
+                <p className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">Não há documentos anteriores disponíveis.</p>
+              ) : (
+                <div className="space-y-3">
+                  {(reportQuery.data?.history ?? []).map((entry) => {
+                    const historicalQuality = {
+                      ...toQuality(entry),
+                      historical: true,
+                      recommendation: {
+                        ...toQuality(entry).recommendation,
+                        status: "pending" as const,
+                        professionalReview: "pending" as const,
+                        review: undefined,
+                      },
+                    };
+                    return (
+                      <div key={entry.id} className="space-y-3 rounded-lg border px-4 py-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm font-semibold">Documento histórico · {formatDate(entry.generatedAt)}</span>
+                          <Badge variant="outline">{historicalQuality.analysisStatus === "complete" ? "Análise completa à época" : statusLabel(historicalQuality.analysisStatus)}</Badge>
+                        </div>
+                        <ReportQualityNotice quality={historicalQuality} source={entry.source} generatedAt={entry.generatedAt} compact />
+                        <p className="text-xs text-muted-foreground">Documento histórico; não representa informação atual nem recomendação aprovada.</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
 }
 
-function InsightList({ icon, title, items }: { icon: React.ReactNode; title: string; items: string[] }) {
-  return <div><p className="flex items-center gap-2 text-sm font-semibold">{icon}{title}</p><ul className="mt-3 space-y-2">{items.map((item) => <li key={item} className="text-sm leading-5 text-muted-foreground">• {item}</li>)}</ul></div>;
+function toQuality(report: Report): ReportQuality {
+  return {
+    analysisStatus: report.analysisStatus ?? "unavailable",
+    analysisReason: report.analysisReason ?? "A cobertura desta análise ainda não foi confirmada.",
+    availableAgents: report.availableAgents ?? 0,
+    expectedAgents: report.expectedAgents ?? 0,
+    consensusScore: report.consensusScore ?? null,
+    highRisk: report.highRisk ?? false,
+    marketDataAt: report.marketDataAt ?? null,
+    fundamentalsPeriod: report.fundamentalsPeriod ?? null,
+    historical: report.historical ?? false,
+    recommendation: report.recommendation ?? {
+      status: "pending",
+      professionalReview: "pending",
+      profileStatus: "pending",
+      reasons: [],
+    },
+  };
+}
+
+type DeliveryInfo = { id: string; status: "pending" | "processing" | "awaiting_provider" | "sent" | "delivered" | "failed"; errorMessage?: string | null };
+
+function ReportDeliveryCard({ ticker, enabled }: { ticker: string; enabled: boolean }) {
+  const [email, setEmail] = useState("");
+  const [deliveryId, setDeliveryId] = useState("");
+  const deliveryQuery = useQuery<DeliveryInfo>({
+    queryKey: ["/api/investments/report-deliveries", deliveryId],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/investments/report-deliveries/${encodeURIComponent(deliveryId)}`);
+      const body = await response.json() as { request: DeliveryInfo };
+      return body.request;
+    },
+    enabled: !!deliveryId,
+    refetchInterval: (query) => {
+      const state = (query.state.data as DeliveryInfo | undefined)?.status?.toLowerCase();
+      return state && ["delivered", "confirmed", "failed", "rejected", "complete", "completed"].includes(state) ? false : 2500;
+    },
+  });
+  const startDelivery = useMutation({
+    mutationFn: async () => {
+      const idempotencyKey = typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${ticker}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const response = await apiRequest("POST", `/api/investments/reports/${encodeURIComponent(ticker)}/delivery`, {
+        channel: "email",
+        contact: email.trim(),
+        idempotencyKey,
+      });
+      const body = await response.json() as { request: DeliveryInfo };
+      return body.request;
+    },
+    onSuccess: (delivery) => setDeliveryId(delivery.id),
+  });
+  const currentStatus = deliveryQuery.data?.status;
+  const terminalStatus = currentStatus?.toLowerCase();
+  const deliveryLabel = terminalStatus === "delivered" || terminalStatus === "confirmed" || terminalStatus === "complete" || terminalStatus === "completed"
+    ? "Entrega confirmada"
+    : terminalStatus === "failed" || terminalStatus === "rejected"
+      ? "Entrega não confirmada"
+      : "Aguardando confirmação";
+
+  return (
+    <Card className={enabled ? "border-emerald-300" : "border-dashed"}>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base"><Mail className="h-4 w-4 text-primary" /> Entrega do relatório</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {!enabled ? (
+          <p className="text-sm text-muted-foreground">A entrega fica indisponível até que um consultor aprove a recomendação.</p>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">Envie a recomendação aprovada ao cliente por e-mail. A confirmação será acompanhada nesta tela.</p>
+            <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(event) => { event.preventDefault(); startDelivery.mutate(); }}>
+              <label className="sr-only" htmlFor="delivery-email">E-mail de contato do cliente</label>
+              <input
+                id="delivery-email"
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="E-mail de contato"
+                className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <Button type="submit" disabled={!email.trim() || startDelivery.isPending}>
+                {startDelivery.isPending ? "Solicitando..." : "Enviar relatório"}
+              </Button>
+            </form>
+            {startDelivery.isError && <p role="alert" className="text-sm text-destructive">Não foi possível iniciar a entrega. Verifique o contato e tente novamente.</p>}
+            {deliveryQuery.isError && <p role="alert" className="text-sm text-destructive">Não foi possível consultar a confirmação. Acompanhe novamente em instantes.</p>}
+            {deliveryId && (
+              <div role="status" aria-live="polite" className="rounded-md border bg-muted/30 p-3">
+                <p className="text-sm font-medium">{deliveryLabel}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {deliveryQuery.isLoading ? "Consultando estado de entrega..." : deliveryQuery.data?.errorMessage || `Identificador de entrega: ${deliveryId}`}
+                </p>
+                {terminalStatus === "failed" && <Button className="mt-3" variant="outline" size="sm" onClick={() => startDelivery.mutate()} disabled={startDelivery.isPending}>Tentar entrega novamente</Button>}
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MetricCard({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return <Card><CardContent className="p-5"><p className="text-sm text-muted-foreground">{label}</p><p className="mt-2 text-xl font-bold">{value}</p>{detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}</CardContent></Card>;
+}
+
+function InsightList({ icon, title, items }: { icon: ReactNode; title: string; items: string[] }) {
+  return <div><p className="flex items-center gap-2 text-sm font-semibold">{icon}{title}</p><ul className="mt-3 space-y-2">{items.map((item, index) => <li key={`${index}-${item}`} className="text-sm leading-5 text-muted-foreground">{item}</li>)}</ul></div>;
+}
+
+function statusLabel(status: ReportQuality["analysisStatus"]) {
+  return {
+    complete: "Análise completa",
+    partial: "Análise parcial",
+    unavailable: "Análise indisponível",
+    outdated: "Análise desatualizada",
+  }[status];
 }
 
 function formatPercent(value: number) {
@@ -118,5 +308,9 @@ function formatPercent(value: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Não informado";
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
+
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
