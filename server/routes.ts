@@ -1,12 +1,10 @@
+import { registerPortalLeadRoutes } from "./portal-leads";
 import type { Express } from "express";
 import { registerHermesRoutes } from "./hermes-routes";
-import { registerPortalLeadRoutes } from "./portal-leads";
-import { registerAuthenticatedSimulation } from "./committee-authenticated-simulation";
 import { registerProfessionalReviewRoutes } from "./professional-review-routes";
 import { reviewedReport } from "./professional-review";
-import type {Request,Response} from "express";
-import { requireAuth } from "./require-auth";
-export { requireAuth } from "./require-auth";
+import type { NextFunction, Request, Response } from "express";
+import { getAuth } from "@clerk/express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import {
@@ -43,15 +41,28 @@ declare global {
   }
 }
 
+export function requireAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  req.userId = userId;
+  next();
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express,
   options: { checkProfile?: typeof validarConformidade } = {},
 ): Promise<Server> {
-  registerPortalLeadRoutes(app);
   const checkProfile = options.checkProfile ?? validarConformidade;
+  registerPortalLeadRoutes(app);
   registerHermesRoutes(app, requireAuth);
-  registerAuthenticatedSimulation(app, requireAuth);
   registerProfessionalReviewRoutes(app, requireAuth);
   app.get("/api/webhooks/whatsapp", (req, res) => {
     const mode = req.query["hub.mode"];
@@ -401,10 +412,15 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Relatório não disponível para esse ativo." });
     }
 
-    return res.status(503).json({
-      error: "Solicite uma nova análise no painel dos agentes, com reserva de créditos.",
-      code: "LEGACY_ANALYSIS_DISABLED",
-    });
+    try {
+      const result = await refreshReport(req.userId!, ticker);
+      const profile = await safeProfileCheck(req.userId!, ticker, result.latest, checkProfile);
+      res.status(result.refreshFailure ? 200 : 201).json(
+        await reviewedReport(result.latest, { refreshFailure: result.refreshFailure, profileCheck: profile }),
+      );
+    } catch (error) {
+      sendMarketDataError(res, "gerar relatório", error);
+    }
   });
 
   app.post("/api/investments/reports/:ticker/delivery", requireAuth, async (req, res) => {

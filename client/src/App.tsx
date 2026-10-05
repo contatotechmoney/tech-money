@@ -1,4 +1,6 @@
-import { ClerkProvider, SignIn, useAuth, useClerk } from "@clerk/react";
+import { PortalRegistration } from "@/components/portal-registration";
+import { BusinessSignUp } from "@/components/business-sign-up";
+import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
@@ -28,8 +30,6 @@ import InvestmentReports from "@/pages/investment-reports";
 import InvestmentPortfolio from "@/pages/investment-portfolio";
 import Suitability from "@/pages/suitability";
 import Settings from "@/pages/settings";
-import { PortalRegistration } from "@/components/portal-registration";
-import { BusinessSignUp } from "@/components/business-sign-up";
 import InvestmentReview from "@/pages/investment-review";
 
 const clerkPubKey = publishableKeyFromHost(
