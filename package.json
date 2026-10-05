@@ -18,7 +18,9 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "test:wallet-db": "NODE_ENV=test tsx --test server/analysis-wallet-db.test.ts",
-    "validate:committee-simulation": "bash scripts/validate-committee-simulation.sh"
+    "validate:committee-simulation": "bash scripts/validate-committee-simulation.sh",
+    "dev:committee-demo": "vite --config vite.committee-demo.config.ts",
+    "test:committee-preview": "tsc --project tsconfig.committee-preview.json && TSX_TSCONFIG_PATH=tsconfig.committee-preview.json node --import tsx --test server/committee-preview.test.ts server/hermes-ui.test.ts"
   },
   "dependencies": {
     "@babel/traverse": "^7.29.8",
