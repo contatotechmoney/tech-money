@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "incremental": false,
+    "target": "ES2022"
+  },
+  "include": [
+    "client/src/committee-executor-demo.tsx",
+    "server/committee-local-fixture.test.ts",
+    "server/committee-local-main.ts"
+  ],
+  "exclude": []
+}
