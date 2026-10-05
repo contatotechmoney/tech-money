@@ -74,3 +74,8 @@ O orçamento técnico retém a estimativa máxima por execução durante solicit
 O painel permite revisar ação, modelo, preço total em créditos e saldo após a reserva, depois confirmar explicitamente. Abrir ou fechar a confirmação não envia a solicitação. A API exige `confirmedCredits` e `priceVersion`; mudança de preço/modelo/provedor/teto/URL entre oferta e envio retorna 409 `PRICE_CHANGED` antes da reserva ou chamada remota. A revisão pública é um hash de condições, não autenticação nem autorização; identidade, allowlist e carteira são conferidas no servidor. Não há cobrança complementar automática.
 
 Esta etapa continua limitada ao estudo informativo já existente, sem catálogo fictício de tipos de análise ou promessas de qualidade/velocidade. O operador define os modelos permitidos e preços fixos; não são preços reais do DeepSeek. O provedor usado no Hermes permanece não identificado. O executor dedicado não foi conectado nem habilitado; margens, preços comerciais e integração LLM continuam pendentes de validação. O retry de submissão incerta conserva a chave original, e o armazenamento rejeita alteração de preço/configuração de uma reserva existente.
+
+
+## Ponte simulada validada
+
+Execute `npm run validate:committee-simulation` em ambiente com PostgreSQL e Python. O script cria cluster descartável sem TCP e ignora DATABASE_URL externo. Seis testes usam rotas HTTP locais, armazenamento/carteira reais em PostgreSQL e simulação Python de 21 etapas. Verifica aprovação do preço, saldo, reserva anterior ao executor, consumo único, falha com refund e consumo incerto com reserva mantida. Não disponibiliza API de simulação pública nem troca o cliente de produção. Tarifas, usage e textos usados pelo executor são fictícios.

@@ -62,3 +62,12 @@ O catálogo público consultado em 04/10/2026 mostrou duas entradas V4.1 Flash: 
 `simulate_committee.py` percorre 9 agentes em duas rodadas, 2 lotes de revisão e 1 síntese por Rafael: 21 respostas fabricadas. Exercita os módulos reais de reserva, preparação, dispatch local e reconciliação em SQLite descartável. Os dados e preços são sintéticos; não produz análise de ações. Não usa credenciais, HTTP ou carteira do portal.
 
 Cenários: execução completa, usage ausente (reserva conservada e job interrompido), saída truncada (não segue à síntese) e orçamento insuficiente (próximo agente bloqueado antes do dispatch). Os testes proíbem conexão de socket e urllib; 32 testes Python aprovados. O saldo comercial e aprovação de preço do portal são testados separadamente com mocks; esta simulação ainda não demonstra a ponte portal–executor ou qualidade de análises reais.
+
+
+## Integração de teste com a carteira do portal
+
+`npm run validate:committee-simulation` cria PostgreSQL privado e descartável por Unix socket, executa a checagem de tipos do teste e as migrations apenas nesse banco, depois testa as rotas reais do portal e `analysisStore`/ledger de créditos com o executor Python offline. O cliente simulado existe somente no arquivo de teste; não é registrado em rotas de produção. O CLI bloqueia socket/urllib, usa dados fictícios e não lê chaves.
+
+6 cenários aprovados: 21 etapas completas com consumo único; aprovação ausente/preço alterado sem débito; saldo insuficiente sem execução; usage incerto mantém reserva/bloqueia outra análise; saída truncada e teto técnico insuficiente devolvem créditos uma única vez. O teste verifica explicitamente que a reserva comercial precede o trabalho Python.
+
+O código de produção não conecta esse cliente de teste nem habilita Hermes. A passagem real por OAuth/transporte Nous, tokenizador, tarifas verificadas, lease/reconciliação do worker e restrição financeira efetiva do provedor continua pendente. Este teste demonstra a ponte em cenário controlado, não a qualidade financeira do conteúdo ou o custo real.
