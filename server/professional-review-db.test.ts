@@ -236,8 +236,9 @@ describe("professional review persistence on disposable PostgreSQL only", () => 
     assert.equal(canDeliverPersonalizedRecommendation(view), false);
     assert.ok((await reviewRepository.history(clientId, report.id)).length >= 3);
   });
-  it("worker sends only the exact approved decision with a simulated provider, never external traffic", async () => {
+  it("simulation worker preserves an approved queued request without calling even a configured synthetic provider", async () => {
     const review = await decide();
+    assert.equal(canDeliverPersonalizedRecommendation(await reviewedReport(report)), true);
     const request = await storage.createReportDeliveryRequest({
       userId: clientId, reportId: report.id, professionalReviewId: review.id,
       idempotencyKey: randomUUID(), ticker: report.ticker, channel: "email",
@@ -259,10 +260,10 @@ describe("professional review persistence on disposable PostgreSQL only", () => 
     });
     try {
       await processReportDeliveryRequests({ id: request.id, limit: 1 });
-      assert.equal(calls, 1);
+      assert.equal(calls, 0);
       const sent = await storage.getReportDeliveryRequest(clientId, request.id);
-      assert.equal(sent?.status, "sent");
-      assert.equal(sent?.providerMessageId, "synthetic-provider-message");
+      assert.equal(sent?.status, "pending");
+      assert.equal(sent?.providerMessageId, null);
       assert.equal(await storage.getReportDeliveryRequest("other-client", request.id), undefined);
     } finally {
       if (oldFrom === undefined) delete process.env.DELIVERY_EMAIL_FROM;
@@ -282,8 +283,8 @@ describe("professional review persistence on disposable PostgreSQL only", () => 
     mock.method(console, "error", () => {});
     await processReportDeliveryRequests({ id: request.id, limit: 1 });
     const blocked = await storage.getReportDeliveryRequest(clientId, request.id);
-    assert.equal(blocked?.status, "failed");
-    assert.equal(blocked?.errorCode, "RECOMMENDATION_PENDING");
+    assert.equal(blocked?.status, "pending");
+    assert.equal(blocked?.errorCode, null);
     await pool.query("UPDATE investment_consultant_authorizations SET revoked_at = now() WHERE reviewer_id = $1 AND client_id = $2", [reviewerId, clientId]);
     assert.equal(canDeliverPersonalizedRecommendation(await reviewedReport(report)), false);
     await assert.rejects(decide(), /CONSULTANT_NOT_AUTHORIZED/);

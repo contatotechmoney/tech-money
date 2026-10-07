@@ -225,7 +225,7 @@ describe("real consultant review, entirely synthetic and offline", () => {
     assert.equal(view.latest.outlook, recommendation);
     assert.ok(view.history.every((r: any) => r.recommendation.status === "pending"));
   });
-  it("delivery route queues only approved current advice and never runs inference", async () => {
+  it("simulation delivery route never queues, even after a valid professional approval", async () => {
     let queued = 0;
     mock.method(storage, "createReportDeliveryRequest", async (input: any) => {
       queued++;
@@ -238,13 +238,14 @@ describe("real consultant review, entirely synthetic and offline", () => {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ channel: "email", contact: "synthetic@example.test", idempotencyKey: randomUUID() }),
     });
-    assert.equal((await send()).status, 409); assert.equal(queued, 0);
+    assert.equal((await send()).status, 403); assert.equal(queued, 0);
     await decide();
-    assert.equal((await send()).status, 201); assert.equal(queued, 1);
+    assert.equal(canDeliverPersonalizedRecommendation(await reviewedReport(documents[0])), true);
+    assert.equal((await send()).status, 403); assert.equal(queued, 0);
     profile = null;
-    assert.equal((await send()).status, 409); assert.equal(queued, 1);
+    assert.equal((await send()).status, 403); assert.equal(queued, 0);
   });
-  it("worker rechecks authorization, report version and profile before any provider call", async () => {
+  it("simulation worker leaves queues untouched regardless of authorization or document changes", async () => {
     await decide();
     const report = structuredClone(documents[0]);
     const queued = { id: "synthetic-queue", userId: owner, reportId: report.id, professionalReviewId: reviews[0].id, ticker: report.ticker,
@@ -260,9 +261,9 @@ describe("real consultant review, entirely synthetic and offline", () => {
       () => { documents = [fixture(), report]; },
     ]) {
       mutate(); await processReportDeliveryRequests();
-      assert.equal(updates.at(-1).errorCode, "RECOMMENDATION_PENDING");
+      assert.equal(updates.length, 0);
     }
-    assert.equal(updates.length, 4);
+    assert.equal(updates.length, 0);
   });
 });
 describe("assigned consultant pending reviews, synthetic and offline", () => {

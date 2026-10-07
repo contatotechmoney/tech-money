@@ -9,6 +9,13 @@ import { ReplitConnectors } from "@replit/connectors-sdk";
 import { canDeliverPersonalizedRecommendation } from "./report-policy";
 import { reviewedReport } from "./professional-review";
 import type { ReportPresentation } from "../shared/report-quality";
+import { REAL_REPORT_DELIVERY_ENABLED } from "../shared/simulation-policy";
+
+export function assertRealReportDeliveryEnabled(): void {
+  if (!REAL_REPORT_DELIVERY_ENABLED) {
+    throw new DeliveryProviderError("REAL_REPORT_DELIVERY_DISABLED", "Envios reais de relatórios bloqueados nesta fase de simulação.");
+  }
+}
 
 class ProviderUnavailableError extends Error {
   code = "PROVIDER_NOT_CONFIGURED";
@@ -27,6 +34,8 @@ export async function processReportDeliveryRequests(options: {
   limit?: number;
   id?: string;
 } = {}): Promise<void> {
+  // Preserve existing pending requests without claiming, changing or sending them.
+  if (!REAL_REPORT_DELIVERY_ENABLED) return;
   const requests = await storage.claimReportDeliveryRequests(options.limit ?? 10, options.id);
   await Promise.all(requests.map(processClaimedRequest));
 }
@@ -77,6 +86,7 @@ export type ProviderWebhookResult = {
 };
 
 export function isReportDeliveryChannelAvailable(channel: ReportDeliveryChannel): boolean {
+  if (!REAL_REPORT_DELIVERY_ENABLED) return false;
   if (channel === "email") return true;
   return Boolean(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
 }
@@ -131,6 +141,7 @@ export async function processWhatsAppWebhookEvent(payload: unknown): Promise<Pro
 
 async function processClaimedRequest(request: ClaimedReportDelivery): Promise<void> {
   try {
+    assertRealReportDeliveryEnabled();
     // Reload the original owner's current document, profile, decision and authorization
     // immediately before the provider call. Queue admission alone never grants permission.
     const reports = await storage.listReports(request.userId, request.ticker);
@@ -233,6 +244,7 @@ function isRecord(value: unknown): value is Record<string, any> {
 }
 
 async function sendEmail(requestId: string, contact: string, report: InvestmentReport): Promise<string> {
+  assertRealReportDeliveryEnabled();
   const from = process.env.DELIVERY_EMAIL_FROM;
   if (!from) throw new ProviderUnavailableError(
     "Defina o remetente DELIVERY_EMAIL_FROM para ativar os e-mails.",
@@ -261,6 +273,7 @@ async function sendEmail(requestId: string, contact: string, report: InvestmentR
 }
 
 async function sendWhatsApp(contact: string, report: InvestmentReport): Promise<string> {
+  assertRealReportDeliveryEnabled();
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneNumberId) throw new ProviderUnavailableError("WhatsApp Business ainda não está conectado.");

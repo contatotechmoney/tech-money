@@ -2,6 +2,7 @@ import { registerPortalLeadRoutes } from "./portal-leads";
 import type { Express } from "express";
 import { registerHermesRoutes } from "./hermes-routes";
 import { registerSimulationRoutes, REAL_INVESTMENT_ANALYSIS_ENABLED } from "./investment-simulation";
+import { REAL_REPORT_DELIVERY_ENABLED } from "../shared/simulation-policy";
 import { registerProfessionalReviewRoutes } from "./professional-review-routes";
 import { reviewedReport } from "./professional-review";
 import type { NextFunction, Request, Response } from "express";
@@ -90,11 +91,14 @@ export async function registerRoutes(
       code: "REAL_ANALYSIS_DISABLED",
     });
   });
- 
+
   app.post("/api/investments/billing/webhook", (_req, res) => {
     res.status(403).json({ error: "Cobrança indisponível na simulação.", code: "REAL_ANALYSIS_DISABLED" });
   });
- registerProfessionalReviewRoutes(app, requireAuth);
+  app.get("/api/investments/credits", requireAuth, (_req, res) => {
+    res.status(403).json({ error: "Créditos reais indisponíveis na simulação.", code: "REAL_ANALYSIS_DISABLED" });
+  });
+  registerProfessionalReviewRoutes(app, requireAuth);
   app.get("/api/webhooks/whatsapp", (req, res) => {
     const mode = req.query["hub.mode"];
     const token = req.query["hub.verify_token"];
@@ -593,6 +597,11 @@ export async function registerRoutes(
   });
 
   app.post("/api/investments/reports/:ticker/delivery", requireAuth, async (req, res) => {
+    if (!REAL_REPORT_DELIVERY_ENABLED) return res.status(403).json({
+      error: "REAL_REPORT_DELIVERY_DISABLED",
+      code: "REAL_REPORT_DELIVERY_DISABLED",
+      message: "Envios reais de relatórios bloqueados nesta fase de simulação, mesmo com revisão aprovada.",
+    });
     const ticker = normalizeTicker(req.params.ticker);
     if (!isSupportedReportTicker(ticker)) {
       return res.status(404).json({ error: "Relatório não disponível para esse ativo." });

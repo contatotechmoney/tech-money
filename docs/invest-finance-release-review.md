@@ -19,12 +19,27 @@ evidência de que o Publish a executará. Confirmar um caminho suportado de tran
 e todos os controles físicos antes de publicar; não inserir DDL em build/startup,
 não executar scripts próprios contra produção e não selecionar sobrescrita de dados.
 
-O caminho humano documentado foi confirmado em Database → produção → My Data →
-Edit → SQL runner. O procedimento completo, a ação Run e os limites estão em
-`docs/invest-simulation-human-release.md`; o plano oficial está registrado sem
-modificação em `docs/evidence/invest-schema-diff.json`. Não afirmar que o agente
-ganhou acesso de escrita ao ativar Edit. Produção continua pendente de gravação
-humana e conferência posterior, não de outro migrador automático.
+O proprietário executou a atualização no console oficial; o revisor confirmou
+produção por consulta somente leitura: **21/21**, incluindo hashes das funções e
+gatilhos. A confirmação fornecida está em
+`docs/evidence/invest-production-readiness.json`. O agente não repetiu a atualização.
+Não alterar banco, segredos, DNS ou permissões. O procedimento humano anterior é
+histórico e não deve ser reaplicado. A versão atual precisa apenas da revisão
+final da proposta e autorização explícita antes de publicação.
+
+## Bloqueio incondicional de envios nesta fase
+
+Envios reais de relatórios ficam bloqueados mesmo com aprovação profissional e
+provedor configurado. A API autenticada recusa pedidos antes de consultar ou
+enfileirar; o processamento retorna antes de reclamar solicitações pendentes.
+As funções de envio também recusam execução antes de acessar provedores.
+Pedidos antigos não são marcados artificialmente como enviados ou falhos.
+Leitura dos relatórios, histórico e confirmação passiva de envios anteriores
+permanecem separados do bloqueio. Captura de leads permanece intacta.
+
+Checkout, concessão/crédito/débito real, liquidação Stripe e motores pagos
+permanecem bloqueados. Consulta ao saldo real também não acessa o ledger nesta
+fase. O código remoto legado é preservado, não ativado.
 
 ## Sincronização GitHub
 

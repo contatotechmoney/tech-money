@@ -10,6 +10,18 @@ import { QUESTOES } from "./suitability";
 import { DeliveryRequestStatus, type ReportDeliveryRequest } from "../client/src/components/report-delivery-history";
 import { translations } from "../client/src/lib/i18n";
 import { AssignmentManagementPage } from "../client/src/pages/investment-assignments";
+import { ReportDeliverySimulationNotice } from "../client/src/components/report-delivery-simulation-notice";
+
+describe("simulation-only real delivery notice", () => {
+  it("renders the unconditional simulation restriction, preserves historical access and offers no send form", () => {
+    const html = renderToStaticMarkup(createElement(ReportDeliverySimulationNotice));
+    assert.match(html, /Envios reais bloqueados/);
+    assert.match(html, /mesmo com revisão aprovada/);
+    assert.match(html, /histórico de entregas anteriores continua disponível/);
+    assert.match(html, /role="status"/);
+    assert.doesNotMatch(html, /<(form|input|button)\b/);
+  });
+});
 
 const documentDate = "2026-10-02T12:00:00Z";
 

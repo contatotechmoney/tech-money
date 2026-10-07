@@ -352,8 +352,8 @@ describe("report delivery API", () => {
         },
       );
 
-      assert.equal(response.status, 409);
-      assert.equal(response.body.error, "RECOMMENDATION_PENDING");
+      assert.equal(response.status, 403);
+      assert.equal(response.body.error, "REAL_REPORT_DELIVERY_DISABLED");
     } finally {
       await closeServer(server);
       if (originalAccessToken === undefined) delete process.env.WHATSAPP_ACCESS_TOKEN;

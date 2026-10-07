@@ -1,6 +1,7 @@
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ReportDeliverySimulationNotice } from "./report-delivery-simulation-notice";
 
 type ReportForDelivery = {
   ticker: string;
@@ -20,14 +21,14 @@ export function ReportDeliveryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Revisão profissional pendente</DialogTitle>
+          <DialogTitle>Envios reais bloqueados — simulação</DialogTitle>
           <DialogDescription>
-            {report?.ticker} · {report?.companyName}. Este relatório contém informações gerais e ainda não foi aprovado para envio.
+            {report?.ticker} · {report?.companyName}. Nesta fase de simulação não há envio real de relatórios.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-5 text-amber-950" role="status">
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-          <p>O envio permanece indisponível enquanto a recomendação aguarda revisão profissional. Compatibilidade com um perfil não representa aprovação.</p>
+          <ReportDeliverySimulationNotice />
         </div>
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)}>Fechar</Button>

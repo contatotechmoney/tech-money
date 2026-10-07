@@ -12,6 +12,8 @@ import { trackEvent } from "@/lib/analytics";
 import { ConformidadeGate } from "@/components/conformidade-gate";
 import { ReportQualityNotice, type ReportQuality } from "@/components/report-quality-notice";
 import { ReportDeliveryHistory } from "@/components/report-delivery-history";
+import { ReportDeliverySimulationNotice } from "@/components/report-delivery-simulation-notice";
+import { REAL_REPORT_DELIVERY_ENABLED } from "@shared/simulation-policy";
 
 type Report = {
   id: string;
@@ -265,10 +267,13 @@ function toQuality(report: Report): ReportQuality {
 }
 
 export function ReportDeliveryCard({ ticker, enabled }: { ticker: string; enabled: boolean }) {
+  // This phase never offers real sends, including for previously approved advice.
+  const deliveryEnabled = enabled && REAL_REPORT_DELIVERY_ENABLED;
   const [email, setEmail] = useState("");
   const queryClient = useQueryClient();
   const startDelivery = useMutation({
     mutationFn: async () => {
+      if (!REAL_REPORT_DELIVERY_ENABLED) throw new Error("REAL_REPORT_DELIVERY_DISABLED");
       const idempotencyKey = typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `${ticker}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -287,13 +292,13 @@ export function ReportDeliveryCard({ ticker, enabled }: { ticker: string; enable
   });
 
   return (
-    <Card className={enabled ? "border-emerald-300" : "border-dashed"}>
+    <Card className={deliveryEnabled ? "border-emerald-300" : "border-dashed"}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base"><Mail className="h-4 w-4 text-primary" /> Entrega do relatório</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {!enabled ? (
-          <p className="text-sm text-muted-foreground">A entrega fica indisponível até que um consultor aprove a recomendação.</p>
+        {!deliveryEnabled ? (
+          <ReportDeliverySimulationNotice />
         ) : (
           <>
             <p className="text-sm text-muted-foreground">Envie a recomendação aprovada ao cliente por e-mail. A confirmação será acompanhada nesta tela.</p>

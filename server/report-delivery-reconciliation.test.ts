@@ -126,7 +126,7 @@ describe("unconfirmed report delivery monitoring", () => {
     stop();
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(scan.mock.callCount(), 1);
-    assert.equal(claim.mock.callCount(), 1);
+    assert.equal(claim.mock.callCount(), 0);
   });
 
   it("propagates storage errors instead of reporting a successful scan", async () => {

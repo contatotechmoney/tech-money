@@ -1,5 +1,18 @@
 # Liberação controlada de Invest em simulação
 
+## Atualização concluída — NÃO REPETIR
+
+Em 2026-10-07, o proprietário informou a execução no console oficial, e o revisor
+confirmou por consulta somente de leitura **21 controles verificados / 21 prontos**,
+incluindo os hashes canônicos das funções e os gatilhos. Essa é a confirmação
+fornecida nesta conversa; o agente não reexecutou a atualização nem acessou dados
+de clientes. Registro: `docs/evidence/invest-production-readiness.json`.
+
+O procedimento abaixo é registro histórico, não uma instrução para nova execução.
+Não reaplicar o plano, não alterar banco, permissões, DNS ou segredos.
+O bloqueio anterior de transporte das rotinas está encerrado. A publicação
+continua dependente da revisão final da correção de envios nesta conversa.
+
 ## Resultado e responsabilidade
 
 O agente não tem acesso de escrita ao banco de produção gerenciado. Não tentar
@@ -72,5 +85,6 @@ conferência física em produção.
   registros de desenvolvimento.
 - Não mesclar/publish automaticamente; aguardar aprovação final nesta conversa.
 
-**Estado atual:** pronto para a intervenção humana documentada, não comprovado
-21/21 em produção e não autorizado para publicação.
+**Estado atual:** produção confirmada 21/21 pelo proprietário/revisor; nenhuma
+nova intervenção no banco necessária nesta fase. Não mesclar nem publicar
+automaticamente. A simulação deve bloquear todo envio real, mesmo aprovado.

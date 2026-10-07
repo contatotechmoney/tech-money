@@ -144,9 +144,9 @@ describe("Invest quality API with isolated in-memory synthetic storage", () => {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ channel: "email", contact: "synthetic@example.test", idempotencyKey: "synthetic-attempt" }),
     });
-    assert.equal(response.status, 409);
+    assert.equal(response.status, 403);
     const body = await response.json() as { error: string };
-    assert.equal(body.error, "RECOMMENDATION_PENDING");
+    assert.equal(body.error, "REAL_REPORT_DELIVERY_DISABLED");
     storage.claimReportDeliveryRequests = async () => [];
     storage.flagUnconfirmedReportDeliveries = async () => [];
     await processReportDeliveryRequests();
