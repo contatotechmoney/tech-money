@@ -48,15 +48,15 @@ export default function AreaSelection() {
           <div className="grid gap-6 md:grid-cols-2">
             {areas.map((area) => (
               <Link key={area.href} href={area.href} className="group">
-                <Card className="relative h-full overflow-hidden border-border/80 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-xl">
+                <Card className="relative h-full overflow-hidden border-border/80 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-xl motion-reduce:transform-none motion-reduce:transition-none">
                   <div className={`absolute inset-x-0 top-0 h-1.5 ${area.accent}`} />
                   <CardContent className="flex h-full min-h-[290px] flex-col p-7 md:p-9">
                     <div className="flex items-start justify-between gap-4">
                       <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${area.iconBackground}`}>
                         <area.icon className="h-7 w-7" />
                       </div>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-all group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground">
-                        <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-all group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground motion-reduce:transition-none">
+                        <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none" />
                       </div>
                     </div>
                     <p className="mt-8 text-xs font-semibold uppercase tracking-[0.16em] text-primary">{area.eyebrow}</p>

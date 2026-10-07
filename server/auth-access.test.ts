@@ -107,6 +107,7 @@ describe("real access UI rendered with synthetic hooks", () => {
     assert.match(areas, /<TechMoneyBrand areaLabel="ÁREAS"/);
     assert.match(areas, /href: "\/dashboard"/);
     assert.match(areas, /href: "\/investments\/agents"/);
+    assert.match(areas, /motion-reduce:transform-none motion-reduce:transition-none/);
   });
   it("renders both branded shells and safe SPA navigation without providers", () => {
     assert.equal(getAccessArea("invest.techmoney.com.br", "/dashboard?view=test#start"), "finance");
