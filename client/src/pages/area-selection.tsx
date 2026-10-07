@@ -1,28 +1,8 @@
 import { Link } from "wouter";
-import { ArrowRight, BarChart3, Building2, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, BarChart3, Building2, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
-
-function BrandMark({ slogan }: { slogan: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex gap-1" aria-hidden="true">
-        <div className="flex flex-col gap-1">
-          <div className="h-7 w-7 bg-[#2a9d8f] flex items-center justify-center text-xs font-bold text-white">T</div>
-          <div className="h-7 w-7 bg-[#2a9d8f] flex items-center justify-center text-xs font-bold text-white">T</div>
-        </div>
-        <div className="flex flex-col gap-1 mt-3.5">
-          <div className="h-7 w-7 bg-[#264653] flex items-center justify-center text-xs font-bold text-white">M</div>
-          <div className="h-7 w-7 bg-[#2a9d8f] flex items-center justify-center text-xs font-bold text-white">R</div>
-        </div>
-      </div>
-      <div>
-        <div className="text-2xl font-bold tracking-tight text-foreground">Tech Money®</div>
-        <div className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">{slogan}</div>
-      </div>
-    </div>
-  );
-}
+import { TechMoneyBrand } from "@/components/tech-money-brand";
 
 export default function AreaSelection() {
   const { t } = useLanguage();
@@ -31,7 +11,7 @@ export default function AreaSelection() {
     {
       href: "/dashboard",
       icon: Building2,
-      eyebrow: t("financialArea"),
+      eyebrow: "FINANCE",
       title: t("companyManagementTitle"),
       description: t("companyManagementDescription"),
       features: t("companyManagementFeatures"),
@@ -41,7 +21,7 @@ export default function AreaSelection() {
     {
       href: "/investments/agents",
       icon: TrendingUp,
-      eyebrow: t("investmentArea"),
+      eyebrow: "INVESTIMENTOS",
       title: t("investmentManagementTitle"),
       description: t("investmentManagementDescription"),
       features: t("investmentManagementFeatures"),
@@ -54,18 +34,11 @@ export default function AreaSelection() {
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-8 md:px-10 md:py-12">
         <header className="flex items-center justify-between">
-          <BrandMark slogan={t("transformingResults")} />
-          <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
-            <Sparkles className="h-4 w-4 text-primary" />
-            {t("areasTitle")}
-          </div>
+          <TechMoneyBrand areaLabel="ÁREAS" variant="selection" />
         </header>
 
         <section className="flex flex-1 flex-col justify-center py-14">
           <div className="mx-auto mb-10 max-w-2xl text-center">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-primary">
-              Tech Money®
-            </p>
             <h1 className="text-3xl font-bold tracking-tight md:text-5xl">{t("areasTitle")}</h1>
             <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground md:text-lg">
               {t("areasDescription")}

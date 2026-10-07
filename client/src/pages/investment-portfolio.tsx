@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/lib/analytics";
 import { apiRequest } from "@/lib/queryClient";
 
 type Quote = { price: number; changePercent: number; companyName: string; updatedAt: string };
@@ -73,23 +74,44 @@ export default function InvestmentPortfolio() {
 
   const saveTransaction = useMutation({
     mutationFn: async () => {
+      const action = editingId ? "updated" : "created";
+      const normalizedTicker = ticker.trim().toUpperCase();
       const path = editingId
         ? `/api/investments/portfolio/transactions/${editingId}`
         : "/api/investments/portfolio/transactions";
       const response = await apiRequest(editingId ? "PATCH" : "POST", path, {
         ticker, transactionType, quantity, price, operationDate,
       });
-      return response.json();
+      return {
+        payload: await response.json(),
+        analytics: {
+          action,
+          ticker: normalizedTicker,
+          transactionType,
+        },
+      };
     },
-    onSuccess: () => {
+    onSuccess: ({ analytics }) => {
+      trackEvent("portfolio_transaction_saved", {
+        action: analytics.action,
+        ticker: analytics.ticker,
+        transaction_type: analytics.transactionType,
+      });
       resetForm();
       void queryClient.invalidateQueries({ queryKey: ["/api/investments/portfolio"] });
     },
   });
 
   const deleteTransaction = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/investments/portfolio/transactions/${id}`),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["/api/investments/portfolio"] }),
+    mutationFn: (transaction: PortfolioTransaction) =>
+      apiRequest("DELETE", `/api/investments/portfolio/transactions/${transaction.id}`),
+    onSuccess: (_data, transaction) => {
+      trackEvent("portfolio_transaction_deleted", {
+        ticker: transaction.ticker,
+        transaction_type: transaction.transactionType,
+      });
+      void queryClient.invalidateQueries({ queryKey: ["/api/investments/portfolio"] });
+    },
   });
 
   const data = portfolioQuery.data;
@@ -222,7 +244,7 @@ export default function InvestmentPortfolio() {
                   <TableCell className="text-right">{number.format(transaction.quantity)}</TableCell>
                   <TableCell className="text-right">{currency.format(transaction.price)}</TableCell>
                   <TableCell className={`text-right ${transaction.realizedProfit === null ? "text-muted-foreground" : transaction.realizedProfit >= 0 ? "text-emerald-700" : "text-red-700"}`}>{transaction.realizedProfit === null ? "—" : currency.format(transaction.realizedProfit)}</TableCell>
-                  <TableCell><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={() => editTransaction(transaction)} aria-label={t("edit")}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => deleteTransaction.mutate(transaction.id)} disabled={deleteTransaction.isPending} aria-label={t("removeTransaction")}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                  <TableCell><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={() => editTransaction(transaction)} aria-label={t("edit")}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => deleteTransaction.mutate(transaction)} disabled={deleteTransaction.isPending} aria-label={t("removeTransaction")}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
                 </TableRow>
               ))}</TableBody>
             </Table>

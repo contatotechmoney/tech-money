@@ -8,7 +8,6 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X,
   Scale,
   ArrowLeft,
 } from "lucide-react";
@@ -26,6 +25,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSelector } from "@/components/language-selector";
 import { useClerk, useUser } from "@clerk/react";
+import { TechMoneyBrand } from "@/components/tech-money-brand";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -43,9 +43,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  // Using Tech Money brand color #0056b3 (approximate from "corporate blue")
-  // Logo text style matches the site description
-
   const navItems = [
     { label: t("dashboard"), icon: LayoutDashboard, href: "/dashboard" },
     { label: t("newDRE"), icon: FileSpreadsheet, href: "/dre/new" },
@@ -58,22 +55,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#1b4d3e] text-white border-r border-[#143d31]">
       <div className="p-6">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="flex gap-0.5">
-              <div className="flex flex-col gap-0.5">
-                <div className="h-4 w-4 bg-[#2a9d8f] flex items-center justify-center text-[8px] font-bold text-white">T</div>
-                <div className="h-4 w-4 bg-[#2a9d8f] flex items-center justify-center text-[8px] font-bold text-white">T</div>
-              </div>
-              <div className="flex flex-col gap-0.5 mt-2">
-                <div className="h-4 w-4 bg-[#264653] flex items-center justify-center text-[8px] font-bold text-white">M</div>
-                <div className="h-4 w-4 bg-[#2a9d8f] flex items-center justify-center text-[8px] font-bold text-white">R</div>
-              </div>
-            </div>
-            <span className="text-xl font-bold tracking-tight text-white ml-1">Tech Money®</span>
-          </div>
-          <p className="text-[10px] text-white/70 uppercase tracking-wider pl-1">{t("transformingResults")}</p>
-        </div>
+        <TechMoneyBrand areaLabel="FINANCE" />
         <Link href="/areas">
           <div className="mt-5 flex items-center gap-2 text-xs text-white/70 hover:text-white transition-colors cursor-pointer">
             <ArrowLeft className="h-3.5 w-3.5" />
@@ -165,6 +147,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileOpen(true)} aria-label={t("openMenu")}>
             <Menu className="h-5 w-5" />
           </Button>
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">FINANCE</span>
+          </div>
           <div className="flex">
             <LanguageSelector />
           </div>

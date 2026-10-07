@@ -1,9 +1,11 @@
-import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
+import { PortalRegistration } from "@/components/portal-registration";
+import { AuthAccessPage } from "@/components/auth-access-page";
+import { ClerkProvider, useAuth, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { Router as WouterRouter, Switch, Route, useLocation, useSearch } from "wouter";
-import { authLink, getAuthRedirect, withAppBase } from "@/lib/auth-redirect";
+import { useEffect, useRef, type ComponentType, type ReactNode } from "react";
+import { Router as WouterRouter, Switch, Route, useLocation } from "wouter";
+import { getAuthRedirect } from "@/lib/auth-redirect";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -26,7 +28,10 @@ import InvestmentReport from "@/pages/investment-report";
 import InvestmentPlaceholder from "@/pages/investment-placeholder";
 import InvestmentReports from "@/pages/investment-reports";
 import InvestmentPortfolio from "@/pages/investment-portfolio";
+import Suitability from "@/pages/suitability";
 import Settings from "@/pages/settings";
+import InvestmentReview from "@/pages/investment-review";
+import InvestmentAssignments from "@/pages/investment-assignments";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -96,7 +101,7 @@ function LoadingScreen() {
   );
 }
 
-function AuthGuard({ children }: { children: ReactNode }) {
+function AuthGuard({ children, registerPortal = false }: { children: ReactNode; registerPortal?: boolean }) {
   const { isLoaded, isSignedIn } = useAuth();
   const [, navigate] = useLocation();
 
@@ -113,7 +118,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
   if (!isLoaded) return <LoadingScreen />;
   if (!isSignedIn) return null;
 
-  return <>{children}</>;
+  return registerPortal ? <PortalRegistration>{children}</PortalRegistration> : <>{children}</>;
 }
 
 function ProtectedRoute({
@@ -130,7 +135,7 @@ function ProtectedRoute({
   return (
     <Route {...routeProps}>
       {(params) => (
-        <AuthGuard>
+        <AuthGuard registerPortal={investment}>
           <PageLayout>
             <Component {...params} />
           </PageLayout>
@@ -149,38 +154,11 @@ function ProtectedAreaSelection() {
 }
 
 function SignInPage() {
-  const search = useSearch();
-  // Keep the initial destination if Clerk drops our query on a verification step.
-  const [redirectPath] = useState(() => getAuthRedirect(search, basePath));
-  const destination = withAppBase(redirectPath, basePath);
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <SignIn
-        routing="path"
-        path={`${basePath}/sign-in`}
-        signUpUrl={withAppBase(authLink("/sign-up", redirectPath), basePath)}
-        forceRedirectUrl={destination}
-        signUpForceRedirectUrl={destination}
-      />
-    </div>
-  );
+  return <AuthAccessPage />;
 }
 
 function SignUpPage() {
-  const search = useSearch();
-  const [redirectPath] = useState(() => getAuthRedirect(search, basePath));
-  const destination = withAppBase(redirectPath, basePath);
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <SignUp
-        routing="path"
-        path={`${basePath}/sign-up`}
-        signInUrl={withAppBase(authLink("/sign-in", redirectPath), basePath)}
-        forceRedirectUrl={destination}
-        signInForceRedirectUrl={destination}
-      />
-    </div>
-  );
+  return <AuthAccessPage mode="sign-up" />;
 }
 
 function ClerkQueryClientCacheInvalidator() {
@@ -229,9 +207,16 @@ function Router() {
       />
       <ProtectedRoute
         investment
+        path="/investments/suitability"
+        component={Suitability}
+      />
+      <ProtectedRoute
+        investment
         path="/investments/reports"
         component={InvestmentReports}
       />
+      <ProtectedRoute investment path="/investments/review" component={InvestmentReview} />
+      <ProtectedRoute investment path="/investments/assignments" component={InvestmentAssignments} />
       <ProtectedRoute
         investment
         path="/investments/credits"
@@ -248,6 +233,12 @@ function Router() {
 }
 
 import { LanguageModal } from "@/components/language-modal";
+
+function PortalLanguageModal() {
+  const [path] = useLocation();
+  // Keep the access card unobstructed; language selection remains available in the portal.
+  return path === "/" || /^\/sign-(in|up)(\/|$)/.test(path) ? null : <LanguageModal />;
+}
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
@@ -301,8 +292,8 @@ function App() {
       <LanguageProvider>
         <TooltipProvider>
           <Toaster />
-          <LanguageModal />
           <WouterRouter base={basePath}>
+            <PortalLanguageModal />
             <ClerkProviderWithRoutes />
           </WouterRouter>
         </TooltipProvider>

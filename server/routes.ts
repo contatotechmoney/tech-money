@@ -1,4 +1,9 @@
+import { registerPortalLeadRoutes } from "./portal-leads";
 import type { Express } from "express";
+import { registerHermesRoutes } from "./hermes-routes";
+import { registerSimulationRoutes, REAL_INVESTMENT_ANALYSIS_ENABLED } from "./investment-simulation";
+import { registerProfessionalReviewRoutes } from "./professional-review-routes";
+import { reviewedReport } from "./professional-review";
 import type { NextFunction, Request, Response } from "express";
 import { getAuth } from "@clerk/express";
 import { createServer, type Server } from "http";
@@ -8,6 +13,25 @@ import {
   storage,
   type InvestmentReport,
 } from "./storage";
+import { extrairFundamentos, SUPPORTED_TICKERS } from "./cvm";
+import { runCommittee, type CommitteeVerdict } from "./agents";
+import { canDeliverPersonalizedRecommendation, informationalReport, reportPresentation, REPORT_FRESHNESS_MS } from "./report-policy";
+import type { ReportPresentation } from "../shared/report-quality";
+import {
+  isReportDeliveryChannelAvailable,
+  processReportDeliveryRequests,
+  processResendWebhookEvent,
+  processWhatsAppWebhookEvent,
+} from "./report-delivery";
+import { createHmac, timingSafeEqual } from "crypto";
+import {
+  assinarTermo,
+  perfilVigente,
+  QUESTOES,
+  respostasSaoValidas,
+  salvarPerfil,
+  validarConformidade,
+} from "./suitability";
 import { runAgents } from "./agents";
 import { guardRun, PostgresCreditStore, grantSignupCredits, GUARD_CONFIG } from "./credits";
 import {
@@ -31,6 +55,7 @@ declare global {
   namespace Express {
     interface Request {
       userId?: string;
+      rawBody?: Buffer;
     }
   }
 }
@@ -51,15 +76,71 @@ export function requireAuth(
 
 export async function registerRoutes(
   httpServer: Server,
-  app: Express
+  app: Express,
+  options: { checkProfile?: typeof validarConformidade } = {},
 ): Promise<Server> {
-  // Cria ledger de créditos + log de auditoria (idempotente).
-  try {
-    await getCreditStore().ensureSchema();
-  } catch (error) {
-    console.error("[credits] falha ao criar schema (seguindo, rotas vão falhar):", (error as Error).message);
-  }
+  const checkProfile = options.checkProfile ?? validarConformidade;
+  registerPortalLeadRoutes(app);
+  registerHermesRoutes(app, requireAuth);
+  registerSimulationRoutes(app, requireAuth);
+  // The older GitHub committee URL must not bypass the simulation-only boundary.
+  app.post("/api/investments/agents/run", requireAuth, (_req, res) => {
+    return res.status(403).json({
+      error: "Análise real desabilitada; use a simulação fictícia autenticada.",
+      code: "REAL_ANALYSIS_DISABLED",
+    });
+  });
+  registerProfessionalReviewRoutes(app, requireAuth);
+  app.get("/api/webhooks/whatsapp", (req, res) => {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+    if (
+      mode === "subscribe"
+      && typeof token === "string"
+      && token === process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
+      && typeof challenge === "string"
+    ) {
+      return res.status(200).send(challenge);
+    }
+    return res.status(403).send("Forbidden");
+  });
 
+  app.post("/api/webhooks/resend", async (req, res) => {
+    const rawBody = getRawBody(req);
+    if (!rawBody || !verifyResendWebhook(req, rawBody)) {
+      return res.status(401).json({ error: "Webhook não autorizado." });
+    }
+    const payload = parseWebhookPayload(rawBody);
+    if (!payload) return res.status(400).json({ error: "Payload de webhook inválido." });
+
+    try {
+      await processResendWebhookEvent(payload);
+      return res.status(200).json({ received: true });
+    } catch (error) {
+      console.error("[webhooks] failed to process Resend event", error);
+      return res.status(500).json({ error: "Não foi possível processar o webhook." });
+    }
+  });
+
+  app.post("/api/webhooks/whatsapp", async (req, res) => {
+    const rawBody = getRawBody(req);
+    if (!rawBody || !verifyWhatsAppWebhook(req, rawBody)) {
+      return res.status(401).json({ error: "Webhook não autorizado." });
+    }
+    const payload = parseWebhookPayload(rawBody);
+    if (!payload) return res.status(400).json({ error: "Payload de webhook inválido." });
+
+    try {
+      await processWhatsAppWebhookEvent(payload);
+      return res.status(200).json({ received: true });
+    } catch (error) {
+      console.error("[webhooks] failed to process WhatsApp event", error);
+      return res.status(500).json({ error: "Não foi possível processar o webhook." });
+    }
+  });
+
+  // No startup DDL: database schema remains managed by Publish.
   app.get("/api/auth/session", requireAuth, (req, res) => {
     res.json({ authenticated: true, userId: req.userId });
   });
@@ -82,7 +163,110 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/investments/fundamentals/:ticker", requireAuth, async (req, res) => {
+    const ticker = normalizeTicker(req.params.ticker);
+    if (!SUPPORTED_TICKERS.includes(ticker)) {
+      return res.status(404).json({ error: "Fundamentos não disponíveis para esse ativo." });
+    }
+
+    try {
+      const fundamentos = await extrairFundamentos(ticker, new Date().getFullYear(), "ITR");
+      res.json({ fundamentos, updatedAt: new Date().toISOString() });
+    } catch (error) {
+      sendMarketDataError(res, "consultar fundamentos CVM", error);
+    }
+  });
+
+  app.get("/api/suitability/questionario", requireAuth, (_req, res) => {
+    res.json({ questoes: QUESTOES });
+  });
+
+  app.get("/api/suitability/perfil", requireAuth, async (req, res) => {
+    try {
+      const perfil = await perfilVigente(req.userId!);
+      res.json({ perfil, avaliado: Boolean(perfil) });
+    } catch (error) {
+      sendInternalError(res, "carregar perfil do investidor", error);
+    }
+  });
+
+  app.post("/api/suitability/perfil", requireAuth, async (req, res) => {
+    const input = z.object({
+      respostas: z.record(z.string(), z.number().int().min(0).max(4)),
+    }).safeParse(req.body);
+    if (!input.success || !respostasSaoValidas(input.data.respostas)) {
+      return res.status(400).json({
+        error: "Responda todas as seis perguntas com uma opção válida.",
+      });
+    }
+
+    try {
+      const perfil = await salvarPerfil(req.userId!, input.data.respostas);
+      res.status(201).json({ perfil });
+    } catch (error) {
+      sendInternalError(res, "salvar perfil do investidor", error);
+    }
+  });
+
+  app.get("/api/suitability/conformidade/:ticker", requireAuth, async (req, res) => {
+    const ticker = normalizeTicker(req.params.ticker);
+    if (!isSupportedReportTicker(ticker)) {
+      return res.status(404).json({ error: "Ativo não disponível para análise." });
+    }
+
+    try {
+      const { risco, reportId } = await getReportRiskContext(req.userId!, ticker);
+      res.json(await validarConformidade(req.userId!, ticker, risco, reportId));
+    } catch (error) {
+      sendInternalError(res, "verificar conformidade", error);
+    }
+  });
+
+  app.post("/api/suitability/termo", requireAuth, async (req, res) => {
+    const input = z.object({
+      ticker: z.string().trim().regex(/^[A-Za-z]{4}[0-9]{1,2}$/),
+    }).safeParse(req.body);
+    if (!input.success) {
+      return res.status(400).json({ error: "Informe o ativo da recomendação incompatível." });
+    }
+
+    const ticker = normalizeTicker(input.data.ticker);
+    if (!isSupportedReportTicker(ticker)) {
+      return res.status(404).json({ error: "Ativo não disponível para análise." });
+    }
+
+    try {
+      const { risco, reportId } = await getReportRiskContext(req.userId!, ticker);
+      if (risco === null || !reportId) {
+        return res.status(409).json({
+          error: "Esta recomendação ainda não tem uma análise de risco disponível para assinatura do termo.",
+        });
+      }
+
+      const conformidade = await validarConformidade(req.userId!, ticker, risco, reportId);
+      if (!conformidade.incompativel || !conformidade.motivo || !conformidade.perfilExigido) {
+        return res.status(409).json({
+          error: "O termo de ciência só pode ser registrado para uma recomendação incompatível.",
+        });
+      }
+
+      const termo = await assinarTermo(
+        req.userId!,
+        ticker,
+        reportId,
+        risco,
+        conformidade.perfilExigido,
+        "inadequacao",
+        conformidade.motivo,
+      );
+      res.status(201).json({ termo });
+    } catch (error) {
+      sendInternalError(res, "registrar termo de ciência", error);
+    }
+  });
+
   app.post("/api/investments/agents/run", requireAuth, async (req, res) => {
+    if (!REAL_INVESTMENT_ANALYSIS_ENABLED) return res.status(403).json({ error: "Análise real desabilitada; use a simulação fictícia autenticada.", code: "REAL_ANALYSIS_DISABLED" });
     const parsed = z
       .object({
         ticker: z.string().min(1).max(12),
@@ -353,8 +537,8 @@ export async function registerRoutes(
 
   app.get("/api/investments/reports", requireAuth, async (req, res) => {
     try {
-      const reports = await getLatestReports(req.userId!);
-      res.json({ reports, source: "Yahoo Finance" });
+      const reports = await getLatestReports(req.userId!, checkProfile);
+      res.json({ reports, source: "Fonte e datas indicadas em cada documento" });
     } catch (error) {
       sendMarketDataError(res, "atualizar relatórios", error);
     }
@@ -367,12 +551,16 @@ export async function registerRoutes(
     }
 
     try {
-      const reports = await ensureReports(req.userId!, ticker);
+      const existing = await storage.listReports(req.userId!, ticker);
+      if (!existing.length) return res.status(404).json({ error: "Ainda não há análise para esta ação. Solicite uma análise explicitamente." });
+      const result = loadedReports(existing);
+      const latest = result.latest;
+      const profile = await safeProfileCheck(req.userId!, ticker, latest, checkProfile);
       res.json({
         ticker,
-        latest: reports[0],
-        history: reports,
-        source: "Yahoo Finance",
+        latest: await reviewedReport(latest, { refreshFailure: result.refreshFailure, profileCheck: profile }),
+        history: result.reports.map((report) => informationalReport(report, reportPresentation(report, { historical: true }))),
+        source: latest.source,
       });
     } catch (error) {
       sendMarketDataError(res, "atualizar relatório", error);
@@ -380,14 +568,21 @@ export async function registerRoutes(
   });
 
   app.post("/api/investments/reports/:ticker/refresh", requireAuth, async (req, res) => {
+    if (!REAL_INVESTMENT_ANALYSIS_ENABLED) return res.status(403).json({
+      error: "REAL_ANALYSIS_DISABLED",
+      message: "Análises reais estão desabilitadas. Use a simulação identificada no portal; nenhum token ou crédito real será consumido.",
+    });
     const ticker = normalizeTicker(req.params.ticker);
     if (!isSupportedReportTicker(ticker)) {
       return res.status(404).json({ error: "Relatório não disponível para esse ativo." });
     }
 
     try {
-      const report = await generateReport(req.userId!, ticker);
-      res.status(201).json(report);
+      const result = await refreshReport(req.userId!, ticker);
+      const profile = await safeProfileCheck(req.userId!, ticker, result.latest, checkProfile);
+      res.status(result.refreshFailure ? 200 : 201).json(
+        await reviewedReport(result.latest, { refreshFailure: result.refreshFailure, profileCheck: profile }),
+      );
     } catch (error) {
       sendMarketDataError(res, "gerar relatório", error);
     }
@@ -398,7 +593,6 @@ export async function registerRoutes(
     if (!isSupportedReportTicker(ticker)) {
       return res.status(404).json({ error: "Relatório não disponível para esse ativo." });
     }
-
     const input = reportDeliveryInputSchema.safeParse(req.body);
     if (!input.success) {
       return res.status(400).json({ error: "Informe um e-mail ou WhatsApp válido para receber a análise." });
@@ -411,33 +605,121 @@ export async function registerRoutes(
     if (channel === "whatsapp" && !useRegisteredContact && !isPhoneNumber(contact)) {
       return res.status(400).json({ error: "Informe um número de WhatsApp válido." });
     }
-    if (channel === "whatsapp" && useRegisteredContact && contact !== "registered") {
-      return res.status(400).json({ error: "Confirme o uso do WhatsApp cadastrado." });
+    if (channel === "whatsapp" && useRegisteredContact && !isPhoneNumber(contact)) {
+      return res.status(400).json({ error: "O WhatsApp cadastrado não é válido." });
     }
-
     try {
+      // Delivery never creates a new unreviewed report or calls inference.
+      const existing = await storage.listReports(req.userId!, ticker);
+      const report = existing[0];
+      if (!report) return res.status(409).json({ error: "RECOMMENDATION_PENDING" });
+      const profile = await safeProfileCheck(req.userId!, ticker, report, checkProfile);
+      const view = await reviewedReport(report, { profileCheck: profile });
+      if (!canDeliverPersonalizedRecommendation(view)) return res.status(409).json({
+        error: "RECOMMENDATION_PENDING", message: "Recomendação bloqueada; confira a análise, o perfil e a revisão profissional.",
+        recommendation: view.recommendation,
+      });
+      if (!isReportDeliveryChannelAvailable(channel)) return res.status(503).json({
+        error: "DELIVERY_PROVIDER_UNAVAILABLE", message: "A entrega está temporariamente indisponível.",
+      });
       const request = await storage.createReportDeliveryRequest({
         userId: req.userId!,
+        reportId: report.id,
+        professionalReviewId: view.recommendation.review!.id,
+        idempotencyKey: input.data.idempotencyKey,
         ticker,
         channel,
         contact,
         useRegisteredContact,
       });
+      void processReportDeliveryRequests({ id: request.id, limit: 1 }).catch((error) => {
+        console.error(`[investments] failed to process delivery ${request.id}`, error);
+      });
       res.status(201).json({
-        request: {
-          id: request.id,
-          ticker: request.ticker,
-          channel: request.channel,
-          status: request.status,
-          requestedAt: request.requestedAt,
-        },
+        request: toPublicDeliveryRequest(request),
       });
     } catch (error) {
       sendInternalError(res, "registrar entrega da análise", error);
     }
   });
 
+  // Historical monitoring must remain available even when a new recommendation is blocked.
+  app.get("/api/investments/report-deliveries", requireAuth, async (req, res) => {
+    if (typeof req.query.ticker !== "string") {
+      return res.status(400).json({ error: "Informe o ativo para consultar as solicitações." });
+    }
+    const ticker = normalizeTicker(req.query.ticker);
+    if (!isSupportedReportTicker(ticker)) {
+      return res.status(404).json({ error: "Relatório não disponível para esse ativo." });
+    }
+    try {
+      const requests = await storage.listReportDeliveryRequests(req.userId!, ticker);
+      res.json({ requests: requests.map(toPublicDeliveryRequest) });
+    } catch (error) {
+      sendInternalError(res, "consultar histórico de entregas", error);
+    }
+  });
+
+  app.get("/api/investments/report-deliveries/:id", requireAuth, async (req, res) => {
+    try {
+      const request = await storage.getReportDeliveryRequest(req.userId!, req.params.id);
+      if (!request) return res.status(404).json({ error: "Solicitação não encontrada." });
+      res.json({ request: toPublicDeliveryRequest(request) });
+    } catch (error) {
+      sendInternalError(res, "consultar entrega da análise", error);
+    }
+  });
+
   return httpServer;
+}
+
+function getRawBody(req: Request): Buffer | null {
+  return Buffer.isBuffer(req.rawBody) ? req.rawBody : null;
+}
+
+function parseWebhookPayload(rawBody: Buffer): Record<string, any> | null {
+  try {
+    const payload = JSON.parse(rawBody.toString("utf8"));
+    return payload && typeof payload === "object" ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
+function verifyResendWebhook(req: Request, rawBody: Buffer): boolean {
+  const secret = process.env.RESEND_WEBHOOK_SECRET;
+  const id = req.header("svix-id");
+  const timestamp = req.header("svix-timestamp");
+  const signatures = req.header("svix-signature");
+  if (!secret || !id || !timestamp || !signatures) return false;
+
+  const timestampSeconds = Number(timestamp);
+  if (!Number.isFinite(timestampSeconds) || Math.abs(Date.now() / 1000 - timestampSeconds) > 300) return false;
+  const encodedSecret = secret.startsWith("whsec_") ? secret.slice("whsec_".length) : secret;
+  let secretBytes: Buffer;
+  try {
+    secretBytes = Buffer.from(encodedSecret, "base64");
+  } catch {
+    return false;
+  }
+  const expected = createHmac("sha256", secretBytes)
+    .update(`${id}.${timestamp}.${rawBody.toString("utf8")}`)
+    .digest("base64");
+  return signatures.split(" ").some((signature) => safeEqual(signature.replace(/^v1,/, ""), expected));
+}
+
+function verifyWhatsAppWebhook(req: Request, rawBody: Buffer): boolean {
+  const secret = process.env.WHATSAPP_APP_SECRET;
+  const signature = req.header("x-hub-signature-256");
+  if (!secret || !signature?.startsWith("sha256=")) return false;
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  return safeEqual(signature.slice("sha256=".length), expected);
+}
+
+function safeEqual(left: string, right: string): boolean {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 type MarketQuote = {
@@ -453,7 +735,7 @@ type MarketQuote = {
   history: Array<{ date: string; close: number }>;
 };
 
-const REPORT_TICKERS = new Set(["BBDC3", "BBAS3"]);
+const REPORT_TICKERS = new Set(SUPPORTED_TICKERS);
 const transactionInputSchema = z.object({
   ticker: z.string().trim().regex(/^[A-Za-z]{4}[0-9]{1,2}$/),
   transactionType: z.enum(["buy", "sell"]),
@@ -465,6 +747,7 @@ const reportDeliveryInputSchema = z.object({
   channel: z.enum(["email", "whatsapp"]),
   contact: z.string().trim().min(1).max(320),
   useRegisteredContact: z.boolean().default(false),
+  idempotencyKey: z.string().trim().min(16).max(128),
 });
 
 function normalizeTicker(value: string): string {
@@ -480,6 +763,22 @@ function isPhoneNumber(value: string): boolean {
   return digits.length >= 10 && digits.length <= 15;
 }
 
+function toPublicDeliveryRequest(request: import("./storage").ReportDeliveryRequest) {
+  return {
+    id: request.id,
+    ticker: request.ticker,
+    channel: request.channel,
+    status: request.status,
+    errorCode: request.errorCode,
+    errorMessage: request.errorMessage,
+    requestedAt: request.requestedAt,
+    updatedAt: request.updatedAt,
+    sentAt: request.sentAt,
+    deliveredAt: request.deliveredAt,
+    confirmationOverdueAt: request.confirmationOverdueAt,
+    confirmationPending: request.status === "sent" && request.confirmationOverdueAt !== null,
+  };
+}
 async function fetchQuote(ticker: string): Promise<MarketQuote> {
   const symbol = `${ticker}.SA`;
   let response: globalThis.Response;
@@ -547,7 +846,9 @@ async function fetchQuote(ticker: string): Promise<MarketQuote> {
     high52Week: numberValue(meta.fiftyTwoWeekHigh),
     low52Week: numberValue(meta.fiftyTwoWeekLow),
     volume: numberValue(meta.regularMarketVolume),
-    updatedAt: new Date((numberValue(meta.regularMarketTime) || Date.now() / 1000) * 1000).toISOString(),
+    updatedAt: numberValue(meta.regularMarketTime) !== null
+      ? new Date(Number(meta.regularMarketTime) * 1000).toISOString()
+      : "",
     history,
   };
 }
@@ -568,71 +869,149 @@ async function getQuotesForTickers(tickers: string[]): Promise<Map<string, Marke
   return new Map(entries.filter((entry): entry is [string, MarketQuote] => entry[1] !== null));
 }
 
-async function getLatestReports(userId: string): Promise<InvestmentReport[]> {
-  const settled = await Promise.allSettled(
-    Array.from(REPORT_TICKERS).map((ticker) => ensureReports(userId, ticker).then(([latest]) => latest)),
-  );
-  const reports = settled
-    .filter((result): result is PromiseFulfilledResult<InvestmentReport> => result.status === "fulfilled")
-    .map((result) => result.value)
-    .filter((report): report is InvestmentReport => Boolean(report));
-  if (reports.length === 0) throw new Error("MARKET_DATA_UNAVAILABLE");
-  return reports;
+async function getLatestReports(userId: string, checkProfile = validarConformidade): Promise<Array<InvestmentReport & ReportPresentation>> {
+  // Reading a page must never start billable inference or silently refresh a document.
+  const reports = await Promise.all(Array.from(REPORT_TICKERS).map(async (ticker) => {
+    const existing = await storage.listReports(userId, ticker);
+    if (!existing.length) return null;
+    const result = loadedReports(existing);
+    const profile = await safeProfileCheck(userId, ticker, result.latest, checkProfile);
+    return reviewedReport(result.latest, { refreshFailure: result.refreshFailure, profileCheck: profile });
+  }));
+  return reports.filter((report): report is InvestmentReport & ReportPresentation => report !== null);
 }
 
-async function ensureReports(userId: string, ticker: string): Promise<InvestmentReport[]> {
-  const existing = await storage.listReports(userId, ticker);
-  const latest = existing[0];
-  const isFresh = latest && Date.now() - new Date(latest.generatedAt).getTime() < 6 * 60 * 60 * 1000;
-  if (isFresh) return existing;
+type ReportLoad = { reports: InvestmentReport[]; latest: InvestmentReport; refreshFailure?: string };
 
+/** Keep failed attempts dated separately; never update the original document or its generatedAt. */
+function loadedReports(reports: InvestmentReport[]): ReportLoad {
+  const newest = reports[0];
+  if (newest.analysisQuality?.status === "unavailable") {
+    const previous = reports.slice(1).find((report) => report.analysisQuality?.status !== "unavailable");
+    if (previous) return {
+      reports,
+      latest: previous,
+      refreshFailure: "A última tentativa de atualização não produziu uma análise válida. Exibindo o documento anterior, sem renovar sua data ou aprovação.",
+    };
+  }
+  return { reports, latest: newest };
+}
+
+async function refreshReport(userId: string, ticker: string, existing?: InvestmentReport[]): Promise<ReportLoad> {
+  const previous = existing ?? await storage.listReports(userId, ticker);
   try {
-    await generateReport(userId, ticker);
-    return storage.listReports(userId, ticker);
+    const report = await generateReport(userId, ticker);
+    return loadedReports([report, ...previous]);
   } catch (error) {
-    if (existing.length) return existing;
+    if (previous.length) {
+      const document = previous[0];
+      const attempt = await storage.createReport({
+        userId, ticker, companyName: document.companyName,
+        price: document.price, changePercent: document.changePercent,
+        signal: "Recomendação pendente",
+        summary: "Atualização frustrada. Nenhuma nova avaliação ou cotação válida foi obtida.",
+        strengths: [], risks: ["Dados desta tentativa não foram atualizados."],
+        riskScore: null, outlook: "Revisão do consultor pendente.",
+        source: document.source,
+        analysisQuality: {
+          version: 1, status: "unavailable",
+          reason: "Não foi possível atualizar a análise ou os dados de mercado. Cotação anterior mantida apenas como referência histórica.",
+          availableAgents: 0, expectedAgents: 9, missingAgents: [],
+          consensusScore: null, highRisk: false,
+          marketDataAt: document.analysisQuality?.marketDataAt ?? null,
+          fundamentalsPeriod: null,
+        },
+      });
+      return loadedReports([attempt, ...previous]);
+    }
     throw error;
   }
 }
 
+async function safeProfileCheck(userId: string, ticker: string, report: InvestmentReport, checkProfile = validarConformidade) {
+  try {
+    const risk = report.analysisQuality?.status === "complete" ? report.riskScore : null;
+    return await checkProfile(userId, ticker, risk, report.id);
+  } catch {
+    return { ok: false, motivo: "Não foi possível verificar o perfil. A recomendação permanece pendente." };
+  }
+}
+
 async function generateReport(userId: string, ticker: string): Promise<InvestmentReport> {
+  // Defense in depth: delivery/background callers must not start paid inference either.
+  if (!REAL_INVESTMENT_ANALYSIS_ENABLED) throw new Error("REAL_ANALYSIS_DISABLED");
   const quote = await fetchQuote(ticker);
-  const trend = quote.changePercent >= 1 ? "positivo" : quote.changePercent <= -1 ? "negativo" : "estável";
-  const signal = quote.changePercent >= 1
-    ? "Acompanhamento positivo"
-    : quote.changePercent <= -1
-      ? "Atenção recomendada"
-      : "Movimento estável";
-  const rangeText = quote.low52Week && quote.high52Week
-    ? `A cotação está entre R$ ${quote.low52Week.toFixed(2)} e R$ ${quote.high52Week.toFixed(2)} no intervalo de 52 semanas.`
-    : "O histórico de 52 semanas não foi informado pela fonte.";
+  let verdict: CommitteeVerdict;
+
+  try {
+    const fundamentos = await extrairFundamentos(ticker, new Date().getFullYear(), "ITR");
+    verdict = await runCommittee({
+      ticker,
+      companyName: quote.companyName,
+      quote: { price: quote.price, changePercent: quote.changePercent, history: quote.history, updatedAt: quote.updatedAt },
+      fundamentos,
+    });
+  } catch (error) {
+    console.error(`[agents] comitê indisponível para ${ticker}, fallback para leitura de mercado`, error);
+    verdict = {
+      signal: "Recomendação pendente",
+      summary: "Análise indisponível. Apenas a cotação de mercado está disponível, sem nota, consenso ou orientação financeira.",
+      strengths: ["Cotação informativa da Yahoo Finance; confira a data de referência."],
+      risks: ["Fundamentos ou análise indisponíveis. Não há recomendação."],
+      outlook: "Informação geral; análise e revisão profissional pendentes.",
+      agents: [],
+      riskScore: null,
+      source: "Yahoo Finance",
+      analysisQuality: {
+        version: 1, status: "unavailable",
+        reason: "Não foi possível obter ou validar os fundamentos e a análise dos agentes.",
+        availableAgents: 0, expectedAgents: 9, missingAgents: [],
+        consensusScore: null, highRisk: false,
+        marketDataAt: quote.updatedAt, fundamentalsPeriod: null,
+      },
+    };
+  }
+
   return storage.createReport({
     userId,
     ticker,
     companyName: quote.companyName,
     price: quote.price,
     changePercent: quote.changePercent,
-    signal,
-    summary: `O ${ticker} apresenta movimento ${trend}, com cotação de R$ ${quote.price.toFixed(2)} e variação diária de ${quote.changePercent.toFixed(2)}%. ${rangeText}`,
-    strengths: [
-      "Dados de mercado atualizados diretamente da Yahoo Finance.",
-      quote.changePercent >= 0
-        ? "A variação mais recente não indica pressão vendedora imediata."
-        : "A empresa mantém liquidez de negociação para acompanhamento contínuo.",
-    ],
-    risks: [
-      "Variações de curto prazo podem ocorrer com mudanças nos juros e no cenário macroeconômico.",
-      quote.high52Week && quote.price < quote.high52Week * 0.85
-        ? "A cotação está distante da máxima de 52 semanas, exigindo acompanhamento do motivo."
-        : "O preço deve ser analisado junto aos fundamentos e ao perfil de risco do investidor.",
-    ],
-    outlook: "Use esta leitura como ponto de partida e combine-a com seus objetivos, diversificação e tolerância a risco. Ela não constitui recomendação de investimento.",
-    source: "Yahoo Finance",
+    signal: verdict.signal,
+    summary: verdict.summary,
+    strengths: verdict.strengths,
+    risks: verdict.risks,
+    riskScore: verdict.riskScore,
+    outlook: verdict.outlook,
+    source: verdict.source,
+    analysisQuality: verdict.analysisQuality,
   });
+}
+
+async function getReportRiskContext(
+  userId: string,
+  ticker: string,
+): Promise<{ risco: number | null; reportId: string | null }> {
+  const [latest] = await storage.listReports(userId, ticker);
+  if (latest?.analysisQuality?.status === "complete"
+      && reportPresentation(latest).analysisStatus === "complete"
+      && latest?.riskScore !== null && latest?.riskScore !== undefined) {
+    return { risco: latest.riskScore, reportId: latest.id };
+  }
+
+  return { risco: null, reportId: null };
 }
 
 function sendMarketDataError(res: Response, action: string, error: unknown) {
   console.error(`[investments] failed to ${action}`, error);
+  if (error && typeof error === "object" && "code" in error
+      && (error.code === "42P01" || error.code === "42703")) {
+    return res.status(503).json({
+      error: "INVESTMENT_SCHEMA_UNAVAILABLE",
+      message: "O esquema de relatórios e revisão profissional está indisponível. Nenhuma recomendação foi liberada. Tente novamente após a regularização do serviço.",
+    });
+  }
   res.status(502).json({
     error: "MARKET_DATA_UNAVAILABLE",
     message: "Não foi possível atualizar os dados de mercado agora. Tente novamente em instantes.",
