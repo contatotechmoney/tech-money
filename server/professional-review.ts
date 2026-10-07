@@ -19,6 +19,23 @@ const REVIEW_COLUMNS = `id, reviewer_id AS "reviewerId", client_id AS "clientId"
  decision, reason, recommendation_text AS "recommendationText",
  to_char(reviewed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "reviewedAt"`;
 
+// Shared by authorization reads and the transactional INSERT: a prior successful
+// authorization must never stand in for intact controls at decision-write time.
+const AUDIT_CONTROLS_PRESENT = `(SELECT count(*) FROM pg_trigger t JOIN pg_proc f ON f.oid=t.tgfoid
+  WHERE NOT t.tgisinternal AND t.tgenabled IN ('O','A')
+  AND t.tgqual IS NULL AND t.tgnargs=0 AND NOT f.prosecdef
+  AND f.prolang=(SELECT oid FROM pg_language WHERE lanname='plpgsql')
+  AND md5(f.prosrc)=CASE WHEN t.tgname='investment_authorization_renewal'
+    THEN '71df38ab7630d24fd1fb8a5e73b48534' ELSE '0dddf10721235c2ccc76ea98db4ebcf7' END
+  AND (
+    (t.tgrelid='public.investment_professional_reviews'::regclass AND t.tgname='investment_review_immutable'
+      AND t.tgtype=27 AND t.tgfoid=to_regprocedure('public.prevent_investment_review_changes()'))
+    OR (t.tgrelid='public.investment_assignment_audit'::regclass AND t.tgname='investment_assignment_audit_immutable'
+      AND t.tgtype=27 AND t.tgfoid=to_regprocedure('public.prevent_investment_review_changes()'))
+    OR (t.tgrelid='public.investment_consultant_authorizations'::regclass AND t.tgname='investment_authorization_renewal'
+      AND t.tgtype=19 AND t.tgfoid=to_regprocedure('public.renew_investment_consultant_authorization()'))
+  )) = 3`;
+
 /** Login is not qualification. Only the explicitly verified owner and scoped grants may review. */
 export const reviewRepository = {
   async assignments(reviewerId: string): Promise<Array<{ clientId: string }>> {
@@ -37,23 +54,7 @@ export const reviewRepository = {
        WHERE a.reviewer_id = $1 AND a.client_id = $2 AND a.revoked_at IS NULL
        AND p.revoked_at IS NULL AND p.verified_at <= clock_timestamp() AND p.valid_until > clock_timestamp()
         AND ($3::timestamptz IS NULL OR a.granted_at <= $3::timestamptz)
-        AND (SELECT count(*) FROM pg_trigger t JOIN pg_proc f ON f.oid=t.tgfoid
-          WHERE NOT t.tgisinternal AND t.tgenabled IN ('O','A')
-          AND t.tgqual IS NULL AND t.tgnargs=0 AND NOT f.prosecdef
-          AND f.prolang=(SELECT oid FROM pg_language WHERE lanname='plpgsql')
-          AND md5(f.prosrc)=CASE WHEN t.tgname='investment_authorization_renewal'
-            THEN '71df38ab7630d24fd1fb8a5e73b48534' ELSE '0dddf10721235c2ccc76ea98db4ebcf7' END
-          AND (
-            (t.tgrelid='public.investment_professional_reviews'::regclass AND t.tgname='investment_review_immutable'
-              AND t.tgtype=27
-              AND t.tgfoid=to_regprocedure('public.prevent_investment_review_changes()'))
-            OR (t.tgrelid='public.investment_assignment_audit'::regclass AND t.tgname='investment_assignment_audit_immutable'
-              AND t.tgtype=27
-              AND t.tgfoid=to_regprocedure('public.prevent_investment_review_changes()'))
-            OR (t.tgrelid='public.investment_consultant_authorizations'::regclass AND t.tgname='investment_authorization_renewal'
-              AND t.tgtype=19
-              AND t.tgfoid=to_regprocedure('public.renew_investment_consultant_authorization()'))
-          )) = 3`, [reviewerId, clientId, reviewedAt ?? null]);
+         AND ${AUDIT_CONTROLS_PRESENT}`, [reviewerId, clientId, reviewedAt ?? null]);
     return rows.length === 1;
   },
   async grantVersion(reviewerId: string, clientId: string): Promise<string | null> {
@@ -87,6 +88,7 @@ export const reviewRepository = {
          WHERE a.reviewer_id = $2 AND a.client_id = $3 AND a.revoked_at IS NULL
          AND a.grant_id = $10
          AND p.revoked_at IS NULL AND p.verified_at <= clock_timestamp() AND p.valid_until > clock_timestamp()
+          AND ${AUDIT_CONTROLS_PRESENT}
          FOR SHARE OF a, p
        )
        INSERT INTO investment_professional_reviews

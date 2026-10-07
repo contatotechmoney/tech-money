@@ -106,6 +106,22 @@ describe("Invest: authenticated simulation and report loading without paid calls
     assert.equal((await (await request("/api/investments/reports", "beta")).json()).reports.length, 0);
     assert.equal((await request("/api/investments/reports", "")).status, 401);
   });
+  it("blocks legacy checkout and real credit grants before validation or persistence", async () => {
+    const request = await app();
+    let databaseCalls = 0;
+    mock.method(pool, "query", async () => { databaseCalls++; throw Error("CREDIT_DATABASE_FORBIDDEN"); });
+    mock.method(pool, "connect", async () => { databaseCalls++; throw Error("CREDIT_DATABASE_FORBIDDEN"); });
+    for (const path of ["/api/investments/billing/checkout", "/api/investments/credits/signup-grant"]) {
+      assert.equal((await request(path, "", {})).status, 401);
+      for (const body of [{}, { planoId: "synthetic-paid", ciclo: "mensal" }]) {
+        const response = await request(path, "alpha", body);
+        assert.equal(response.status, 403);
+        assert.equal((await response.json()).code, "REAL_ANALYSIS_DISABLED");
+      }
+    }
+    assert.equal((await request("/api/investments/billing/webhook", "", {})).status, 403);
+    assert.equal(databaseCalls, 0);
+  });
   it("reports schema failure explicitly instead of an empty list or a market error", async () => {
     mock.method(reviewRepository, "history", async () => { throw Object.assign(Error("missing review table"), { code: "42P01" }); });
     const request = await app(); const response = await request("/api/investments/reports");

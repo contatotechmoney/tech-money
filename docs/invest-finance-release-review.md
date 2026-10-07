@@ -19,6 +19,13 @@ evidência de que o Publish a executará. Confirmar um caminho suportado de tran
 e todos os controles físicos antes de publicar; não inserir DDL em build/startup,
 não executar scripts próprios contra produção e não selecionar sobrescrita de dados.
 
+O caminho humano documentado foi confirmado em Database → produção → My Data →
+Edit → SQL runner. O procedimento completo, a ação Run e os limites estão em
+`docs/invest-simulation-human-release.md`; o plano oficial está registrado sem
+modificação em `docs/evidence/invest-schema-diff.json`. Não afirmar que o agente
+ganhou acesso de escrita ao ativar Edit. Produção continua pendente de gravação
+humana e conferência posterior, não de outro migrador automático.
+
 ## Sincronização GitHub
 
 Origem: `https://github.com/contatotechmoney/tech-money.git`.

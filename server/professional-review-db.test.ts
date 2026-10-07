@@ -5,13 +5,15 @@ import { readFileSync } from "node:fs";
 import { ReplitConnectors } from "@replit/connectors-sdk";
 import { pool, storage, closeStorage, type InvestmentReport } from "./storage";
 import { salvarPerfil, closeSuitability, QUESTOES } from "./suitability";
-import { pendingReviews, recordReview, reviewContext, reviewedReport, reviewRepository } from "./professional-review";
+import { pendingReviews, recordReview, reviewContext, reviewedReport, reviewRepository, versionOf } from "./professional-review";
 import { canDeliverPersonalizedRecommendation } from "./report-policy";
 import { processReportDeliveryRequests } from "./report-delivery";
 import express from "express";
 import { createServer, type Server } from "node:http";
 import { registerProfessionalReviewRoutes } from "./professional-review-routes";
 import { assignmentChangeInput, assignmentManagement } from "./assignment-management";
+import { simulationStore } from "./investment-simulation";
+import { Pool } from "pg";
 
 // Never allow this integration suite to run against the workspace or production database.
 if (process.env.SYNTHETIC_DATABASE !== "1"
@@ -70,6 +72,40 @@ async function decide(decision: "approved" | "rejected" = "approved") {
   });
 }
 describe("professional review persistence on disposable PostgreSQL only", () => {
+  it("rehearses the unchanged official additive plan and canonical controls over synthetic legacy data", async () => {
+    // A second empty database in the SAME guarded private cluster models the
+    // two existing production tables; this never connects to production.
+    await pool.query("CREATE DATABASE synthetic_release_rehearsal");
+    const rehearsal = new Pool({ host: process.env.PGHOST, port: 6543, user: "synthetic", database: "synthetic_release_rehearsal" });
+    const tx = await rehearsal.connect();
+    try {
+      await tx.query(`CREATE TABLE investment_reports (id varchar PRIMARY KEY, user_id text);
+        CREATE TABLE report_delivery_requests (id varchar PRIMARY KEY);
+        INSERT INTO investment_reports VALUES ('synthetic-legacy-report','synthetic-legacy-owner');
+        INSERT INTO report_delivery_requests VALUES ('synthetic-legacy-request');`);
+      const official = JSON.parse(readFileSync("docs/evidence/invest-schema-diff.json", "utf8"));
+      assert.equal(official.success, true);
+      assert.equal(official.hasStructuralDataLoss, false);
+      assert.equal(official.statementsToExecute.length, 15);
+      assert.ok(official.statementsToExecute.every((sql: string) => /^\s*(CREATE TABLE|CREATE (UNIQUE )?INDEX|ALTER TABLE)/.test(sql)));
+      await tx.query("BEGIN");
+      await tx.query(official.statementsToExecute.join("\n"));
+      await tx.query(readFileSync("migrations/0015_investment_governance_controls.sql", "utf8"));
+      const checks = (await tx.query(readFileSync("sql/investment-release-readiness.sql", "utf8"))).rows;
+      assert.equal(checks.length, 21);
+      assert.ok(checks.every(row => row.ready));
+      assert.deepEqual((await tx.query("SELECT * FROM investment_reports")).rows,
+        [{ id: "synthetic-legacy-report", user_id: "synthetic-legacy-owner" }]);
+      assert.deepEqual((await tx.query("SELECT * FROM report_delivery_requests")).rows,
+        [{ id: "synthetic-legacy-request", professional_review_id: null }]);
+      for (const table of ["investment_review_professional", "investment_consultant_authorizations", "investment_assignment_administrators"])
+        assert.equal((await tx.query(`SELECT count(*)::int AS count FROM ${table}`)).rows[0].count, 0);
+      await tx.query("COMMIT");
+    } catch (error) {
+      await tx.query("ROLLBACK");
+      throw error;
+    } finally { tx.release(); await rehearsal.end(); }
+  });
   it("confirms the complete release manifest and blocks disabled or replaced audit controls", async () => {
     const readiness = readFileSync("sql/investment-release-readiness.sql", "utf8");
     const canonical = readFileSync("migrations/0015_investment_governance_controls.sql", "utf8");
@@ -93,6 +129,55 @@ describe("professional review persistence on disposable PostgreSQL only", () => 
       await pool.query(canonical);
     }
     assert.ok((await check()).every(row => row.ready));
+  });
+  it("rejects a write when audit controls change after successful authorization", async () => {
+    const canonical = readFileSync("migrations/0015_investment_governance_controls.sql", "utf8");
+    const grantId = await reviewRepository.grantVersion(reviewerId, clientId);
+    assert.ok(grantId);
+    const attempt = async () => {
+      const id = randomUUID();
+      await assert.rejects(reviewRepository.append({
+        id, reviewerId, clientId, reportId: report.id,
+        reportVersion: versionOf(report), profileVersion: versionOf(null),
+        decision: "rejected", reason: "Decisão exclusivamente sintética para verificar fechamento seguro.",
+        recommendationText: null, reviewedAt: new Date().toISOString(),
+      }, grantId), /CONSULTANT_NOT_AUTHORIZED/);
+      assert.equal((await pool.query("SELECT id FROM investment_professional_reviews WHERE id=$1", [id])).rowCount, 0);
+    };
+    assert.equal(await reviewRepository.authorized(reviewerId, clientId), true);
+    try {
+      await pool.query("ALTER TABLE investment_professional_reviews DISABLE TRIGGER investment_review_immutable");
+      await attempt();
+    } finally {
+      await pool.query("ALTER TABLE investment_professional_reviews ENABLE TRIGGER investment_review_immutable");
+    }
+    assert.equal(await reviewRepository.authorized(reviewerId, clientId), true);
+    try {
+      await pool.query(`CREATE OR REPLACE FUNCTION prevent_investment_review_changes()
+        RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END; $$`);
+      await attempt();
+    } finally {
+      await pool.query(canonical);
+    }
+    assert.equal(await reviewRepository.authorized(reviewerId, clientId), true);
+  });
+  it("persists concurrent simulation retries with real SQL and isolates owners without external calls", async () => {
+    let externalCalls = 0;
+    mock.method(globalThis, "fetch", async () => { externalCalls++; throw Error("EXTERNAL_CALLS_FORBIDDEN"); });
+    const alpha = `synthetic-simulation-${randomUUID()}`, beta = `synthetic-simulation-${randomUUID()}`;
+    const key = randomUUID();
+    const [first, retry] = await Promise.all([
+      simulationStore.create(alpha, "BBDC3", key), simulationStore.create(alpha, "BBDC3", key),
+    ]);
+    assert.equal(first.id, retry.id);
+    assert.equal((await simulationStore.list(alpha)).length, 1);
+    assert.equal(await simulationStore.get(beta, first.id), null);
+    assert.deepEqual(await simulationStore.list(beta), []);
+    await assert.rejects(simulationStore.create(alpha, "BBAS3", key), /SIMULATION_CONFLICT/);
+    const own = await simulationStore.create(beta, "BBAS3", key);
+    assert.notEqual(own.id, first.id);
+    assert.equal((await simulationStore.get(alpha, first.id))?.id, first.id);
+    assert.equal(externalCalls, 0);
   });
   it("derives pending work from persisted versions and removes revoked clients without sending", async () => {
     const pendingClientId = `synthetic-pending-${randomUUID()}`;

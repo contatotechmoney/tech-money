@@ -84,13 +84,17 @@ export async function registerRoutes(
   registerHermesRoutes(app, requireAuth);
   registerSimulationRoutes(app, requireAuth);
   // The older GitHub committee URL must not bypass the simulation-only boundary.
-  app.post("/api/investments/agents/run", requireAuth, (_req, res) => {
+  app.post(["/api/investments/agents/run", "/api/investments/billing/checkout", "/api/investments/credits/signup-grant"], requireAuth, (_req, res) => {
     return res.status(403).json({
       error: "Análise real desabilitada; use a simulação fictícia autenticada.",
       code: "REAL_ANALYSIS_DISABLED",
     });
   });
-  registerProfessionalReviewRoutes(app, requireAuth);
+ 
+  app.post("/api/investments/billing/webhook", (_req, res) => {
+    res.status(403).json({ error: "Cobrança indisponível na simulação.", code: "REAL_ANALYSIS_DISABLED" });
+  });
+ registerProfessionalReviewRoutes(app, requireAuth);
   app.get("/api/webhooks/whatsapp", (req, res) => {
     const mode = req.query["hub.mode"];
     const token = req.query["hub.verify_token"];
@@ -333,7 +337,7 @@ export async function registerRoutes(
   // ---- Billing (Stripe) ----
   app.get("/api/investments/billing/catalog", (_req, res) => {
     res.json({
-      configurado: billingConfigurado(),
+      configurado: REAL_INVESTMENT_ANALYSIS_ENABLED && billingConfigurado(),
       mesesGratisAnual: MESES_GRATIS_ANUAL,
       planos: Object.values(CATALOGO).map((p) => ({
         id: p.id,

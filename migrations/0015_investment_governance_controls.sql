@@ -1,5 +1,6 @@
 -- Canonical development migration. NOT a production migration script or deploy hook.
--- Managed Publish must transport and verify these objects before enabling reviews.
+-- Verify these objects before enabling reviews; table-only Publish does not prove
+-- transport. Any documented manual production edit belongs to the human owner.
 CREATE OR REPLACE FUNCTION prevent_investment_review_changes() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN RAISE EXCEPTION 'Professional review history is append-only'; END;
 $$;
