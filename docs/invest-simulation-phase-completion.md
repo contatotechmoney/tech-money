@@ -60,3 +60,17 @@ Pendências antigas não foram executadas. O teste de worker preserva o monitora
 passivo já existente; esta fase não modifica seu esquema ou aplica suas migrações.
 A interface interna protegida por login não foi verificada com sessão real; foram
 usados testes sintéticos e renderização estática, sem remover autenticação.
+
+## Ressalva operacional concreta, fora dos 21 controles
+
+Os logs da versão ainda publicada, em 2026-10-07, continuam apontando:
+
+- `confirmation monitor failed`: coluna `confirmation_overdue_at` ausente;
+- `provider event retention failed`: tabela `report_delivery_provider_events` ausente.
+
+Esses recursos pertencem ao monitoramento legado de entregas, não aos 21 controles
+de revisão/auditoria confirmados. Não foram criados nem modificados nesta fase.
+Não declarar esse monitoramento plenamente operacional em produção com base nos
+testes privados. A correção de envio não depende deles e não habilita reenvios;
+relatórios e simulação foram validados sinteticamente, mas a publicação mantém
+essa ressalva até uma decisão específica sobre o escopo legado.
