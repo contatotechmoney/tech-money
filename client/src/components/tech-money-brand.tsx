@@ -23,7 +23,7 @@ export function TechMoneyBrand({
       </span>
       <span className="tm-brand-copy">
         <span className="tm-brand-name">TECH MONEY</span>
-        {variant !== "compact" && <span className="tm-brand-area">{areaLabel}</span>}
+        <span className="tm-brand-area">{areaLabel}</span>
       </span>
     </span>
   );

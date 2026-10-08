@@ -5,8 +5,59 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { transformSync } from "esbuild";
 import { runInNewContext } from "node:vm";
+import { createHash } from "node:crypto";
+import { applyBrandMetadata } from "../shared/brand-metadata";
 import { beginEmailCode, verifyEmailCode, type EmailCodeAttempt } from "../client/src/lib/email-code-sign-in";
 import { authLink, getAccessArea, getAuthRedirect, withAppBase } from "../client/src/lib/auth-redirect";
+
+describe("current brand audit, offline", () => {
+  it("all Clerk logo assets have exactly three ascending bars and correct module labels", () => {
+    for (const [file, area] of [["logo.svg", "ACESSO"], ["logo-investments.svg", "INVESTIMENTOS"], ["logo-finance.svg", "FINANCE"]]) {
+      const svg = readFileSync(`client/public/${file}`, "utf8");
+      assert.match(svg, new RegExp(area));
+      assert.match(svg, /TECH MONEY/);
+      const mark = svg.match(/<g fill="#087d61">(.+?)<\/g>/)![1];
+      assert.equal((mark.match(/<rect /g) || []).length, 3);
+      assert.deepEqual([...mark.matchAll(/height="(\d+)"/g)].map(item => +item[1]), [22, 31, 36]);
+    }
+  });
+  it("committee hub has no legacy group or logo fallback and keeps all individual portraits", () => {
+    const html = readFileSync("client/public/comites/central_comites.html", "utf8");
+    assert.doesNotMatch(html, /tech_money_logo\.png|comite_r[ vf]\.jpg|onerror=/);
+    assert.match(html, /PERSONAS SIMULADAS/);
+    assert.match(html, /prefers-color-scheme:dark/);
+    assert.match(html, /prefers-reduced-motion:reduce/);
+    assert.match(html, /align-items:flex-end/);
+    assert.match(html, /age conforme o currículo/);
+    const original = readFileSync("docs/history/brand-before-three-bars/central-comites-before.html", "utf8");
+    const data = (source: string) => JSON.parse(JSON.stringify(runInNewContext(
+      `(${source.match(/const DATA\s*=\s*([\s\S]+?);\s*const /)![1]})`, {},
+    )));
+    assert.deepEqual(data(html), data(original), "every persona field and curriculum preserved");
+  });
+  it("both host modules and committee deep links have correct share identity, not Replit metadata", () => {
+    const html = readFileSync("client/index.html", "utf8");
+    assert.doesNotMatch(html, /replit\.com\/public|@replit/);
+    for (const [host, area] of [["invest.techmoney.com.br", "Investimentos"], ["finance.techmoney.com.br", "Finance"]]) {
+      const result = applyBrandMetadata(html, host);
+      assert.match(result, new RegExp(`Tech Money — ${area}`));
+      assert.match(result, new RegExp(`opengraph-${area === "Finance" ? "finance" : "investments"}\\.jpg`));
+    }
+    assert.match(applyBrandMetadata(html, "local.test", "/comites/central_comites.html"), /opengraph-investments/);
+    assert.match(applyBrandMetadata(html, "finance.techmoney.com.br", "/sign-in?redirect=%2Finvestments%2Fagents"), /opengraph-investments/);
+    assert.match(applyBrandMetadata(html, "invest.techmoney.com.br", "/sign-up?redirect=%2Fdashboard"), /opengraph-finance/);
+    assert.match(applyBrandMetadata(html, "invest.techmoney.com.br", "/sign-in", "https://invest.techmoney.com.br"),
+      /https:\/\/invest\.techmoney\.com\.br\/opengraph-investments\.jpg/);
+    assert.doesNotMatch(applyBrandMetadata(html, "local.test", "/sign-in", "https://attacker.example"), /attacker\.example/);
+    assert.doesNotMatch(applyBrandMetadata(html, '"><script>invalid</script>'), /<script>invalid/);
+  });
+  it("historical assets are preserved separately and public assets are no longer those originals", () => {
+    const hash = (file: string) => createHash("sha256").update(readFileSync(file)).digest("hex");
+    for (const file of ["logo.svg", "favicon.png", "opengraph.jpg", "comites/tech_money_logo.png", "comites/comite_rv.jpg", "comites/comite_rf.jpg"]) {
+      assert.notEqual(hash(`client/public/${file}`), hash(`docs/history/brand-before-three-bars/${file.replaceAll("/", "-")}`));
+    }
+  });
+});
 
 function attempt(overrides: Partial<EmailCodeAttempt> = {}): EmailCodeAttempt {
   const resource: EmailCodeAttempt = {

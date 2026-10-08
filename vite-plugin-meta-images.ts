@@ -10,45 +10,22 @@ export function metaImagesPlugin(): Plugin {
   return {
     name: 'vite-plugin-meta-images',
     transformIndexHtml(html) {
+      // The server selected the module-specific image. Never replace it with
+      // the generic image or embed a development domain in a production build.
+      const selected = html.match(/<meta\s+property="og:image"\s+content="(\/opengraph(?:-investments|-finance)?\.(?:png|jpg|jpeg))"/);
+      if (!selected || process.env.NODE_ENV === 'production') return html;
       const baseUrl = getDeploymentUrl();
-      if (!baseUrl) {
-        log('[meta-images] no Replit deployment domain found, skipping meta tag updates');
-        return html;
-      }
-
-      // Check if opengraph image exists in public directory
+      if (!baseUrl) return html;
       const publicDir = path.resolve(process.cwd(), 'client', 'public');
-      const opengraphPngPath = path.join(publicDir, 'opengraph.png');
-      const opengraphJpgPath = path.join(publicDir, 'opengraph.jpg');
-      const opengraphJpegPath = path.join(publicDir, 'opengraph.jpeg');
-
-      let imageExt: string | null = null;
-      if (fs.existsSync(opengraphPngPath)) {
-        imageExt = 'png';
-      } else if (fs.existsSync(opengraphJpgPath)) {
-        imageExt = 'jpg';
-      } else if (fs.existsSync(opengraphJpegPath)) {
-        imageExt = 'jpeg';
-      }
-
-      if (!imageExt) {
+      if (!fs.existsSync(path.join(publicDir, selected[1].slice(1)))) {
         log('[meta-images] OpenGraph image not found, skipping meta tag updates');
         return html;
       }
-
-      const imageUrl = `${baseUrl}/opengraph.${imageExt}`;
+      const imageUrl = `${baseUrl}${selected[1]}`;
 
       log('[meta-images] updating meta image tags to:', imageUrl);
 
-      html = html.replace(
-        /<meta\s+property="og:image"\s+content="[^"]*"\s*\/>/g,
-        `<meta property="og:image" content="${imageUrl}" />`
-      );
-
-      html = html.replace(
-        /<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/>/g,
-        `<meta name="twitter:image" content="${imageUrl}" />`
-      );
+      html = html.replace(/(<meta\s+(?:property|name)="(?:og:image|twitter:image)"\s+content=")[^"]*"/g, `$1${imageUrl}"`);
 
       return html;
     },

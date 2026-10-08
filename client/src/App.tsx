@@ -5,7 +5,7 @@ import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { useEffect, useRef, type ComponentType, type ReactNode } from "react";
 import { Router as WouterRouter, Switch, Route, useLocation } from "wouter";
-import { getAuthRedirect } from "@/lib/auth-redirect";
+import { getAuthRedirect, getAccessArea } from "@/lib/auth-redirect";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -39,6 +39,12 @@ const clerkPubKey = publishableKeyFromHost(
 );
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const brandDestination = /^\/(?:investments|dashboard)(?:\/|$)/.test(window.location.pathname)
+  ? window.location.pathname
+  : getAuthRedirect(window.location.search, basePath, window.location.hostname);
+const brandArea = getAccessArea(window.location.hostname, brandDestination);
+const brandLogoFile = brandArea === "invest" ? "logo-investments.svg"
+  : brandArea === "finance" ? "logo-finance.svg" : "logo.svg";
 
 if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY in .env file");
@@ -50,7 +56,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/${brandLogoFile}`,
   },
   variables: {
     colorPrimary: "#2a9d8f",

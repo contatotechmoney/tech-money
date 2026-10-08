@@ -70,7 +70,7 @@ export default function Report() {
             <p className="text-sm text-muted-foreground">{t("generatedOn")} 18 Dec 2024 • {t("basedOn")} DRE_2024_Final.xlsx</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm">
             <Printer className="mr-2 h-4 w-4" />
             {t("print")}
@@ -126,7 +126,8 @@ export default function Report() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
+        <div className="max-w-full overflow-x-auto pb-2" tabIndex={0} aria-label="Abas do relatório, role horizontalmente para ver mais">
+        <TabsList className="w-max">
           <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
           <TabsTrigger value="analysis">
             <Sparkles className="h-4 w-4 mr-2" />
@@ -138,6 +139,7 @@ export default function Report() {
           </TabsTrigger>
           <TabsTrigger value="recommendations">{t("aiRecommendations")}</TabsTrigger>
         </TabsList>
+        </div>
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-7">
@@ -206,11 +208,11 @@ export default function Report() {
             <CardContent>
               <div className="space-y-2">
                 {dataDRE.map((item, i) => (
-                  <div key={i} className={`flex items-center justify-between py-2 border-b border-border ${item.category === 'Lucro Líquido' || item.category === 'EBITDA' ? 'font-bold bg-muted/30 px-2 -mx-2' : ''}`}>
+                  <div key={i} className={`flex flex-col gap-1 py-2 border-b border-border sm:flex-row sm:items-center sm:justify-between ${item.category === 'Lucro Líquido' || item.category === 'EBITDA' ? 'font-bold bg-muted/30 px-2 -mx-2' : ''}`}>
                     <span>{item.category}</span>
-                    <div className="flex gap-8">
-                      <span className="text-muted-foreground w-24 text-right">{((item.value / 150000) * 100).toFixed(1)}%</span>
-                      <span className={`w-32 text-right ${item.value < 0 ? 'text-destructive' : ''}`}>
+                    <div className="flex justify-between gap-3 sm:gap-8">
+                      <span className="text-muted-foreground sm:w-24 sm:text-right">{((item.value / 150000) * 100).toFixed(1)}%</span>
+                      <span className={`sm:w-32 sm:text-right ${item.value < 0 ? 'text-destructive' : ''}`}>
                         R$ {Math.abs(item.value).toLocaleString('pt-BR')}
                       </span>
                     </div>

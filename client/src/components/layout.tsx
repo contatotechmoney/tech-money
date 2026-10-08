@@ -55,7 +55,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#1b4d3e] text-white border-r border-[#143d31]">
       <div className="p-6">
-        <TechMoneyBrand areaLabel="FINANCE" />
+        <TechMoneyBrand areaLabel="FINANCE" className="tm-brand-on-dark" />
         <Link href="/areas">
           <div className="mt-5 flex items-center gap-2 text-xs text-white/70 hover:text-white transition-colors cursor-pointer">
             <ArrowLeft className="h-3.5 w-3.5" />
@@ -142,13 +142,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64 min-h-screen flex flex-col">
+      <main className="min-w-0 flex-1 md:ml-64 min-h-screen flex flex-col">
         <header className="h-14 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-20 px-4 md:px-6 flex items-center justify-between">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileOpen(true)} aria-label={t("openMenu")}>
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">FINANCE</span>
+            <div className="md:hidden"><TechMoneyBrand areaLabel="FINANCE" className="tm-brand-mobile" /></div>
+            <span className="hidden md:inline text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">FINANCE</span>
           </div>
           <div className="flex">
             <LanguageSelector />

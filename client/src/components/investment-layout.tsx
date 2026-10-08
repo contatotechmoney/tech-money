@@ -81,7 +81,7 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
     <div className="flex h-full flex-col border-r border-[#143d31] bg-[#1b4d3e] text-white">
       <div className="p-6">
         <Link href="/areas" className="block">
-          <TechMoneyBrand areaLabel="INVESTIMENTOS" />
+          <TechMoneyBrand areaLabel="INVESTIMENTOS" className="tm-brand-on-dark" />
         </Link>
       </div>
 
@@ -147,13 +147,14 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
         </SheetContent>
       </Sheet>
 
-      <main className="flex min-h-screen flex-1 flex-col md:ml-64">
+      <main className="flex min-w-0 min-h-screen flex-1 flex-col md:ml-64">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur md:px-6">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileOpen(true)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">INVESTIMENTOS</span>
+            <div className="md:hidden"><TechMoneyBrand areaLabel="INVESTIMENTOS" className="tm-brand-mobile" /></div>
+            <span className="hidden md:inline text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">INVESTIMENTOS</span>
           </div>
           <LanguageSelector />
         </header>
