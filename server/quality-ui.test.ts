@@ -10,16 +10,25 @@ import { QUESTOES } from "./suitability";
 import { DeliveryRequestStatus, type ReportDeliveryRequest } from "../client/src/components/report-delivery-history";
 import { translations } from "../client/src/lib/i18n";
 import { AssignmentManagementPage } from "../client/src/pages/investment-assignments";
-import { ReportDeliverySimulationNotice } from "../client/src/components/report-delivery-simulation-notice";
+import { ReportDeliverySimulationNotice, DeliveryMonitoringSuspendedNotice } from "../client/src/components/report-delivery-simulation-notice";
 
 describe("simulation-only real delivery notice", () => {
   it("renders the unconditional simulation restriction, preserves historical access and offers no send form", () => {
     const html = renderToStaticMarkup(createElement(ReportDeliverySimulationNotice));
     assert.match(html, /Envios reais bloqueados/);
     assert.match(html, /mesmo com revisão aprovada/);
-    assert.match(html, /histórico de entregas anteriores continua disponível/);
+    assert.match(html, /registros anteriores foram preservados/);
     assert.match(html, /role="status"/);
     assert.doesNotMatch(html, /<(form|input|button)\b/);
+  });
+});
+
+describe("legacy automatic delivery monitoring suspended in simulation", () => {
+  it("shows deliberate suspension without claiming the records belong to an old portal or were deleted", () => {
+    const html = renderToStaticMarkup(createElement(DeliveryMonitoringSuspendedNotice));
+    assert.match(html, /Monitoramento automático de entregas suspenso/);
+    assert.match(html, /Nenhum registro anterior foi apagado/);
+    assert.doesNotMatch(html, /portal antigo|<(button|form|input)\b/);
   });
 });
 

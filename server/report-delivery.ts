@@ -9,7 +9,7 @@ import { ReplitConnectors } from "@replit/connectors-sdk";
 import { canDeliverPersonalizedRecommendation } from "./report-policy";
 import { reviewedReport } from "./professional-review";
 import type { ReportPresentation } from "../shared/report-quality";
-import { REAL_REPORT_DELIVERY_ENABLED } from "../shared/simulation-policy";
+import { REAL_REPORT_DELIVERY_ENABLED, REPORT_DELIVERY_MONITORING_ENABLED } from "../shared/simulation-policy";
 
 export function assertRealReportDeliveryEnabled(): void {
   if (!REAL_REPORT_DELIVERY_ENABLED) {
@@ -44,6 +44,7 @@ export async function processReportDeliveryRequests(options: {
 export const REPORT_DELIVERY_CONFIRMATION_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
 export async function reconcileUnconfirmedReportDeliveries(): Promise<number> {
+  if (!REPORT_DELIVERY_MONITORING_ENABLED) return 0;
   const requests = await storage.flagUnconfirmedReportDeliveries(
     new Date(Date.now() - REPORT_DELIVERY_CONFIRMATION_TIMEOUT_MS),
     100,
@@ -61,14 +62,18 @@ export async function reconcileUnconfirmedReportDeliveries(): Promise<number> {
 }
 
 export function startReportDeliveryWorker(): () => void {
+  if (!REAL_REPORT_DELIVERY_ENABLED && !REPORT_DELIVERY_MONITORING_ENABLED) return () => {};
   const run = () => {
-    storage.pruneReportDeliveryProviderEvents().catch((error) => {
-      console.error("[report-delivery] provider event retention failed", error);
-    });
-    // Monitoring prior sends remains active even while new recommendations are blocked.
-    reconcileUnconfirmedReportDeliveries().catch((error) => {
-      console.error("[report-delivery] confirmation monitor failed", error);
-    });
+    if (REPORT_DELIVERY_MONITORING_ENABLED) {
+      storage.pruneReportDeliveryProviderEvents().catch((error) => {
+        console.error("[report-delivery] provider event retention failed", error);
+      });
+      // Outside this deliberately suspended phase, monitoring does not authorize new sends.
+      reconcileUnconfirmedReportDeliveries().catch((error) => {
+        console.error("[report-delivery] confirmation monitor failed", error);
+      });
+    }
+    if (!REAL_REPORT_DELIVERY_ENABLED) return;
     processReportDeliveryRequests().catch((error) => {
       console.error("[report-delivery] worker failed", error);
     });

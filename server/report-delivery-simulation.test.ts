@@ -13,7 +13,7 @@ import {
   processReportDeliveryRequests,
   startReportDeliveryWorker,
 } from "./report-delivery";
-import { REAL_REPORT_DELIVERY_ENABLED } from "../shared/simulation-policy";
+import { REAL_REPORT_DELIVERY_ENABLED, REPORT_DELIVERY_MONITORING_ENABLED, shouldStartReportDeliveryWorker } from "../shared/simulation-policy";
 
 const localFetch = globalThis.fetch;
 const servers: Server[] = [];
@@ -67,28 +67,32 @@ describe("simulation release blocks all real report sends", () => {
     }
   });
 
-  it("immediate and scheduled worker ticks never claim or send; passive historical monitoring remains active", async () => {
+  it("production startup and direct worker calls create no timers and never query legacy queues or monitoring tables", async () => {
     let tick: (() => void) | undefined;
-    let claims = 0, sends = 0, updates = 0, monitored = 0;
+    let claims = 0, sends = 0, updates = 0, monitored = 0, pruned = 0;
     mock.method(globalThis, "setInterval", (callback: () => void) => {
       tick = callback; return { unref() {} } as any;
     });
     mock.method(globalThis, "clearInterval", () => {});
     mock.method(storage, "claimReportDeliveryRequests", async () => { claims++; return []; });
     mock.method(storage, "updateReportDeliveryRequest", async () => { updates++; });
-    mock.method(storage, "pruneReportDeliveryProviderEvents", async () => 0);
+    mock.method(storage, "pruneReportDeliveryProviderEvents", async () => { pruned++; });
     mock.method(storage, "flagUnconfirmedReportDeliveries", async () => { monitored++; return []; });
     mock.method(globalThis, "fetch", async () => { sends++; throw Error("MUST_NOT_SEND"); });
     mock.method(ReplitConnectors.prototype, "proxy", async () => { sends++; throw Error("MUST_NOT_SEND"); });
     const stop = startReportDeliveryWorker();
-    assert.ok(tick);
-    tick();
+    assert.equal(REPORT_DELIVERY_MONITORING_ENABLED, false);
+    for (const environment of ["production", "development", "test", undefined]) {
+      assert.equal(shouldStartReportDeliveryWorker(environment), false);
+    }
+    assert.equal(tick, undefined);
     await new Promise<void>(resolve => setImmediate(resolve));
     stop();
     assert.equal(claims, 0);
     assert.equal(sends, 0);
     assert.equal(updates, 0);
-    assert.equal(monitored, 2);
+    assert.equal(monitored, 0);
+    assert.equal(pruned, 0);
   });
 
   it("authenticated delivery endpoints reject email, WhatsApp and malformed payloads before storage or providers", async () => {

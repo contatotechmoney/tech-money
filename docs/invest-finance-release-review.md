@@ -1,5 +1,26 @@
 # Revisão de Invest / Finance — sem publicação
 
+## Atualização final desta fase
+
+Esta seção substitui conclusões anteriores sobre monitoramento passivo:
+**envios reais e monitoramento automático de entregas estão suspensos**.
+Não há inicialização do worker, timers, reconciliação, limpeza de eventos ou
+polling/foco do histórico de entregas. Os registros e endpoints manuais
+existentes foram preservados; não foi feita migração adicional.
+
+A origem exclusiva no portal antigo não foi comprovada. A suspensão atende
+à decisão explícita do proprietário, não a uma atribuição não verificada.
+Ver [origem](invest-delivery-monitoring-origin.md) e
+[conclusão/evidências](invest-simulation-phase-completion.md).
+
+Validação atual: **282 testes passaram**, typecheck/build passaram e fluxo
+completo do estudo fictício passou no navegador com dois usuários sintéticos,
+retomada pelo histórico e nenhuma chamada externa, de banco ou de fila legada.
+Banco 21/21 permanece confirmação do proprietário/revisor já registrada:
+nenhuma atualização repetida. Não há autorização para publicar ou mesclar.
+
+## Histórico da revisão anterior
+
 ## Limites desta atualização
 
 Identidade visual reutilizada da tela de acesso em Invest, Finance e seleção de

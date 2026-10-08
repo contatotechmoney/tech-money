@@ -102,37 +102,31 @@ describe("unconfirmed report delivery monitoring", () => {
     }
   });
 
-  it("records one observable warning per case without logging contact or report content", async () => {
+  it("suspended reconciliation never queries or logs historical recipients or reports", async () => {
     const id = await request();
-    const flagged = (await storage.flagUnconfirmedReportDeliveries(cutoff, 100))
-      .filter((item) => item.id === id);
-    const scan = mock.method(storage, "flagUnconfirmedReportDeliveries", async () => flagged);
+    const before = await storage.getReportDeliveryRequest(userId, id);
+    const scan = mock.method(storage, "flagUnconfirmedReportDeliveries", async () => { throw Error("LEGACY_QUERY_FORBIDDEN"); });
     const warning = mock.method(console, "warn", () => {});
-    assert.equal(await reconcileUnconfirmedReportDeliveries(), 1);
-    const args = scan.mock.calls[0].arguments;
-    assert.equal(args[1], 100);
-    assert.ok(Math.abs(args[0].getTime() - (Date.now() - 86_400_000)) < 1000);
-    assert.deepEqual(warning.mock.calls[0].arguments, [
-      "[report-delivery] confirmation overdue",
-      { requestId: id, channel: "email", sentAt: flagged[0].sentAt,
-        confirmationOverdueAt: flagged[0].confirmationOverdueAt },
-    ]);
+    assert.equal(await reconcileUnconfirmedReportDeliveries(), 0);
+    assert.equal(scan.mock.callCount(), 0);
+    assert.equal(warning.mock.callCount(), 0);
+    assert.deepEqual(await storage.getReportDeliveryRequest(userId, id), before);
   });
 
-  it("monitors past sends independently of per-report professional approval", async () => {
+  it("does not start historical monitoring or claim queues in the simulation phase", async () => {
     const scan = mock.method(storage, "flagUnconfirmedReportDeliveries", async () => []);
     const claim = mock.method(storage, "claimReportDeliveryRequests", async () => []);
     const stop = startReportDeliveryWorker();
     stop();
     await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(scan.mock.callCount(), 1);
+    assert.equal(scan.mock.callCount(), 0);
     assert.equal(claim.mock.callCount(), 0);
   });
 
-  it("propagates storage errors instead of reporting a successful scan", async () => {
+  it("does not consult unavailable legacy storage while reconciliation is suspended", async () => {
     mock.method(storage, "flagUnconfirmedReportDeliveries", async () => {
       throw new Error("database unavailable");
     });
-    await assert.rejects(reconcileUnconfirmedReportDeliveries(), /database unavailable/);
+    assert.equal(await reconcileUnconfirmedReportDeliveries(), 0);
   });
 });

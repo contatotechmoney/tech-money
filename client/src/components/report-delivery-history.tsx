@@ -1,3 +1,5 @@
+import { REPORT_DELIVERY_MONITORING_ENABLED } from "@shared/simulation-policy";
+import { DeliveryMonitoringSuspendedNotice } from "./report-delivery-simulation-notice";
 import * as React from "react";
 import { useAuth } from "@clerk/react";
 import { useQuery } from "@tanstack/react-query";
@@ -43,15 +45,17 @@ export function ReportDeliveryHistory({ ticker }: { ticker: string }) {
       );
       return await response.json() as DeliveryHistoryResponse;
     },
-    enabled: isLoaded && !!userId && !!ticker,
-    refetchInterval: 5_000,
-    refetchOnWindowFocus: true,
+    enabled: REPORT_DELIVERY_MONITORING_ENABLED && isLoaded && !!userId && !!ticker,
+    refetchInterval: REPORT_DELIVERY_MONITORING_ENABLED ? 5_000 : false,
+    refetchOnWindowFocus: REPORT_DELIVERY_MONITORING_ENABLED,
     staleTime: 0,
   });
 
   const locale = language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US";
   const requests = query.data?.requests ?? [];
-  const canRefresh = isLoaded && !!userId;
+  const canRefresh = REPORT_DELIVERY_MONITORING_ENABLED && isLoaded && !!userId;
+
+  if (!REPORT_DELIVERY_MONITORING_ENABLED) return <DeliveryMonitoringSuspendedNotice />;
 
   return (
     <section className="border-t pt-4" aria-labelledby="delivery-history-title">

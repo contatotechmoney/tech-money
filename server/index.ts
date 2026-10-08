@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { startReportDeliveryWorker } from "./report-delivery";
+import { shouldStartReportDeliveryWorker } from "../shared/simulation-policy";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -88,7 +89,7 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
   // Preview/development must never inspect customer queues or send real recommendations.
-  if (process.env.NODE_ENV === "production") startReportDeliveryWorker();
+  if (shouldStartReportDeliveryWorker(process.env.NODE_ENV)) startReportDeliveryWorker();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

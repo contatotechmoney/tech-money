@@ -1,5 +1,64 @@
 # Encerramento da preparação — Invest / Finance em simulação
 
+## Estado atual — suspensão deliberada, sem publicação
+
+Esta atualização substitui a conclusão anterior sobre monitoramento passivo.
+O proprietário pediu suspender o acompanhamento automático nesta fase e
+preservar todos os registros, mesmo sem comprovar a origem no portal antigo.
+
+- Worker não é iniciado em produção; chamadas diretas não criam timers nem
+  consultam filas, confirmações vencidas ou retenção de eventos.
+- Histórico de entregas não consulta, não faz polling e não atualiza ao focar a
+  janela. Mostra suspensão explícita, não uma lista vazia que oculte falha.
+- Envio real continua bloqueado mesmo aprovado/configurado. Análises pagas,
+  checkout e movimentações reais de crédito continuam bloqueados.
+- Login, registro de leads, relatórios, revisão humana e isolamento preservados.
+- Banco de produção **21/21**, conforme confirmação do proprietário/revisor
+  já registrada; nenhuma atualização ou consulta de produção repetida.
+- A hipótese “portal antigo” não foi comprovada:
+  [evidências de origem e escopo](invest-delivery-monitoring-origin.md).
+
+### Validação desta atualização
+
+`npm run validate:synthetic`: **282 testes, zero falhas**:
+70 base + 18 revisão/banco privado + 101 qualidade/interface + 50 simulação +
+43 acesso. Typecheck passou. `npm run build` passou; aviso já existente de bundle
+acima de 500 kB, sem erro de compilação.
+
+`npm run test:simulation-browser`: **passou, saída 0**. Chromium local, aplicação
+React real, SDK Clerk fictício somente no Vite isolado e backend em memória sem
+URL de banco ou credenciais de provedores. Código `000000` é um fixture, não é
+um código de uma conta real. Nenhum bypass de autenticação foi inserido no app.
+
+Fluxo comprovado: acesso anônimo redirecionado → acesso fictício por e-mail →
+escolha de BBAS3 → início → fila → progresso → resultado fictício → recarga e
+retomada pelo histórico. Segundo usuário vê histórico vazio e recebe 404 ao
+consultar estudo do primeiro; anônimo recebe 401. Rotas de envio, análise,
+checkout e créditos reais recebem 403.
+
+O componente real de histórico de entregas foi montado com usuário fictício
+autenticado; após 5,5 segundos (mais que o antigo polling) e evento de foco,
+**zero requisições ao endpoint legado**. Contadores do servidor: chamadas
+externas 0, banco 0, filas/tabelas legadas 0, contas reais criadas 0, tokens 0,
+créditos reais 0; worker de produção desativado. Quatro solicitações de fontes
+externas do navegador foram bloqueadas, sem tráfego externo permitido.
+
+Evidências:
+- [Resultado do navegador](evidence/invest-simulation-browser-result.json)
+- [Progresso fictício](evidence/invest-simulation-browser-progress.png)
+- [Resultado fictício](evidence/invest-simulation-browser-completed.png)
+
+Não é validação do login real Clerk/MFA em produção; os testes sintéticos de
+acesso preservam delegação para o SDK nativo, MFA/CAPTCHA e fallback seguro.
+
+PR #3 continua em rascunho, sem merge. O commit exato e a comparação de conteúdo
+Replit/GitHub são informados na proposta e na entrega desta atualização.
+Os erros da versão ainda publicada não são apresentados como resolvidos antes
+de publicação autorizada. Não há migração adicional necessária para ativar
+essas rotinas: elas foram deliberadamente suspensas, não reparadas ou ativadas.
+
+## Histórico da etapa anterior — superado pelo estado acima
+
 ## Banco concluído, sem repetir atualização
 
 Em 2026-10-07, o proprietário informou execução no console oficial e o revisor
