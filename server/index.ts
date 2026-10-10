@@ -4,6 +4,8 @@ import { publishableKeyFromHost } from "@clerk/shared/keys";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { startReportDeliveryWorker } from "./report-delivery";
+import { shouldStartReportDeliveryWorker } from "../shared/simulation-policy";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -12,6 +14,14 @@ import {
 
 const app = express();
 const httpServer = createServer(app);
+
+app.use((_req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "frame-ancestors 'self' https://techmoney.com.br https://www.techmoney.com.br",
+  );
+  next();
+});
 
 declare module "http" {
   interface IncomingMessage {
@@ -65,7 +75,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse && !path.startsWith("/api/investments")) {
+      if (capturedJsonResponse && !path.startsWith("/api/investments") && !path.startsWith("/api/leads")) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
@@ -78,6 +88,8 @@ app.use((req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+  // Preview/development must never inspect customer queues or send real recommendations.
+  if (shouldStartReportDeliveryWorker(process.env.NODE_ENV)) startReportDeliveryWorker();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

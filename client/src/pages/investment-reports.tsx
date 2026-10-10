@@ -1,11 +1,14 @@
 import { Link } from "wouter";
-import { ArrowRight, ChartNoAxesCombined, FileText, Loader2, RefreshCw } from "lucide-react";
+import { InvestmentSimulationPanel } from "@/components/investment-simulation-panel";
+import { ArrowRight, ChartNoAxesCombined, RefreshCw } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/lib/analytics";
 import { apiRequest } from "@/lib/queryClient";
+import { ReportQualityNotice, ReportQualitySummary, type ReportQuality } from "@/components/report-quality-notice";
 
 type Report = {
   id: string;
@@ -16,7 +19,19 @@ type Report = {
   changePercent: number;
   signal: string;
   summary: string;
+  source?: string;
+  analysisStatus?: ReportQuality["analysisStatus"];
+  analysisReason?: string;
+  availableAgents?: number;
+  expectedAgents?: number;
+  consensusScore?: number | null;
+  highRisk?: boolean;
+  marketDataAt?: string | null;
+  fundamentalsPeriod?: string | null;
+  historical?: boolean;
+  recommendation?: ReportQuality["recommendation"];
 };
+type ReportListResponse = { reports: Report[]; source: string };
 
 export default function InvestmentReports() {
   const { t } = useLanguage();
@@ -24,10 +39,68 @@ export default function InvestmentReports() {
   const reportsQuery = useQuery<{ reports: Report[]; source: string }>({
     queryKey: ["/api/investments/reports"],
     refetchOnWindowFocus: true,
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
   const refresh = useMutation({
-    mutationFn: (ticker: string) => apiRequest("POST", `/api/investments/reports/${ticker}/refresh`),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["/api/investments/reports"] }),
+    mutationFn: async (ticker: string) => {
+      const response = await apiRequest("POST", `/api/investments/reports/${ticker}/refresh`);
+      return await response.json() as Report;
+    },
+    onSuccess: (freshReport, ticker) => {
+      trackEvent("report_refresh_completed", {
+        ticker,
+        location: "report_list",
+      });
+      queryClient.setQueryData<ReportListResponse>(
+        ["/api/investments/reports"],
+        (current) => {
+          const reports = current?.reports ?? [];
+          const exists = reports.some((item) => item.ticker === ticker);
+          return {
+            ...current,
+            source: current?.source ?? "",
+            reports: exists
+              ? reports.map((item) => item.ticker === ticker ? freshReport : item)
+              : [freshReport, ...reports],
+          };
+        },
+      );
+      void queryClient.invalidateQueries({ queryKey: ["/api/investments/reports"] });
+    },
+    onError: (_error, ticker) => {
+      queryClient.setQueryData<ReportListResponse>(["/api/investments/reports"], (current) => current ? {
+        ...current,
+        reports: current.reports.map((report) => report.ticker === ticker ? {
+          ...report,
+          analysisStatus: "outdated",
+          analysisReason: "A atualização falhou. Este documento anterior não foi atualizado; confira as datas.",
+          consensusScore: null,
+          signal: "Recomendação pendente",
+          recommendation: {
+            status: "pending", professionalReview: "pending", profileStatus: "pending",
+            reasons: ["Atualização frustrada; revisão do consultor pendente."],
+          },
+        } : report),
+      } : current);
+      queryClient.setQueryData<{ latest: Report; history: Report[]; source: string }>(
+        [`/api/investments/reports/${ticker}`],
+        (current) => current ? {
+          ...current,
+          latest: {
+            ...current.latest,
+            analysisStatus: "outdated",
+            analysisReason: "A atualização falhou. Este documento anterior não foi atualizado; confira as datas.",
+            consensusScore: null,
+            signal: "Recomendação pendente",
+            recommendation: {
+              status: "pending", professionalReview: "pending", profileStatus: "pending",
+              reasons: ["Atualização frustrada; revisão do consultor pendente."],
+            },
+          },
+        } : current,
+      );
+    },
   });
 
   return (
@@ -40,39 +113,96 @@ export default function InvestmentReports() {
         </div>
         <Badge variant="outline">{t("generatedByAgents")}</Badge>
       </div>
+      <InvestmentSimulationPanel />
 
       {reportsQuery.isLoading ? (
-        <div className="flex min-h-48 items-center justify-center text-muted-foreground"><Loader2 className="mr-2 animate-spin" />{t("loading")}</div>
+        <div className="grid gap-5 md:grid-cols-2" aria-label={t("loading")}>
+          {[0, 1].map((item) => <div key={item} className="space-y-4 rounded-xl border p-6"><div className="h-12 w-40 animate-pulse rounded-lg bg-muted/60" /><div className="h-36 animate-pulse rounded-lg bg-muted/60" /></div>)}
+        </div>
       ) : reportsQuery.isError ? (
-        <Card><CardContent className="p-8 text-center text-sm text-destructive">{t("reportsError")}</CardContent></Card>
+        <Card><CardContent className="space-y-3 p-8 text-center text-sm text-destructive"><p>{t("reportsError")}</p><Button variant="outline" onClick={() => reportsQuery.refetch()}>Tentar novamente</Button></CardContent></Card>
+      ) : (reportsQuery.data?.reports || []).length === 0 ? (
+        <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Ainda não há relatórios disponíveis.</CardContent></Card>
       ) : (
         <div className="grid gap-5 md:grid-cols-2">
           {(reportsQuery.data?.reports || []).map((report) => (
-            <Card key={report.ticker} className="border-border/80">
+            <ReportListCard
+              key={report.ticker}
+              report={report}
+              onRefresh={() => refresh.mutate(report.ticker)}
+              refreshing={refresh.isPending && refresh.variables === report.ticker}
+              refreshError={refresh.isError && refresh.variables === report.ticker}
+              refreshOutdated={refresh.isSuccess && refresh.variables === report.ticker && refresh.data?.analysisStatus === "outdated"}
+            />
+          ))}
+        </div>
+      )}
+      {reportsQuery.isSuccess && (
+        <p className="text-xs leading-5 text-muted-foreground">
+          Os relatórios são informações gerais, não aconselhamento personalizado. Toda recomendação permanece pendente de revisão profissional; adequação ao perfil não significa aprovação.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ReportListCard({ report, onRefresh, refreshing, refreshError, refreshOutdated }: {
+  report: Report;
+  onRefresh: () => void;
+  refreshing: boolean;
+  refreshError: boolean;
+  refreshOutdated: boolean;
+}) {
+  const { t } = useLanguage();
+  const quality = toQuality(report);
+  const hasFullAnalysis = quality.analysisStatus === "complete" && !quality.historical;
+  return (
+    <Card className="border-border/80">
               <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1b4d3e] text-sm font-bold text-white">{report.ticker.slice(0, 2)}</div>
                   <div><CardTitle className="text-xl">{report.ticker}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{report.companyName}</p></div>
                 </div>
-                <Badge variant="outline" className={report.changePercent >= 0 ? "border-emerald-200 text-emerald-700" : "border-red-200 text-red-700"}>{formatPercent(report.changePercent)}</Badge>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-6 text-muted-foreground">{report.summary}</p>
+                <ReportQualityNotice quality={quality} source={report.source} generatedAt={report.generatedAt} compact />
+                <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                  {hasFullAnalysis ? report.summary : quality.analysisReason || "Conteúdo limitado; não há conclusão financeira disponível."}
+                </p>
+                <ReportQualitySummary quality={quality} />
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-xs text-muted-foreground">{t("generatedOn")} {formatDate(report.generatedAt)}</span>
+                  <span className="text-xs text-muted-foreground">Documento: {formatDate(report.generatedAt)} · Variação informativa da cotação: {formatPercent(report.changePercent)}</span>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => refresh.mutate(report.ticker)} disabled={refresh.isPending}><RefreshCw className={refresh.isPending ? "animate-spin" : ""} />{t("refreshReport")}</Button>
-                    <Link href={`/investments/agents/${report.ticker}`}><Button size="sm">{t("viewReport")}<ArrowRight /></Button></Link>
+                    <Button variant="outline" size="sm" disabled title="Use o fluxo de simulação acima. Análises reais estão desabilitadas.">Análise real desabilitada</Button>
+                    <Button asChild size="sm"><Link href={`/investments/agents/${report.ticker}`}>{t("viewReport")}<ArrowRight /></Link></Button>
                   </div>
                 </div>
+                {refreshError && <p role="alert" className="mt-3 text-sm text-destructive">Não foi possível atualizar. O relatório apresentado pode estar desatualizado. Tente novamente.</p>}
+                {refreshOutdated && <p role="alert" className="mt-3 text-sm text-orange-900">A atualização não trouxe dados atuais. O documento foi marcado como desatualizado.</p>}
+                <p className="mt-3 text-xs text-muted-foreground">Recomendação pendente de revisão profissional. Não há envio ou publicação aprovado.</p>
               </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-      <p className="text-xs text-muted-foreground">{t("reportDataNotice")}</p>
-    </div>
+    </Card>
   );
+}
+
+function toQuality(report: Report): ReportQuality {
+  return {
+    analysisStatus: report.analysisStatus ?? "unavailable",
+    analysisReason: report.analysisReason ?? "A cobertura desta análise ainda não foi confirmada.",
+    availableAgents: report.availableAgents ?? 0,
+    expectedAgents: report.expectedAgents ?? 0,
+    consensusScore: report.consensusScore ?? null,
+    highRisk: report.highRisk ?? false,
+    marketDataAt: report.marketDataAt ?? null,
+    fundamentalsPeriod: report.fundamentalsPeriod ?? null,
+    historical: report.historical ?? false,
+    recommendation: report.recommendation ?? {
+      status: "pending",
+      professionalReview: "pending",
+      profileStatus: "pending",
+      reasons: [],
+    },
+  };
 }
 
 function formatPercent(value: number) {
@@ -80,5 +210,7 @@ function formatPercent(value: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Não informado";
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(date);
 }

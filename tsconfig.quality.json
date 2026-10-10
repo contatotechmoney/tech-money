@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "jsx": "react-jsx" },
+  "include": ["server/agents.test.ts", "server/report-policy.test.ts", "server/quality-routes.test.ts", "server/quality-ui.test.ts", "server/suitability.test.ts", "server/hermes.test.ts", "server/hermes-ui.test.ts", "server/professional-review.test.ts"],
+  "exclude": []
+}

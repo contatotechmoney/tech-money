@@ -1,0 +1,60 @@
+{
+  "phase": "owner-only preparation; no real inference",
+  "validation": {
+    "base": 70,
+    "disposableDatabase": 29,
+    "quality": 101,
+    "investPilotAdapters": 107,
+    "access": 47,
+    "totalPassed": 354,
+    "failed": 0,
+    "skipped": 0,
+    "typecheck": "passed",
+    "build": "passed; existing large-bundle warning",
+    "anonymousPreviewEndpoints": 401,
+    "signedInRealUIVerified": false
+  },
+  "realEvidence": {
+    "officialProductionOwnerIdentityVerified": false,
+    "officialProductionPrimaryEmailVerified": false,
+    "ownerBindingApplied": false,
+    "developmentAccounts": 0,
+    "developmentAuditEvents": 0,
+    "developmentActiveOwnerBindings": 0,
+    "productionPilotTablesPresent": 0,
+    "productionWrites": 0,
+    "nousSpecificCredentialAvailable": false,
+    "accountEffectivePricingConfirmed": false,
+    "selectedModel": null,
+    "authenticatedNousMetadataRequests": 0,
+    "publicMetadataSource": "https://inference-api.nousresearch.com/v1/models",
+    "publicMetadataReadAt": "2026-10-10T21:03:59.330Z",
+    "publicModelIds": ["deepseek/deepseek-v4.1-flash", "deepseek/deepseek-v4.1-flash:US"],
+    "publicPricesAreAccountEffective": false,
+    "installedVerifiedTokenizer": false,
+    "installedMarketSource": false
+  },
+  "preparedNotLiveValidated": {
+    "nousHttpAdapterImplemented": true,
+    "sixAgentFactoryWired": true,
+    "transportTestedWithFakesOnly": true,
+    "trustedSignedMarketAdmissionImplemented": true,
+    "statelessClerkIdentityCheckImplemented": true,
+    "productionOnlyAuditedBindingProcedureImplemented": true,
+    "bindingProcedureExposedOverHttp": false,
+    "productionMigration": "migrations/0017_portfolio_pilot.sql",
+    "newProductionDdlExecuted": false
+  },
+  "safety": {
+    "realExecutionArmed": false,
+    "realLlmCalls": 0,
+    "realPaidTokens": 0,
+    "realCreditMovements": 0,
+    "realPortfolioDataTransmitted": 0,
+    "realMessagesSent": 0,
+    "hermesConfigurationChanged": false,
+    "dnsOrSecretsChanged": false,
+    "published": false,
+    "merged": false
+  }
+}

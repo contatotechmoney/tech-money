@@ -1,0 +1,225 @@
+{
+  "screenshots": [
+    "central-light-375",
+    "rv-light-375",
+    "rf-light-375",
+    "central-dark-1280",
+    "rv-dark-1280",
+    "rf-dark-1280"
+  ],
+  "pages": [
+    {
+      "route": "/areas",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "ÁREAS"
+    },
+    {
+      "route": "/dashboard",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/reports",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/balance-sheet",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/settings",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/credits",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/investments/agents",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/reports",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/suitability",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/portfolio",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/review",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/assignments",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/settings",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/credits",
+      "colorScheme": "light",
+      "width": 375,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/",
+      "colorScheme": "light",
+      "width": 375
+    },
+    {
+      "route": "/sign-in?redirect=%2Finvestments%2Fagents",
+      "colorScheme": "light",
+      "width": 375
+    },
+    {
+      "route": "/sign-up?redirect=%2Fdashboard",
+      "colorScheme": "light",
+      "width": 375
+    },
+    {
+      "route": "/areas",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "ÁREAS"
+    },
+    {
+      "route": "/dashboard",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/reports",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/balance-sheet",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/settings",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/credits",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "FINANCE"
+    },
+    {
+      "route": "/investments/agents",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/reports",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/suitability",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/portfolio",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/review",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/assignments",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/settings",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/investments/credits",
+      "colorScheme": "dark",
+      "width": 1280,
+      "area": "INVESTIMENTOS"
+    },
+    {
+      "route": "/",
+      "colorScheme": "dark",
+      "width": 1280
+    },
+    {
+      "route": "/sign-in?redirect=%2Finvestments%2Fagents",
+      "colorScheme": "dark",
+      "width": 1280
+    },
+    {
+      "route": "/sign-up?redirect=%2Fdashboard",
+      "colorScheme": "dark",
+      "width": 1280
+    }
+  ],
+  "errors": [],
+  "outboundBlocked": 36,
+  "counters": {
+    "externalCalls": 0,
+    "databaseCalls": 0,
+    "legacyCalls": 0,
+    "signIns": 0,
+    "studiesCreated": 0,
+    "synthetic": true,
+    "productionWorkerEnabled": false,
+    "tokensConsumed": 0,
+    "realCreditsChanged": 0,
+    "accountsCreated": 0
+  },
+  "passed": true
+}
