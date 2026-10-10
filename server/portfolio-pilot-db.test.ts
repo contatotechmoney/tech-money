@@ -4,6 +4,7 @@ import { after, describe, it } from "node:test";
 import { Pool } from "pg";
 import { PostgresPilotLedger } from "./portfolio-pilot-ledger";
 import { verifiedPilotOwner } from "./portfolio-pilot-owner";
+import { bindReviewedProductionOwner } from "./portfolio-pilot-binding";
 import { PortfolioPilot } from "./portfolio-pilot";
 import { createPilotExecutor } from "./portfolio-pilot-executor";
 
@@ -64,6 +65,28 @@ describe("durable pilot ledger on disposable PostgreSQL", () => {
       assert.equal(officialCalls, 1);
       await pool.query("UPDATE portfolio_pilot_owner_bindings SET revoked_at=now() WHERE singleton=true");
       assert.equal(await verifiedPilotOwner(pool, actor, "development", official), null);
+    } finally { await pool.query("DELETE FROM portfolio_pilot_owner_bindings WHERE clerk_user_id=$1", [actor]); }
+  });
+  it("atomically audits synthetic production binding and refuses replacing it with a homonym", async () => {
+    const actor = `synthetic-${randomUUID()}`;
+    const options = {
+      expectedOwner: actor, auth: () => ({ userId: actor, sessionId: "synthetic-session" }),
+      officialUser: async (id: string) => ({ id, primaryEmailAddressId: "synthetic-primary",
+        emailAddresses: [{ id: "synthetic-primary", verification: { status: "verified" } }] }),
+      officialSession: async (id: string) => ({ id, userId: actor, status: "active" }),
+      pool, environment: () => "production" as const,
+    };
+    try {
+      const first = await bindReviewedProductionOwner(options);
+      assert.equal(first.ownerBound, true); assert.equal(first.executable, false);
+      await bindReviewedProductionOwner(options);
+      assert.equal((await pool.query("SELECT count(*)::int AS n FROM portfolio_pilot_audit WHERE user_id=$1", [actor])).rows[0].n, 2);
+      assert.equal(await verifiedPilotOwner(pool, actor, "production", options.officialUser), actor);
+      const other = `synthetic-${randomUUID()}`;
+      await assert.rejects(bindReviewedProductionOwner({ ...options, expectedOwner: other,
+        auth: () => ({ userId: other, sessionId: "synthetic-session-other" }),
+        officialSession: async id => ({ id, userId: other, status: "active" }) }), /OWNER_BINDING_CONFLICT/);
+      assert.equal((await pool.query("SELECT count(*)::int AS n FROM portfolio_pilot_accounts WHERE user_id=$1", [other])).rows[0].n, 0);
     } finally { await pool.query("DELETE FROM portfolio_pilot_owner_bindings WHERE clerk_user_id=$1", [actor]); }
   });
   it("runs approval-to-six-agents-to-private-history through durable adapters with only fake provider", async () => {

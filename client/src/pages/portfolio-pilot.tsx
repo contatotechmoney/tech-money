@@ -107,6 +107,7 @@ function PilotBody({ userId }: { userId: string }) {
       if (budget && Date.now() >= budget.expiresAt) requestKey.current = null;
       if (!requestKey.current) requestKey.current = crypto.randomUUID();
       const stableRequestKey = requestKey.current;
+      await apiRequest("POST", `${ROOT}/model-selection`, { modelKey: chosenModel.key });
       const response = await apiRequest("POST", `${ROOT}/budgets`, {
         requestKey: stableRequestKey,
         positionIds: selectedIds,

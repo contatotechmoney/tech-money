@@ -1,7 +1,24 @@
 import type { Pool } from "pg";
+import { createHash } from "node:crypto";
 export interface OfficialIdentity {
   id: string; primaryEmailAddressId: string | null;
   emailAddresses: { id: string; verification?: { status: string } | null }[];
+}
+/** Requires a Clerk-authenticated subject, never an ID supplied in the request.
+ * Stateless verification remains possible before the pilot migration exists.
+ * The digest is for internal audit, not a bearer token or permission grant.
+ */
+export async function officialPilotIdentity(
+  actor: string, environment: "development" | "production",
+  officialUser: (id: string) => Promise<OfficialIdentity>,
+) {
+  const user = await officialUser(actor);
+  if (user.id !== actor || !user.primaryEmailAddressId ||
+      !user.emailAddresses.some(email => email.id === user.primaryEmailAddressId && email.verification?.status === "verified"))
+    throw new Error("VERIFIED_IDENTITY_REQUIRED");
+  return { environment, fingerprint: createHash("sha256").update(JSON.stringify({
+    issuer: "official_clerk_api", subject: actor, environment, primaryEmailId: user.primaryEmailAddressId, emailVerified: true,
+  })).digest("hex") };
 }
 /** Independent owner attestation must have been reviewed through the official Clerk
  * console. There is deliberately no HTTP endpoint to create or modify this binding. */

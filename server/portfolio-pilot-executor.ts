@@ -16,7 +16,7 @@ export type PilotRun = {
   dossier: ReturnType<typeof portfolioDossier>;
   professionalReviewRequired: true; recommendationApproved: false;
 };
-/** No default HTTP adapter exists. Implementations must enforce hard output token
+/** Implementations must enforce hard output token
  * limits, acknowledge cancellation and provide authoritative usage/price identity.
  * This contract is exercised only by local fakes in this revision. */
 export interface PilotProvider {
@@ -25,7 +25,7 @@ export interface PilotProvider {
     maxInputTokens: number; maxOutputTokens: number; signal: AbortSignal;
   }): Promise<{
     modelId: string; priceVersion: string; inputTokens: number; outputTokens: number;
-    result: { summary: string; observations: string[] };
+    result: unknown;
   }>;
 }
 const outputSchema = z.object({
@@ -71,12 +71,12 @@ export function createPilotExecutor(provider: PilotProvider) {
         const current = await pilot.executionContext(actor, budgetId); // Revalidate before every admission.
         const prompt = JSON.stringify({
           identity: `${agent.name}: persona de IA; ${agent.role}`,
-          instruction: "Estudo não aprovado. Não invente dados, credenciais, taxas, cenários ou recomendações aprovadas. Preserve lacunas e cobertura.",
+          instruction: "Responda apenas JSON: {summary: string, observations: string[]}. Estudo não aprovado. Não invente dados, credenciais, taxas, cenários ou recomendações aprovadas. Preserve lacunas e cobertura.",
           dossier, ...(agent.id === "denise" ? { previousAgents: run.agents } : {}),
         });
-        const inputBound = Buffer.byteLength(prompt, "utf8");
-        // Conservative byte bound; future adapter must validate its tokenizer too.
-        if (inputBound > 3_000) throw new Error("TOKEN_LIMIT");
+        const inputBound = Buffer.byteLength(prompt, "utf8") + 512;
+        // Reserve wrapper overhead too; the adapter must verify exact tokenizer accounting.
+        if (inputBound > context.budget.limits.inputTokens) throw new Error("TOKEN_LIMIT");
         const outputCap = 1_000;
         const costReserve = micros(inputBound, outputCap, current.model);
         const reserved = await pilot.reserve(actor, budgetId, {

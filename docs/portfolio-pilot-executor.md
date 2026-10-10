@@ -1,5 +1,8 @@
 # Piloto de Carteira Completa — servidor, persistência e executor
 
+Atualização posterior: [Avanço técnico e pré-execução, ainda fechado](portfolio-pilot-runtime-preflight.md).
+Este documento preserva as evidências da preparação anterior.
+
 ## Estado operacional
 
 Esta revisão avança a preparação anterior: adaptador PostgreSQL conectado em

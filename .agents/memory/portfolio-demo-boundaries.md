@@ -43,6 +43,10 @@ nunca iniciam análises reais ou transmitem posições reais. Sem identidade ine
 autenticada do proprietário, deve permanecer fechado — nunca inferir pelo nome
 ou primeira conta.
 
+O proprietário já confirmou sua identificação privadamente. Não pedir novamente
+o identificador nem publicá-lo; conferir a sessão e o e-mail principal no Clerk
+de produção, sem transferir a identidade para desenvolvimento.
+
 **Why:** O usuário ampliou o escopo para preparar o executor seguro, mantendo
 aprovação específica antes de qualquer gasto ou compartilhamento e proibindo
 inferência real durante a implementação.

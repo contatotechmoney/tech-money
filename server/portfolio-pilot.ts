@@ -4,11 +4,11 @@ import { z } from "zod";
 import { PILOT_LIMITS, type PilotBudget, type PilotPosition } from "../shared/portfolio-pilot";
 import { storage, pool } from "./storage";
 import { PostgresPilotLedger } from "./portfolio-pilot-ledger";
-import { verifiedPilotOwner } from "./portfolio-pilot-owner";
+import { verifiedPilotOwner, officialPilotIdentity } from "./portfolio-pilot-owner";
 import { clerkClient } from "@clerk/express";
 import type { EngineMarket } from "../shared/portfolio-pilot-engine";
 import type { PilotRun, PilotExecutionContext } from "./portfolio-pilot-executor";
-import { fetchPublicNousCatalogue } from "./portfolio-pilot-models";
+import { preparePrivatePilot } from "./portfolio-pilot-runtime";
 
 // No display-name matching, first-account inference, browser flags, or environment escape hatch.
 // No owner identity has been unequivocally bound for this preparation phase.
@@ -25,6 +25,7 @@ type Approval = { budgetId: string; fingerprint: string; approvedAt: number };
 type Usage = { calls: number; inputTokens: number; outputTokens: number; costUsdMicros: number; retries: number; startedAt: number };
 export type PilotAccountState = {
   budgets: PilotBudget[]; approval?: Approval;
+  modelSelection?: { modelKey: string; modelId: string; selectedAt: number };
   active?: { budgetId: string; usage: Usage };
   runs?: PilotRun[];
   events: { type: string; budgetId: string; at: number; fingerprint: string }[];
@@ -43,6 +44,9 @@ export interface PilotDependencies {
   ledger: PilotLedger | null;
   now(): number;
   execute?: (pilot: PortfolioPilot, actor: string, budgetId: string) => Promise<PilotRun>;
+  beforeAdmission?: (actor: string) => Promise<void>;
+  requireModelSelection?: boolean;
+  extraBlockers?: string[];
 }
 const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 function fail(code: string): never { throw new Error(code); }
@@ -70,6 +74,7 @@ export class PortfolioPilot {
       ...(!this.deps.executorReady ? ["EXECUTOR_NOT_CONNECTED"] : []),
       ...(!this.deps.ledger ? ["DURABLE_AUDIT_NOT_READY"] : []),
       ...(!this.deps.execute ? ["REAL_EXECUTION_DISABLED"] : []),
+      ...(this.deps.extraBlockers ?? []),
     ];
     return { allowed, mode: "preparation" as const, executable: allowed && !blockers.length,
       blockers, limits: PILOT_LIMITS,
@@ -80,8 +85,27 @@ export class PortfolioPilot {
     this.owner(actor);
     return this.deps.positions(actor);
   }
+  async selectModel(actor: string, raw: unknown) {
+    this.owner(actor);
+    const { modelKey } = z.object({ modelKey: z.string().min(1) }).strict().parse(raw);
+    await this.deps.beforeAdmission?.(actor);
+    const matches = this.deps.models().filter(model => model.key === modelKey &&
+      model.validUntil > this.deps.now() && model.accountPricingVerified);
+    if (matches.length !== 1) fail("MODEL_PRICE_UNCONFIRMED");
+    if (!this.deps.ledger) fail("DURABLE_AUDIT_NOT_READY");
+    return this.deps.ledger.transaction(actor, async state => {
+      if (state.active) fail("EXECUTION_ACTIVE");
+      if (state.modelSelection?.modelKey === modelKey) return { selected: true, executable: false };
+      state.modelSelection = { modelKey, modelId: matches[0].modelId, selectedAt: this.deps.now() };
+      state.approval = undefined;
+      state.events.push({ type: "model_selected", budgetId: "model-selection", at: this.deps.now(),
+        fingerprint: digest(state.modelSelection) });
+      return { selected: true, executable: false };
+    });
+  }
   private async context(actor: string, ids: string[], modelKey: string) {
     this.owner(actor);
+    await this.deps.beforeAdmission?.(actor);
     const now = this.deps.now();
     const all = await this.deps.positions(actor); // Owned snapshot, never client quantities or prices.
     const positions = ids.map(id => all.find(p => p.id === id) ?? fail("POSITION_NOT_OWNED"))
@@ -124,6 +148,8 @@ export class PortfolioPilot {
     const context = await this.context(actor, input.positionIds, input.modelKey);
     if (context.estimate > input.maxSpendUsdMicros) fail("BUDGET_EXCEEDED");
     return this.deps.ledger!.transaction(actor, async state => {
+      if (this.deps.requireModelSelection && state.modelSelection?.modelKey !== input.modelKey)
+        fail("MODEL_SELECTION_REQUIRED");
       const prior = state.budgets.find(b => b.requestKey === input.requestKey);
       if (prior) {
         if (prior.fingerprint !== context.fingerprint || prior.maxSpendUsdMicros !== input.maxSpendUsdMicros)
@@ -159,6 +185,8 @@ export class PortfolioPilot {
   private async validBudget(actor: string, state: PilotAccountState, id: string) {
     const budget = state.budgets.find(b => b.id === id);
     if (!budget || budget.owner !== actor) fail("BUDGET_NOT_FOUND");
+    if (this.deps.requireModelSelection && state.modelSelection?.modelKey !== budget.modelKey)
+      fail("APPROVAL_INVALIDATED");
     if (budget.expiresAt <= this.deps.now()) fail("BUDGET_EXPIRED");
     const current = await this.context(actor, budget.positions.map(p => p.id), budget.modelKey);
     if (current.fingerprint !== budget.fingerprint) fail("APPROVAL_INVALIDATED");
@@ -242,11 +270,10 @@ export const portfolioPilot = new PortfolioPilot({
 async function resolveRuntimePilot(actor: string): Promise<PortfolioPilot> {
   const ownerId = await verifiedPilotOwner(pool, actor, process.env.NODE_ENV === "production" ? "production" : "development",
     id => clerkClient.users.getUser(id));
-  const models = ownerId ? await fetchPublicNousCatalogue() : [];
-  // No provider, verified tariff or market source has been configured. Owner binding cannot open execution.
-  return new PortfolioPilot({
-    ownerId, executorReady: false, ledger: new PostgresPilotLedger(pool), models: () => models, market: () => null,
-    now: Date.now,
+  return preparePrivatePilot({
+    ownerId, ledger: new PostgresPilotLedger(pool),
+    credential: () => process.env.NOUS_INFERENCE_API_KEY || process.env.NOUS_API_KEY,
+    armed: REAL_PORTFOLIO_PILOT_ENABLED,
     positions: async owner => (await storage.getPortfolioSnapshot(owner)).positions
       .map(p => ({ id: p.ticker, ticker: p.ticker, quantity: p.quantity, revision: digest(p) })),
   });
@@ -260,7 +287,7 @@ export function registerPortfolioPilotRoutes(app: Express, auth: RequestHandler,
     }
     catch (error) {
       const code = error instanceof z.ZodError ? "INVALID_REQUEST" : error instanceof Error ? error.message : "";
-      const known = /^(PILOT_CLOSED|POSITION_NOT_OWNED|QUANTITY_REQUIRED|MODEL_PRICE_UNCONFIRMED|MARKET_DATA_UNVERIFIED|EXECUTOR_NOT_CONNECTED|DURABLE_AUDIT_NOT_READY|BUDGET_EXCEEDED|IDEMPOTENCY_CONFLICT|BUDGET_EXPIRED|EXECUTION_ACTIVE|BUDGET_NOT_FOUND|APPROVAL_INVALIDATED|APPROVAL_REQUIRED|REAL_EXECUTION_DISABLED|INVALID_REQUEST)$/;
+      const known = /^(PILOT_CLOSED|POSITION_NOT_OWNED|QUANTITY_REQUIRED|MODEL_PRICE_UNCONFIRMED|MODEL_SELECTION_REQUIRED|MARKET_DATA_UNVERIFIED|NOUS_CREDENTIAL_UNAVAILABLE|ACCOUNT_TARIFF_UNVERIFIED|EXECUTOR_NOT_CONNECTED|DURABLE_AUDIT_NOT_READY|BUDGET_EXCEEDED|IDEMPOTENCY_CONFLICT|BUDGET_EXPIRED|EXECUTION_ACTIVE|BUDGET_NOT_FOUND|APPROVAL_INVALIDATED|APPROVAL_REQUIRED|REAL_EXECUTION_DISABLED|INVALID_REQUEST)$/;
       res.status(code === "PILOT_CLOSED" || code === "REAL_EXECUTION_DISABLED" ? 403 :
         code === "BUDGET_NOT_FOUND" ? 404 : code === "INVALID_REQUEST" ? 400 : known.test(code) ? 409 : 503)
         .json({ error: known.test(code) ? code : "PILOT_UNAVAILABLE", executable: false });
@@ -268,28 +295,37 @@ export function registerPortfolioPilotRoutes(app: Express, auth: RequestHandler,
   };
   // Official self-account evidence only. This does NOT grant or bind owner access.
   // The owner must attest this exact subject through the trusted operator conversation.
+  if (!pilot) app.get("/api/investments/portfolio-pilot/identity-check", auth, privateResponse, async (req, res) => {
+    try {
+      const proof = await officialPilotIdentity(req.userId!,
+        process.env.NODE_ENV === "production" ? "production" : "development", id => clerkClient.users.getUser(id));
+      res.json({ environment: proof.environment, authenticated: true, primaryEmailVerified: true,
+        ownerBound: false, executable: false, auditRecorded: false });
+    } catch (error) {
+      const unverified = error instanceof Error && error.message === "VERIFIED_IDENTITY_REQUIRED";
+      res.status(unverified ? 403 : 503).json({
+        code: unverified ? "VERIFIED_IDENTITY_REQUIRED" : "IDENTITY_VERIFICATION_UNAVAILABLE", executable: false });
+    }
+  });
   if (!pilot) app.get("/api/investments/portfolio-pilot/identity", auth, privateResponse, async (req, res) => {
     try {
       const actor = req.userId!;
-      const user = await clerkClient.users.getUser(actor);
-      const verified = user.id === actor && user.emailAddresses.some(e =>
-        e.id === user.primaryEmailAddressId && e.verification?.status === "verified");
-      if (!verified) { res.status(403).json({ code: "VERIFIED_IDENTITY_REQUIRED", allowed: false }); return; }
       const environment = process.env.NODE_ENV === "production" ? "production" : "development";
-      const proof = digest({ issuer: "official_clerk_api", subject: actor, environment,
-        primaryEmailId: user.primaryEmailAddressId, emailVerified: true });
+      const identity = await officialPilotIdentity(actor, environment, id => clerkClient.users.getUser(id));
+      const proof = identity.fingerprint;
       await new PostgresPilotLedger(pool).transaction(actor, async state => {
         if (!state.events.some(e => e.type === `identity_verified:${environment}` && e.fingerprint === proof))
           state.events.push({ type: `identity_verified:${environment}`, budgetId: "identity-attestation",
             at: Date.now(), fingerprint: proof });
       });
-      res.json({ clerkUserId: actor, environment, verified: true, ownerBound: false, executable: false,
-        nextStep: "Confirme nesta conversa que este User ID autenticado é sua própria conta. Isso não inicia análises." });
+      res.json({ environment, verified: true, ownerBound: false, executable: false, auditRecorded: true,
+        nextStep: "A evidência oficial foi registrada. O vínculo exige conferência independente do operador e não concede acesso real." });
     } catch { res.status(503).json({ code: "IDENTITY_VERIFICATION_UNAVAILABLE", executable: false }); }
   });
   app.get("/api/investments/portfolio-pilot/status", auth, privateResponse, handle((p, actor) => p.status(actor)));
   app.get("/api/investments/portfolio-pilot/positions", auth, privateResponse, handle((p, actor) => p.positions(actor)));
   app.post("/api/investments/portfolio-pilot/budgets", auth, privateResponse, handle((p, actor, body) => p.quote(actor, body)));
+  app.post("/api/investments/portfolio-pilot/model-selection", auth, privateResponse, handle((p, actor, body) => p.selectModel(actor, body)));
   app.post("/api/investments/portfolio-pilot/approvals", auth, privateResponse, handle((p, actor, body) => p.approve(actor, body)));
   app.post("/api/investments/portfolio-pilot/execute", auth, privateResponse, handle((p, actor, body) => p.execute(actor, body)));
   app.get("/api/investments/portfolio-pilot/history", auth, privateResponse, handle((p, actor) => p.history(actor)));
