@@ -155,6 +155,18 @@ export const investmentSimulationStudies = pgTable("investment_simulation_studie
   check("investment_simulation_ticker_check", sql`${t.ticker} IN ('BBDC3','BBAS3')`),
 ]);
 
+export const portfolioSimulationStudies = pgTable("portfolio_simulation_studies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  requestKey: uuid("request_key").notNull(),
+  scenarioVersion: varchar("scenario_version", { length: 32 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, t => [
+  uniqueIndex("portfolio_simulation_request_idx").on(t.userId, t.requestKey),
+  index("portfolio_simulation_history_idx").on(t.userId, desc(t.createdAt), t.id),
+  check("portfolio_simulation_scenario_check", sql`${t.scenarioVersion} = 'portfolio-demo-v1'`),
+]);
+
 export const reportDeliveryRequests = pgTable("report_delivery_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: text("user_id").notNull(),

@@ -10,6 +10,8 @@
  *   const prompt = buildAgentPrompt("andre", { ticker: "PETR4", dados: "..." });
  */
 
+import { PORTFOLIO_AGENTS } from "./portfolio-simulation";
+
 export interface Curriculo {
   nome: string;
   gen: string;
@@ -29,6 +31,8 @@ export interface Lente {
 }
 
 export const COMITE_RV = ["carlos","helena","marcos","fernanda","rodrigo","juliana","andre","marina","otavio","rafael"] as const;
+export const COMITE_RF = ["ricardo","beatriz","eduardo","camila","patricia","henrique"] as const;
+export const COMITE_CARTEIRA = PORTFOLIO_AGENTS.map(agent => agent.id);
 
 export const CVS: Record<string, Curriculo> = {
   "carlos": {
@@ -411,6 +415,15 @@ export const CVS: Record<string, Curriculo> = {
   }
 };
 
+for (const agent of PORTFOLIO_AGENTS) {
+  CVS[agent.id] = {
+    nome: agent.name, gen: "", papel: agent.role, atitude: "Persona de IA — demonstração",
+    resumo: `Persona de IA, não profissional humano. ${agent.description}`,
+    formacao: [], experiencia: [], certificacoes: [], idiomas: "Não se aplica",
+    especializacoes: agent.description,
+  };
+}
+
 export const LENTES: Record<string, Lente> = {
   "carlos": {
     "foco": "saúde financeira e fundamentos operacionais (margens, ROE, FCL, capital/Basileia, qualidade do lucro, sustentabilidade do dividendo)",
@@ -478,10 +491,11 @@ export const LENTES: Record<string, Lente> = {
   }
 };
 
-export function listarAgentes(comite?: "rv" | "rf"): string[] {
+export function listarAgentes(comite?: "rv" | "rf" | "carteira"): string[] {
   const todos = Object.keys(CVS).sort();
   if (comite === "rv") return todos.filter((c) => (COMITE_RV as readonly string[]).includes(c));
-  if (comite === "rf") return todos.filter((c) => !(COMITE_RV as readonly string[]).includes(c));
+  if (comite === "rf") return todos.filter((c) => (COMITE_RF as readonly string[]).includes(c));
+  if (comite === "carteira") return todos.filter((c) => (COMITE_CARTEIRA as readonly string[]).includes(c));
   return todos;
 }
 

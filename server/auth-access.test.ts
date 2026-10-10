@@ -33,7 +33,9 @@ describe("current brand audit, offline", () => {
     const data = (source: string) => JSON.parse(JSON.stringify(runInNewContext(
       `(${source.match(/const DATA\s*=\s*([\s\S]+?);\s*const /)![1]})`, {},
     )));
-    assert.deepEqual(data(html), data(original), "every persona field and curriculum preserved");
+    for (const group of ["rv", "rf"]) {
+      assert.deepEqual(data(html)[group], data(original)[group], "existing persona fields and curricula preserved");
+    }
   });
   it("both host modules and committee deep links have correct share identity, not Replit metadata", () => {
     const html = readFileSync("client/index.html", "utf8");

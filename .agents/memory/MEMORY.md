@@ -12,3 +12,4 @@
 - [Review queue boundaries](review-queue-boundaries.md) — pending decisions concern current documents, not historical audits or delivery confirmations.
 - [Publish governance safety](publish-governance-safety.md) — verify SQL functions/triggers separately from the table diff; table-only schema must not authorize advice.
 - [Identidade Invest e Finance](brand-identity-boundaries.md) — marca atual de três barras; históricos e marcas de terceiros permanecem preservados fora das superfícies ativas.
+- [Demonstração de carteira](portfolio-demo-boundaries.md) — personas de IA, dados fictícios separados da carteira real e versões estáveis para o histórico.

@@ -2,6 +2,7 @@ import { registerPortalLeadRoutes } from "./portal-leads";
 import type { Express } from "express";
 import { registerHermesRoutes } from "./hermes-routes";
 import { registerSimulationRoutes, REAL_INVESTMENT_ANALYSIS_ENABLED } from "./investment-simulation";
+import { registerPortfolioSimulationRoutes } from "./portfolio-simulation";
 import { REAL_REPORT_DELIVERY_ENABLED } from "../shared/simulation-policy";
 import { registerProfessionalReviewRoutes } from "./professional-review-routes";
 import { reviewedReport } from "./professional-review";
@@ -84,6 +85,7 @@ export async function registerRoutes(
   registerPortalLeadRoutes(app);
   registerHermesRoutes(app, requireAuth);
   registerSimulationRoutes(app, requireAuth);
+  registerPortfolioSimulationRoutes(app, requireAuth);
   // The older GitHub committee URL must not bypass the simulation-only boundary.
   app.post(["/api/investments/agents/run", "/api/investments/billing/checkout", "/api/investments/credits/signup-grant"], requireAuth, (_req, res) => {
     return res.status(403).json({

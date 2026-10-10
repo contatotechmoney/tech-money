@@ -13,6 +13,8 @@ if (process.env.SYNTHETIC_BROWSER_TEST !== "1" || process.env.DATABASE_URL !== u
 }
 const { registerRoutes } = await import("../../server/routes");
 const { simulationStore } = await import("../../server/investment-simulation");
+const { portfolioSimulationStore } = await import("../../server/portfolio-simulation");
+const { PORTFOLIO_DEMO_VERSION } = await import("../../shared/portfolio-simulation");
 const { pool, storage } = await import("../../server/storage");
 const { startReportDeliveryWorker, reconcileUnconfirmedReportDeliveries } = await import("../../server/report-delivery");
 const { shouldStartReportDeliveryWorker } = await import("../../shared/simulation-policy");
@@ -40,6 +42,16 @@ simulationStore.create = async (owner, ticker, key) => {
   if (rows.some(row => row.user_id === owner && Date.now() - Date.parse(row.created_at) < 8000)) throw Error("SIMULATION_ACTIVE");
   const row = { id: randomUUID(), user_id: owner, request_key: key, ticker, created_at: new Date().toISOString() };
   rows.push(row); evidence.studiesCreated++; return row;
+};
+const portfolioRows: { id: string; user_id: string; request_key: string; scenario_version: string; created_at: string }[] = [];
+portfolioSimulationStore.list = async owner => portfolioRows.filter(row => row.user_id === owner).slice().reverse();
+portfolioSimulationStore.get = async (owner, id) => portfolioRows.find(row => row.user_id === owner && row.id === id) ?? null;
+portfolioSimulationStore.create = async (owner, key) => {
+  const existing = portfolioRows.find(row => row.user_id === owner && row.request_key === key);
+  if (existing) return existing;
+  if (portfolioRows.some(row => row.user_id === owner && Date.now() - Date.parse(row.created_at) < 12000)) throw Error("PORTFOLIO_SIMULATION_ACTIVE");
+  const row = { id: randomUUID(), user_id: owner, request_key: key, scenario_version: PORTFOLIO_DEMO_VERSION, created_at: new Date().toISOString() };
+  portfolioRows.push(row); evidence.studiesCreated++; return row;
 };
 // Exercise the exported defenses directly as well as the production startup predicate.
 if (shouldStartReportDeliveryWorker("production")) throw Error("WORKER_MUST_NOT_START");

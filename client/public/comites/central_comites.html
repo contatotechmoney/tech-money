@@ -81,8 +81,18 @@ button:focus-visible,[role=button]:focus-visible{outline:3px solid #087d61;outli
 .rule{background:#f7f0df;border-left:4px solid #9a6a13;padding:12px 16px;border-radius:8px;color:#503807;font-size:.85rem;line-height:1.55;margin-top:14px}
 .legend{text-align:center;color:var(--muted);font-size:.8rem;margin-top:18px}
 .site-legend{max-width:750px;margin:30px auto 0;border-top:1px solid var(--line);padding-top:16px;line-height:1.55}
+.initials-montage{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:3px;padding:12px;background:#dceae2}
+.initials-montage span{display:grid;place-items:center;border:1px solid rgba(8,125,97,.2);border-radius:9px;background:#f7faf6;color:#28624e;font:700 clamp(.8rem,2vw,1.3rem)/1 var(--font-body);letter-spacing:.04em}
+.initial-avatar{width:82px;height:82px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--teal);background:linear-gradient(145deg,var(--teal-soft),var(--surface-2));color:var(--teal-deep);font-size:1.05rem;font-weight:800;letter-spacing:.06em}
+.cv-initial{width:82px;height:82px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;border:2px solid var(--teal);background:var(--teal-soft);color:var(--teal-deep);font-size:1.1rem;font-weight:800}
+.central-cta{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:20px 0 8px;padding:19px 22px;border:1px solid var(--line);border-radius:17px;background:var(--surface)}
+.central-cta strong{display:block;font:700 1.05rem/1.3 var(--font-display)}
+.central-cta p{margin-top:4px;color:var(--muted);font-size:.82rem;line-height:1.5}
+.central-cta a{flex:0 0 auto;display:inline-flex;align-items:center;gap:9px;padding:11px 15px;border-radius:9px;background:var(--teal);color:#fff;text-decoration:none;font-size:.82rem;font-weight:750}
+.central-cta a:hover{background:var(--teal-deep)}
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--teal:#51c2a1;--teal-deep:#7bd4b5;--teal-soft:#17372f;--gold:#eac477;--bg:#14211e;--surface:#1d302b;--surface-2:#233a33;--ink:#edf5ef;--muted:#c0d0c7;--line:#3d5a4e;--shadow:0 18px 48px rgba(0,0,0,.18)}body{background:radial-gradient(ellipse at 50% -24%,#294239 0,transparent 58%),var(--bg)}.brand-lockup{background:#1d302b}.brand-name{color:var(--ink)}.brand-area{color:var(--teal-deep)}.brand h1,.hub-card h2,.cp-head h2,.m-name,.cv-name{color:var(--ink)}.brand p,.hub-card p,.cp-head p,.legend,.m-open{color:var(--muted)}.disclosure{background:#17372f;border-color:#3e705d;color:#ddf3e7}.sep{background:linear-gradient(90deg,transparent,#477765,transparent)}.hub-photo,.portrait-montage{background:#294239}.hub-card .acr{background:#17372f;color:#a7ebce}.hub-card .count{background:rgba(25,48,41,.96);color:#ddf3e7;border-color:#477765}.enter{background:#51c2a1;color:#10392d}.enter:hover{background:#77d4b5}.back{background:var(--surface);color:var(--ink)}.mod-badge{background:#4f4022;color:#f8dfaa;border-color:#846f3e}.cv-overlay{background:rgba(1,12,9,.78)}.cv-modal{background:var(--surface);border-color:#477765}.cv-x{background:var(--surface);color:var(--muted)}.cv-section div,.cv-section li{color:#d9e8df}.rule{background:#3c3421;color:#f2dfb3;border-color:#d0a64c}}
-@media(max-width:760px){body{padding:25px 16px 48px}.hub{grid-template-columns:1fr;gap:14px}.hub-card{min-height:220px}.hub-photo{min-height:220px;width:38%}.hub-body{padding:19px}.hub-card h2{font-size:1.28rem}.grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px}}
+@media(prefers-color-scheme:dark){.initials-montage{background:#294239}.initials-montage span{background:#1d302b;border-color:#477765;color:#a7ebce}.central-cta{background:var(--surface)}.central-cta a{color:#10392d}}
+@media(max-width:760px){body{padding:25px 16px 48px}.hub{grid-template-columns:1fr;gap:14px}.hub-card{min-height:220px}.hub-photo{min-height:220px;width:38%}.hub-body{padding:19px}.hub-card h2{font-size:1.28rem}.grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px}.central-cta{align-items:flex-start;flex-direction:column}}
 @media(max-width:420px){body{padding:20px 12px 42px}.brand-lockup{padding:9px 13px}.hub-card{min-height:220px}.hub-photo{width:34%;min-height:220px}.hub-body{padding:16px 13px;gap:7px}.hub-card h2{font-size:1.12rem}.hub-card p{font-size:.8rem;line-height:1.45}.hub-card .acr{font-size:.62rem;padding:4px 7px}.enter{font-size:.76rem;padding:9px 10px}.hub-card .count{font-size:.62rem;left:7px;top:8px;padding:4px 6px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.member-card{padding:15px 9px 13px}.cv-overlay{padding:10px}.cv-modal{max-height:94vh;padding:19px 15px}.cv-head{gap:12px}.cv-head img{width:76px;height:98px}.cv-name{font-size:1.18rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
@@ -102,11 +112,13 @@ button:focus-visible,[role=button]:focus-visible{outline:3px solid #087d61;outli
 
   <!-- SELETOR -->
   <div class="hub" id="hub"></div>
+  <aside class="central-cta"><div><strong>Quer explorar uma carteira de demonstração?</strong><p>Abra a área autenticada para ver o cenário fictício, sem consultar sua carteira real.</p></div><a href="/investments/portfolio/simulation">Abrir demonstração <span aria-hidden="true">→</span></a></aside>
   <button class="back" id="backBtn" onclick="goHome()">Voltar à seleção</button>
 
   <!-- PAINEIS -->
   <div class="cpanel" id="panel-rv"></div>
   <div class="cpanel" id="panel-rf"></div>
+  <div class="cpanel" id="panel-carteira"></div>
 
   <div class="legend site-legend">Tech Money · Comitês compostos por agentes de IA e personas simuladas, não por profissionais reais. Material educacional — não constitui recomendação de investimento.</div>
 </div>
@@ -129,11 +141,22 @@ const META = {
   rv: {folder:'personas_fotos', cap:'AÇÕES · B3', title:'Comitê de Renda Variável', acr:'AÇÕES · B3', mod:'rafael',
         desc:'Nove especialistas — fundamentalista, moat, risco, valuation, análise técnica, releases, macro, governança e jurídico — debatem e votam. O Moderador Rafael arbitra e emite o veredito final com faixa de entrada.'},
   rf: {folder:'personas_fotos_rf', cap:'SELIC · TESOURO DIRETO', title:'Comitê de Renda Fixa', acr:'SELIC · TESOURO DIRETO', mod:'henrique',
-        desc:'Cinco especialistas — macro e Selic, inflação, curva e prêmios, fiscal e dívida, e risco — votam entre Prefixado, IPCA+ e Selic. O Moderador Henrique pondera e entrega o veredito.'}
+         desc:'Cinco especialistas — macro e Selic, inflação, curva e prêmios, fiscal e dívida, e risco — votam entre Prefixado, IPCA+ e Selic. O Moderador Henrique pondera e entrega o veredito.'},
+  carteira: {title:'Comitê de Carteira Completa', acr:'ORGANIZAÇÃO · CENÁRIO FICTÍCIO', mod:'denise',
+         desc:'Seis agentes de IA apresentam perspectivas de organização sobre uma composição inteiramente inventada. Não consultam posições reais e não produzem recomendação.'}
 };
+const PORTFOLIO_AGENTS = [
+  {id:'bruno',nome:'Bruno',iniciais:'BR',papel:'Alocação e Risco-Retorno',resumo:'Organiza os pesos nominais das classes no exemplo. Não estima retorno, volatilidade ou adequação real.',limite:'Sem séries históricas ou hipóteses de mercado, não calcula risco-retorno.'},
+  {id:'tereza',nome:'Tereza',iniciais:'TE',papel:'Risco de Carteira e concentração',resumo:'Observa a concentração dos valores fictícios por posição e classe.',limite:'As proporções não são uma medida de risco de mercado nem de perda potencial.'},
+  {id:'paulo',nome:'Paulo',iniciais:'PA',papel:'Perfil do Investidor e Objetivos',resumo:'Diferencia o perfil fictício do personagem de um perfil real de investidor.',limite:'Não consulta suitability, cadastro, objetivos ou dados pessoais do usuário.'},
+  {id:'larissa',nome:'Larissa',iniciais:'LA',papel:'Liquidez e Rebalanceamento',resumo:'Explica a participação do caixa no exemplo e quais informações seriam necessárias para estudar liquidez.',limite:'Não propõe rebalanceamento nem gera ordens.'},
+  {id:'sergio',nome:'Sérgio',iniciais:'SE',papel:'Tributação e Custos',resumo:'Identifica dados ausentes para apurar tributação e custos.',limite:'Não estima tributos, tarifas ou custos sem dados e regras aplicáveis.'},
+  {id:'denise',nome:'Denise',iniciais:'DE',papel:'Moderadora e Síntese',resumo:'Reúne observações ilustrativas, metodologia e limitações do cenário.',limite:'Não aprova relatórios, não emite indicação e não substitui avaliação profissional.'}
+];
 
 function markMarkup(){return '<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>';}
 function montage(key){
+  if(key==='carteira') return `<div class="initials-montage" aria-label="Iniciais dos seis agentes de IA">${PORTFOLIO_AGENTS.map(a=>`<span>${a.iniciais}</span>`).join('')}</div><span class="montage-brand" aria-hidden="true">${markMarkup()}</span>`;
   const m=META[key];
   return `<div class="portrait-montage${key==='rf'?' portrait-montage--rf':''}" aria-label="Montagem com os retratos das personas simuladas">`+
     ORDER[key].map(id=>`<img src="${m.folder}/${id}.png" alt="" loading="lazy">`).join('')+
@@ -150,9 +173,25 @@ function buildHub(){let h='';
         <span class="enter">Entrar no comitê <span aria-hidden="true">→</span></span>
       </div>
     </div>`;});
+  const portfolio=META.carteira;
+  h+=`<div class="hub-card" role="button" tabindex="0" aria-label="Abrir ${portfolio.title}" onclick="enter('carteira')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enter('carteira')}">
+      <div class="hub-photo">${montage('carteira')}<span class="count">6 agentes IA</span></div>
+      <div class="hub-body"><span class="acr">${portfolio.acr}</span><h2>${portfolio.title}</h2><p>${portfolio.desc}</p>
+        <span class="enter">Conhecer os perfis <span aria-hidden="true">→</span></span>
+      </div>
+    </div>`;
   document.getElementById('hub').innerHTML=h;}
 
 function cardGrid(key){
+  if(key==='carteira'){
+    const m=META.carteira;
+    const g=PORTFOLIO_AGENTS.map(a=>`<div class="member-card" role="button" tabindex="0" aria-label="Ver perfil simulado de ${a.nome}" onclick="openCV('carteira','${a.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCV('carteira','${a.id}')}">
+      <div class="initial-avatar" aria-hidden="true">${a.iniciais}</div><div class="m-name">${a.nome}</div><div class="m-role">${a.papel}</div>
+      <div class="m-att">Agente de IA · persona fictícia</div><div class="m-open">Ver escopo e limites</div>
+    </div>`).join('');
+    document.getElementById('panel-carteira').innerHTML=`<div class="cp-head"><div class="cp-sub">${m.acr} · AGENTES DE IA</div><h2>${m.title}</h2><p>${m.desc}</p><div class="disclosure">SIMULAÇÃO · SEM DADOS DE CARTEIRA REAL · NÃO É RECOMENDAÇÃO</div></div><div class="grid">${g}</div><div class="legend">Os perfis descrevem exclusivamente o papel funcional de cada agente nesta demonstração. Retratos dos seis agentes ainda não localizados; as iniciais são usadas por enquanto.</div>`;
+    return;
+  }
   const m=META[key]; let g='';
   ORDER[key].forEach(k=>{
     const c=DATA[key][k]; const isMod=(k===m.mod);
@@ -170,18 +209,27 @@ function cardGrid(key){
 }
 
 function enter(key){document.getElementById('hub').style.display='none';
-  ['rv','rf'].forEach(k=>document.getElementById('panel-'+k).classList.remove('active'));
+  ['rv','rf','carteira'].forEach(k=>document.getElementById('panel-'+k).classList.remove('active'));
   cardGrid(key);
   document.getElementById('panel-'+key).classList.add('active');
   document.getElementById('backBtn').style.display='inline-block';window.scrollTo(0,0);}
 function goHome(){document.getElementById('hub').style.display='grid';
-  ['rv','rf'].forEach(k=>document.getElementById('panel-'+k).classList.remove('active'));
+  ['rv','rf','carteira'].forEach(k=>document.getElementById('panel-'+k).classList.remove('active'));
   document.getElementById('backBtn').style.display='none';window.scrollTo(0,0);}
 
 let lastFocusedElement=null;
-function openCV(com,key){const c=DATA[com][key];const m=META[com];lastFocusedElement=document.activeElement;
+function openCV(com,key){lastFocusedElement=document.activeElement;
   const sec=(t,body)=>`<div class="cv-section"><h4>${t}</h4>${body}</div>`;
   const lis=a=>`<ul>${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  if(com==='carteira'){
+    const a=PORTFOLIO_AGENTS.find(item=>item.id===key);if(!a)return;
+    document.getElementById('cvContent').innerHTML=`<div class="cv-head"><div class="cv-initial" aria-hidden="true">${a.iniciais}</div><div><div class="cv-name" id="cvDialogTitle">${a.nome} · Agente de IA</div><div class="cv-role">${a.papel}</div><div class="cv-att">Persona fictícia · sem credenciais profissionais</div></div></div>`
+      +sec('Papel nesta demonstração',`<div>${a.resumo}</div>`)
+      +sec('Limites explícitos',`<div>${a.limite}</div>`)
+      +`<div class="rule"><strong>Persona funcional de IA; não é uma pessoa nem profissional real.</strong> O progresso é ilustrativo. Esta demonstração não consulta carteira, suitability, cotações ou provedores externos e não constitui aconselhamento, aprovação ou recomendação.</div>`;
+    const overlay=document.getElementById('cvOverlay');overlay.classList.add('show');document.querySelector('.cv-x').focus();return;
+  }
+  const c=DATA[com][key];const m=META[com];
   document.getElementById('cvContent').innerHTML=
     `<div class="cv-head"><img src="${m.folder}/${key}.png" alt="Retrato simulado de ${c.nome}">
       <div><div class="cv-name" id="cvDialogTitle">${c.nome} · Persona simulada</div>
