@@ -133,6 +133,23 @@ try {
   await mobile.unroute("**/api/investments/portfolio-simulations");
   evidence.stages.push("unavailable-history-explicit-error-no-fake-empty");
 
+  let pilotPositionRequests = 0;
+  for (const target of [page, mobile]) {
+    target.on("request", request => {
+      if (request.url().includes("/api/investments/portfolio-pilot/positions") ||
+          request.url().includes("/api/investments/portfolio-pilot/execute")) pilotPositionRequests++;
+    });
+    await target.goto(origin + "/investments/portfolio/pilot");
+    await target.getByText("A preparação está fechada nesta fase. Nenhuma posição ou cotação foi consultada.", { exact: true }).waitFor();
+    await target.getByText(/Execução real está .*desabilitada/).first().waitFor();
+    assert.equal(pilotPositionRequests, 0, "closed pilot must never read positions or execute");
+    if (target === mobile) assert.equal(await target.locator(".portfolio-pilot").evaluate(
+      element => getComputedStyle(element).backgroundColor), "rgb(20, 35, 29)");
+    assert.ok(await target.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await capture(target, target === page ? "07-pilot-closed-desktop" : "08-pilot-closed-dark-mobile");
+  }
+  evidence.stages.push("pilot-server-closed-no-positions-or-execution-desktop-mobile");
+
   for (const [context, target, theme] of [[alpha, page, "light-desktop"], [beta, mobile, "dark-mobile"]]) {
     await target.goto(origin + "/comites/central_comites.html");
     assert.equal(await target.locator(".hub-card").count(), 3);

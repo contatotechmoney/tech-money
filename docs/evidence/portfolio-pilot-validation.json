@@ -1,0 +1,81 @@
+{
+  "reviewDate": "2026-10-10",
+  "mode": "owner_only_preparation_closed",
+  "syntheticTests": {
+    "passed": 315,
+    "failed": 0,
+    "groups": [70, 23, 101, 74, 47],
+    "newPilotTests": 15,
+    "databaseEnvironment": "disposable synthetic PostgreSQL; not workspace or production"
+  },
+  "typecheck": "passed",
+  "build": "passed_with_existing_chunk_size_warning",
+  "pilotSafety": {
+    "explicitOwnerBound": false,
+    "modelCatalogueConfirmed": false,
+    "marketDataConfirmed": false,
+    "executorConnected": false,
+    "durableAuditAdapterConnected": false,
+    "productionMemoryLedger": false,
+    "realExecutionEnabled": false,
+    "executableBudgetIssued": false,
+    "limits": {
+      "calls": 6,
+      "inputTokens": 18000,
+      "outputTokens": 6000,
+      "timeoutMs": 90000,
+      "retries": 0,
+      "ceilingUsdMicros": 1000000,
+      "budgetValidityMs": 120000
+    },
+    "tested": [
+      "closed_without_explicit_owner_identity",
+      "server_scoped_positions_and_denied_foreign_position_ids",
+      "no_display_name_first_account_or_browser_authorization",
+      "client_cost_balance_owner_and_quantities_rejected",
+      "missing_quantities_block_no_simulated_weights",
+      "missing_market_exact_model_tariff_executor_audit_block",
+      "ambiguous_model_names_not_selected",
+      "versioned_budget_exact_expiry_and_shorter_price_validity",
+      "explicit_fingerprint_bound_preparation_approval",
+      "position_revision_model_price_market_change_invalidation",
+      "concurrent_budget_and_approval_idempotency",
+      "one_active_account_budget_atomic_call_reservations",
+      "tokens_calls_time_retries_and_monetary_ceiling",
+      "local_fake_provider_only_no_real_dispatch",
+      "authenticated_HTTP_closed_without_positions_queries"
+    ]
+  },
+  "browser": {
+    "result": "passed",
+    "desktopWidth": 1280,
+    "mobileWidth": 375,
+    "mobileDarkComputedBackground": "rgb(20, 35, 29)",
+    "reducedMotion": true,
+    "pageErrors": 0,
+    "closedPilotPositionsAndExecuteRequests": 0,
+    "realPortfolioReadsDuringDemo": 0,
+    "interceptedEmptyPortfolioFixtureReadsBeforeDemo": 1,
+    "externalProviderCalls": 0,
+    "realDatabaseQueries": 0,
+    "legacyQueries": 0,
+    "tokensConsumed": 0,
+    "realCreditsChanged": 0,
+    "realAccountsCreated": 0,
+    "deliveryWorkerEnabled": false,
+    "abortedOptionalFontRequests": 11,
+    "abortedOptionalFontHosts": ["fonts.googleapis.com"],
+    "existingSimulationProgressCompletionAndPrivateHistory": "passed",
+    "rv10_rf6_portfolio6_profiles": "preserved",
+    "nativeSafari": "not_tested"
+  },
+  "production": {
+    "publishedInThisTask": false,
+    "schemaChangedInThisTask": false,
+    "databaseUpdatedInThisTask": false,
+    "permissionsGrantedInThisTask": false,
+    "secretsOrDnsChangedInThisTask": false,
+    "notebookPersonalDataReadOrCopied": false,
+    "hermesConfigurationsChanged": false
+  }
+}

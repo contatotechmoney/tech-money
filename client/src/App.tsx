@@ -29,6 +29,7 @@ import InvestmentPlaceholder from "@/pages/investment-placeholder";
 import InvestmentReports from "@/pages/investment-reports";
 import InvestmentPortfolio from "@/pages/investment-portfolio";
 import PortfolioSimulation from "@/pages/portfolio-simulation";
+import PortfolioPilot from "@/pages/portfolio-pilot";
 import Suitability from "@/pages/suitability";
 import Settings from "@/pages/settings";
 import InvestmentReview from "@/pages/investment-review";
@@ -208,6 +209,7 @@ function Router() {
       <ProtectedRoute investment path="/investments/agents/:ticker" component={InvestmentReport} />
       <ProtectedRoute investment path="/investments/agents" component={AIAgents} />
       <ProtectedRoute investment path="/investments/portfolio/simulation" component={PortfolioSimulation} />
+      <ProtectedRoute investment path="/investments/portfolio/pilot" component={PortfolioPilot} />
       <ProtectedRoute
         investment
         path="/investments/portfolio"

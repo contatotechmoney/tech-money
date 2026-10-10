@@ -35,3 +35,16 @@ editar os dados da mesma versão alteraria retroativamente estudos existentes.
 
 **How to apply:** Não substituir silenciosamente o cenário de um histórico
 já registrado. Preservar versões anteriores ao introduzir uma nova.
+
+O piloto preparatório da carteira real é exclusivo do proprietário e não altera
+a demonstração fictícia dos demais usuários. Preparar ou aprovar um orçamento
+não autoriza chamadas reais nesta fase. Sem identidade inequívoca autenticada
+do proprietário, deve permanecer fechado — nunca inferir pelo nome ou primeira conta.
+
+**Why:** O usuário autorizou apenas pré-execução, exigindo novo consentimento
+específico antes de qualquer gasto ou compartilhamento.
+
+**How to apply:** Manter separados demonstração, preparação privada e execução.
+Não transportar posições pessoais, credenciais ou caminhos locais de notebooks;
+não afirmar conexão de motor antes de validá-la. Identidade ausente, mercado/modelo/
+preço não confirmados ou infraestrutura incompleta devem impedir orçamento executável.

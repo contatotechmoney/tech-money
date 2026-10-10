@@ -146,6 +146,9 @@ function SimulationBody({ userId }: { userId: string }) {
                 {createStudy.isPending ? <RotateCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {createStudy.isPending ? "Preparando exemplo…" : "Iniciar demonstração"}
               </Button>
+              <Link href="/investments/portfolio/pilot" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#cbd9d0] bg-[#fbfcf8] px-5 text-sm font-semibold text-[#28684f] transition-colors hover:bg-[#f1f6f2]">
+                Preparação privada de carteira
+              </Link>
               <span className="text-xs leading-5 text-[#6b8177]">Só começa após esta ação. Não é análise de carteira real.</span>
             </div>
             {createStudy.isError && <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-[#e2b6a8] bg-[#fff3ee] p-3 text-sm text-[#824833]"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />Não foi possível criar a demonstração. Tente novamente.</div>}
