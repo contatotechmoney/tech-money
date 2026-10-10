@@ -1,6 +1,10 @@
 # Comitê de Carteira Completa — piloto de pré-execução
 
-## Estado desta revisão
+> Registro da preparação inicial. O avanço atual de persistência, executor e
+> catálogo oficial está em [portfolio-pilot-executor.md](portfolio-pilot-executor.md).
+> As limitações abaixo descrevem o estado anterior, não a implementação atual.
+
+## Estado da preparação inicial
 
 Preparação exclusivamente do proprietário, **fechada no servidor**: ainda não
 existe vínculo inequívoco com um identificador autenticado Clerk. Nome de

@@ -1,5 +1,5 @@
 import { desc, sql } from "drizzle-orm";
-import { bigserial, boolean, check, date, foreignKey, index, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
+import { bigserial, boolean, check, date, foreignKey, index, integer, jsonb, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import type { AnalysisQuality } from "./report-quality";
@@ -165,6 +165,37 @@ export const portfolioSimulationStudies = pgTable("portfolio_simulation_studies"
   uniqueIndex("portfolio_simulation_request_idx").on(t.userId, t.requestKey),
   index("portfolio_simulation_history_idx").on(t.userId, desc(t.createdAt), t.id),
   check("portfolio_simulation_scenario_check", sql`${t.scenarioVersion} = 'portfolio-demo-v1'`),
+]);
+
+export const portfolioPilotAccounts = pgTable("portfolio_pilot_accounts", {
+  userId: text("user_id").primaryKey(),
+  state: jsonb("state").notNull().default(sql`'{"budgets":[],"events":[],"runs":[]}'::jsonb`),
+  revision: integer("revision").notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [check("portfolio_pilot_revision_check", sql`${t.revision} >= 0`)]);
+export const portfolioPilotAudit = pgTable("portfolio_pilot_audit", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  userId: text("user_id").notNull().references(() => portfolioPilotAccounts.userId),
+  eventIndex: integer("event_index").notNull(),
+  event: jsonb("event").notNull(),
+  recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  uniqueIndex("portfolio_pilot_audit_user_id_event_index_key").on(t.userId, t.eventIndex),
+  check("portfolio_pilot_event_index_check", sql`${t.eventIndex} >= 0`),
+]);
+export const portfolioPilotOwnerBindings = pgTable("portfolio_pilot_owner_bindings", {
+  singleton: boolean("singleton").primaryKey().default(true),
+  clerkUserId: text("clerk_user_id").notNull(),
+  clerkEnvironment: text("clerk_environment").notNull(),
+  evidenceDigest: text("evidence_digest").notNull(),
+  verificationMethod: text("verification_method").notNull(),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+}, t => [
+  check("portfolio_pilot_owner_singleton_check", sql`${t.singleton}`),
+  check("portfolio_pilot_owner_environment_check", sql`${t.clerkEnvironment} IN ('development','production')`),
+  check("portfolio_pilot_owner_evidence_check", sql`length(${t.evidenceDigest}) = 64`),
+  check("portfolio_pilot_owner_method_check", sql`${t.verificationMethod} = 'official_clerk_owner_attestation'`),
 ]);
 
 export const reportDeliveryRequests = pgTable("report_delivery_requests", {

@@ -49,13 +49,13 @@ function fixture() {
 const usage = { calls: 1, inputTokens: 100, outputTokens: 100, costUsdMicros: 100, retries: 0 };
 
 describe("owner portfolio pre-execution preparation, entirely synthetic", () => {
-  it("production has no owner binding, catalogue, executor, ledger or real dispatch", async () => {
+  it("production has durable ledger but no owner binding, catalogue, executor or real dispatch", async () => {
     assert.deepEqual(portfolioPilot.status("any-account").models, []);
     assert.equal(portfolioPilot.status("any-account").allowed, false);
     await assert.rejects(portfolioPilot.positions("any-account"), /PILOT_CLOSED/);
     await assert.rejects(portfolioPilot.quote("any-account", {}), /PILOT_CLOSED/);
     assert.throws(() => portfolioPilot.execute("any-account"), /PILOT_CLOSED/);
-    assert.equal(portfolioPilot.status("any-account").blockers.length, 6);
+    assert.equal(portfolioPilot.status("any-account").blockers.length, 5);
   });
   it("neither display name, first user nor client-provided identity authorizes access", async () => {
     const f = fixture();
@@ -106,7 +106,7 @@ describe("owner portfolio pre-execution preparation, entirely synthetic", () => 
     assert.equal(b.version, 1); assert.equal(b.executable, false);
     assert.equal(b.expiresAt - b.createdAt, PILOT_LIMITS.validityMs);
     assert.equal(b.positions[0].quantity, 10);
-    assert.ok(b.sharing.some(s => s.includes("Nenhum dado")));
+    assert.ok(b.sharing.some(s => s.includes("Preparar o orçamento não envia dados")));
     assert.deepEqual(await f.pilot.approve(f.actor, f.approval(b)), { approved: true, executable: false });
     assert.throws(() => f.pilot.execute(f.actor), /REAL_EXECUTION_DISABLED/);
     assert.deepEqual(f.ledger.states.get(f.actor)!.events.map(e => e.type), ["budget_prepared", "preparation_approved"]);
@@ -206,7 +206,7 @@ describe("owner portfolio pre-execution preparation, entirely synthetic", () => 
   });
   it("has no network engine/credit/billing dependency and production auth remains Clerk", () => {
     const source = readFileSync("server/portfolio-pilot.ts", "utf8");
-    assert.doesNotMatch(source, /fetch\(|yfinance|runAgents|runCommittee|guardRun|criarCheckout|process\.env/);
+    assert.doesNotMatch(source, /fetch\(|yfinance|runAgents|runCommittee|guardRun|criarCheckout|process\.env\.(?:LLM|HERMES|PILOT_OWNER)/);
     assert.match(readFileSync("server/routes.ts", "utf8"), /registerPortfolioPilotRoutes\(app, requireAuth\)/);
   });
 });

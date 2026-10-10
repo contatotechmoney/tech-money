@@ -134,6 +134,13 @@
       "when": 1791630000000,
       "tag": "0016_portfolio_simulation",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791640000000,
+      "tag": "0017_portfolio_pilot",
+      "breakpoints": true
     }
   ]
 }

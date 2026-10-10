@@ -36,15 +36,28 @@ editar os dados da mesma versão alteraria retroativamente estudos existentes.
 **How to apply:** Não substituir silenciosamente o cenário de um histórico
 já registrado. Preservar versões anteriores ao introduzir uma nova.
 
-O piloto preparatório da carteira real é exclusivo do proprietário e não altera
-a demonstração fictícia dos demais usuários. Preparar ou aprovar um orçamento
-não autoriza chamadas reais nesta fase. Sem identidade inequívoca autenticada
-do proprietário, deve permanecer fechado — nunca inferir pelo nome ou primeira conta.
+O piloto da carteira real é exclusivo do proprietário e não altera a demonstração
+fictícia dos demais usuários. O proprietário autorizou preparação de execução real
+com aprovação explícita do custo antes de cada execução; implementação e testes
+nunca iniciam análises reais ou transmitem posições reais. Sem identidade inequívoca
+autenticada do proprietário, deve permanecer fechado — nunca inferir pelo nome
+ou primeira conta.
 
-**Why:** O usuário autorizou apenas pré-execução, exigindo novo consentimento
-específico antes de qualquer gasto ou compartilhamento.
+**Why:** O usuário ampliou o escopo para preparar o executor seguro, mantendo
+aprovação específica antes de qualquer gasto ou compartilhamento e proibindo
+inferência real durante a implementação.
 
 **How to apply:** Manter separados demonstração, preparação privada e execução.
 Não transportar posições pessoais, credenciais ou caminhos locais de notebooks;
 não afirmar conexão de motor antes de validá-la. Identidade ausente, mercado/modelo/
 preço não confirmados ou infraestrutura incompleta devem impedir orçamento executável.
+
+Catálogo Nous público e tarifa efetiva autenticada da conta são evidências distintas.
+Entradas homônimas não autorizam inferência de identificador; nunca trocar o Hermes
+ou escolher GLM automaticamente para preencher a lacuna.
+
+**Why:** O usuário destacou opções homônimas com tarifas diferentes e exigiu
+preservar as configurações Hermes, sem presumir custo.
+
+**How to apply:** Confirmar ID completo, fonte e escopo da tarifa; preço público
+confirmado não comprova desconto, modalidade ou disponibilidade da conta.
