@@ -9,10 +9,14 @@ import { clerkClient } from "@clerk/express";
 import type { EngineMarket } from "../shared/portfolio-pilot-engine";
 import type { PilotRun, PilotExecutionContext } from "./portfolio-pilot-executor";
 import { preparePrivatePilot } from "./portfolio-pilot-runtime";
-import { registerAccountConfirmationRoute } from "./portfolio-pilot-confirmation";
+import {
+  registerAccountConfirmationRoute, officialAccountConfirmationDependencies, boundedOfficialLookup,
+} from "./portfolio-pilot-confirmation";
+import { bindReviewedProductionOwner, readProductionOwnerBinding } from "./portfolio-pilot-binding";
+import { registerOwnerBindingAction } from "./portfolio-pilot-owner-binding-action";
 
 // No display-name matching, first-account inference, browser flags, or environment escape hatch.
-// No owner identity has been unequivocally bound for this preparation phase.
+// No fallback subject: runtime access requires a verified production binding.
 const OWNER_BINDING: string | null = null;
 export const REAL_PORTFOLIO_PILOT_ENABLED = false as const;
 export type PilotModel = {
@@ -282,6 +286,21 @@ async function resolveRuntimePilot(actor: string): Promise<PortfolioPilot> {
 export function registerPortfolioPilotRoutes(app: Express, auth: RequestHandler, pilot?: PortfolioPilot) {
   const privateResponse: RequestHandler = (_req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); };
   registerAccountConfirmationRoute(app, auth, privateResponse);
+  if (!pilot) {
+    const metadata = officialAccountConfirmationDependencies;
+    const officialUser = (id: string) => boundedOfficialLookup(metadata.user(id), metadata.metadataTimeoutMs);
+    const officialSession = (id: string) => boundedOfficialLookup(metadata.session(id), metadata.metadataTimeoutMs);
+    registerOwnerBindingAction(app, auth, privateResponse, {
+      metadata,
+      read: actor => readProductionOwnerBinding(pool, actor.userId!, officialUser),
+      bind: actor => bindReviewedProductionOwner({
+        // The route compared this signed subject to the independently configured
+        // private production reference. No body value is an authorization.
+        expectedOwner: actor.userId!, auth: () => actor, officialUser, officialSession, pool,
+        environment: metadata.environment,
+      }),
+    });
+  }
   const handle = (work: (p: PortfolioPilot, actor: string, body: unknown) => unknown): RequestHandler => async (req, res) => {
     try {
       const instance = pilot ?? await resolveRuntimePilot(req.userId!);

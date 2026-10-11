@@ -12,7 +12,9 @@ import {
   registerAccountConfirmationRoute, type AccountConfirmationDependencies,
 } from "./portfolio-pilot-confirmation";
 import type { PortfolioAccountConfirmation } from "../shared/portfolio-pilot-confirmation";
-import { confirmationResponseSchema } from "../shared/portfolio-pilot-confirmation";
+import {
+  confirmationResponseSchema, ownerBindingStateSchema, ownerBindingAppliedSchema,
+} from "../shared/portfolio-pilot-confirmation";
 import { preparePrivatePilot } from "./portfolio-pilot-runtime";
 
 // Same isolated TSX/CSS harness as the access suite. Real presentation source,
@@ -39,7 +41,7 @@ const AccountConfirmationView = presentationModule("client/src/pages/portfolio-a
   "@/components/tech-money-brand": brand,
   "@/components/ui/button": { Button: ({ children, ...props }: any) => createElement("button", props, children) },
   "@/lib/queryClient": { apiRequest: () => { throw new Error("Presentation cannot query a provider"); } },
-  "../../../shared/portfolio-pilot-confirmation": { confirmationResponseSchema },
+  "../../../shared/portfolio-pilot-confirmation": { confirmationResponseSchema, ownerBindingStateSchema, ownerBindingAppliedSchema },
 }).AccountConfirmationView;
 
 const actor = { userId: "synthetic-owner", sessionId: "synthetic-session" };
@@ -163,8 +165,9 @@ describe("confirmation screen accessibility and honesty", () => {
     const result = await confirmOfficialProductionAccount(actor, fixture().deps);
     const html = render(result);
     assert.match(html, /Sessão oficial confirmada/); assert.match(html, /E-mail principal confirmado/);
-    assert.match(html, /Conta correspondente à referência/); assert.match(html, /Acesso não concedido nem vinculado/);
-    assert.match(html, /execução real continua bloqueada/); assert.doesNotMatch(html, /synthetic-owner|synthetic-session/);
+    assert.match(html, /Conta correspondente à referência/); assert.match(html, /Acesso de execução não concedido/);
+    assert.doesNotMatch(html, /Vínculo exclusivo confirmado/);
+    assert.match(html, /inferência real continua bloqueada/); assert.doesNotMatch(html, /synthetic-owner|synthetic-session/);
   });
   it("development, service error, inactive auth and pending state are distinct", async () => {
     const f = fixture(); f.deps.environment = () => "development";
@@ -175,12 +178,41 @@ describe("confirmation screen accessibility and honesty", () => {
   });
   it("query remains manual, non-polling and isolated on auth changes", () => {
     const source = readFileSync("client/src/pages/portfolio-account-confirmation.tsx", "utf8");
-    assert.equal((source.match(/apiRequest\("GET"/g) ?? []).length, 1);
+    assert.equal((source.match(/apiRequest\("GET"/g) ?? []).length, 2);
     assert.match(source, /pendingRef\.current/); assert.match(source, /requestNumber\.current !== requestId/);
     assert.match(source, /currentIdentity\.current !== identity/); assert.match(source, /setResult\(null\)/);
     assert.doesNotMatch(source, /setInterval|refetchInterval|window\.Clerk/);
     assert.match(source, /prefers-reduced-motion/);
     assert.match(readFileSync("client/src/App.tsx", "utf8"), /Route path="\/investments\/portfolio\/pilot\/confirm-account"/);
+  });
+  it("offers explicit binding only after positive production proof and separate unchecked consent", async () => {
+    const proof = await confirmOfficialProductionAccount(actor, fixture().deps);
+    const state = { environment: "production", ownerBound: false, revoked: false, auditRecorded: false, executable: false };
+    const html = render(proof, { binding: state });
+    assert.match(html, /Confirmar vínculo exclusivo/);
+    assert.doesNotMatch(html, /checked=""/);
+    assert.match(html, /disabled/);
+    const enabled = render(proof, { binding: state, consent: true, onBind: () => {} });
+    assert.match(enabled, /Confirmar vínculo exclusivo/);
+    assert.match(enabled, /orçamento/);
+    assert.doesNotMatch(enabled, /synthetic-owner|synthetic-session|synthetic-primary/);
+  });
+  it("shows revoked and applied binding separately from blocked inference", async () => {
+    const proof = await confirmOfficialProductionAccount(actor, fixture().deps);
+    const state = { environment: "production", ownerBound: false, revoked: true, auditRecorded: false, executable: false };
+    assert.match(render(proof, { binding: state }), /revogado/);
+    const applied = { ...state, ownerBound: true, revoked: false, auditRecorded: true };
+    const html = render(proof, { binding: applied, bindingApplied: applied });
+    assert.match(html, /confirmado|aplicado/);
+    assert.match(html, /bloquead/);
+  });
+  it("uses one explicit boolean-only POST and resets consent on account/session checks", () => {
+    const source = readFileSync("client/src/pages/portfolio-account-confirmation.tsx", "utf8");
+    assert.equal((source.match(/apiRequest\("POST"/g) ?? []).length, 1);
+    assert.match(source, /confirmExclusiveOwner: true/);
+    assert.match(source, /setConsent\(false\)/);
+    assert.match(source, /bindingPendingRef\.current/);
+    assert.match(source, /ownerBindingAppliedSchema\.parse/);
   });
 });
 

@@ -6,10 +6,29 @@ import { TechMoneyBrand } from "@/components/tech-money-brand";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import type { PortfolioAccountConfirmation } from "../../../shared/portfolio-pilot-confirmation";
-import { confirmationResponseSchema } from "../../../shared/portfolio-pilot-confirmation";
+import {
+  confirmationResponseSchema,
+  ownerBindingAppliedSchema,
+  ownerBindingStateSchema,
+} from "../../../shared/portfolio-pilot-confirmation";
 
 const PAGE_PATH = "/investments/portfolio/pilot/confirm-account";
 const SIGN_IN_REQUIRED_MESSAGE = "Sua sessão não está ativa. Entre novamente e faça uma nova checagem.";
+const bindingFailureMessage = (error: unknown) => {
+  const message = error instanceof Error ? error.message : "";
+  const code = message.toUpperCase();
+  if (/REVOKED/.test(code)) return "O vínculo foi revogado e não pode ser confirmado nesta checagem.";
+  if (/ALREADY_BOUND|OWNER_BOUND/.test(code)) return "Esta conta já possui um vínculo exclusivo.";
+  if (/PRODUCTION|ENVIRONMENT/.test(code)) return "O vínculo só pode ser confirmado no ambiente de produção.";
+  if (/IDENTITY|SESSION|EMAIL|OWNER_MATCH/.test(code)) return "A confirmação oficial não está válida. Faça uma nova checagem da conta.";
+  if (/CONSENT|CONFIRM/.test(code)) return "A confirmação explícita não foi aceita. Revise a opção e tente novamente.";
+  if (/AUDIT/.test(code)) return "Não foi possível registrar a confirmação com segurança. Nenhum vínculo foi aplicado.";
+  if (/401/.test(message)) return SIGN_IN_REQUIRED_MESSAGE;
+  return "Não foi possível consultar ou confirmar o vínculo agora. Faça uma nova checagem quando estiver pronto.";
+};
+
+type OwnerBindingState = ReturnType<typeof ownerBindingStateSchema.parse>;
+type OwnerBindingApplied = ReturnType<typeof ownerBindingAppliedSchema.parse>;
 
 type AccountConfirmationViewProps = {
   result: PortfolioAccountConfirmation | null;
@@ -18,6 +37,14 @@ type AccountConfirmationViewProps = {
   signedIn: boolean;
   loadingAuth?: boolean;
   onCheck: () => void;
+  binding?: OwnerBindingState | null;
+  bindingPending?: boolean;
+  bindingError?: string;
+  bindingApplied?: OwnerBindingApplied | null;
+  consent?: boolean;
+  onConsentChange?: (consent: boolean) => void;
+  onBind?: () => void;
+  bindingRequestPending?: boolean;
 };
 
 const confirmationLabels: Record<PortfolioAccountConfirmation["officialSession"], string> = {
@@ -63,9 +90,26 @@ export function AccountConfirmationView({
   signedIn,
   loadingAuth = false,
   onCheck,
+  binding = null,
+  bindingPending = false,
+  bindingError = "",
+  bindingApplied = null,
+  consent = false,
+  onConsentChange,
+  onBind,
+  bindingRequestPending = false,
 }: AccountConfirmationViewProps) {
   const needsSignIn = !loadingAuth && !signedIn;
   const signInRequired = needsSignIn || error === SIGN_IN_REQUIRED_MESSAGE;
+  const isOfficiallyConfirmed = Boolean(
+    result?.environment === "production" &&
+    result.officialSession === "verified" &&
+    result.primaryEmail === "verified" &&
+    result.ownerMatch === "matches",
+  );
+  const canBind = isOfficiallyConfirmed && Boolean(binding?.environment === "production") &&
+    Boolean(binding && !binding.ownerBound && !binding.revoked) && !bindingPending &&
+    !bindingRequestPending && consent && !bindingApplied;
   return (
     <main className="account-confirmation min-h-[100dvh] px-4 py-6 sm:px-7 sm:py-10">
       <div className="mx-auto max-w-4xl">
@@ -147,9 +191,90 @@ export function AccountConfirmationView({
                 </p>
                 <div className="confirm-not-granted">
                   <LockKeyhole className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <p><strong>Acesso não concedido nem vinculado.</strong> A execução real continua bloqueada.</p>
+                  <p><strong>Acesso de execução não concedido.</strong> A inferência real continua bloqueada; qualquer execução futura exigirá uma aprovação específica de orçamento, separada.</p>
                 </div>
               </div>
+            )}
+
+            {isOfficiallyConfirmed && (
+              <section className="confirm-binding" aria-labelledby="confirm-binding-heading">
+                <div className="confirm-binding-heading">
+                  <div>
+                    <p className="confirm-eyebrow">ETAPA OPCIONAL</p>
+                    <h3 id="confirm-binding-heading">Vínculo privado da conta</h3>
+                  </div>
+                  <LockKeyhole className="h-5 w-5 shrink-0" aria-hidden="true" />
+                </div>
+                <p className="confirm-binding-copy">
+                  Este passo confirma somente o vínculo exclusivo desta conta. Não aprova orçamento, análise ou execução.
+                  O servidor fará uma nova validação oficial antes de aplicar qualquer alteração.
+                </p>
+
+                {bindingPending && (
+                  <div className="confirm-loading confirm-binding-loading" role="status" aria-live="polite">
+                    <div className="confirm-skeleton w-40" />
+                    <div className="confirm-skeleton w-4/5" />
+                    <span className="sr-only">Consultando o estado do vínculo…</span>
+                  </div>
+                )}
+                {!bindingPending && binding && (
+                  <div className="confirm-result-list" aria-live="polite">
+                    {binding.revoked ? (
+                      <div className="confirm-binding-status is-warning" role="status">
+                        <CircleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <p><strong>Vínculo revogado.</strong> Nenhuma nova confirmação pode ser feita agora.</p>
+                      </div>
+                    ) : binding.ownerBound ? (
+                      <div className="confirm-binding-status" role="status">
+                        <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <p><strong>Vínculo exclusivo já confirmado.</strong> Isso não libera análise nem execução.</p>
+                      </div>
+                    ) : binding.environment === "production" ? (
+                      <div className="confirm-binding-status" role="status">
+                        <LockKeyhole className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <p>Sem vínculo exclusivo confirmado. A confirmação ainda não foi aplicada.</p>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+                {bindingError && (
+                  <div className="confirm-error" role="alert">
+                    <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                    <div><p className="font-semibold">Estado do vínculo indisponível.</p><p className="mt-1">{bindingError}</p></div>
+                  </div>
+                )}
+                {bindingApplied && (
+                  <div className="confirm-binding-status" role="status" aria-live="polite">
+                    <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <p><strong>Vínculo exclusivo confirmado.</strong> A inferência permanece bloqueada e execução exige aprovação específica de orçamento.</p>
+                  </div>
+                )}
+                {!bindingApplied && binding && !binding.ownerBound && !binding.revoked && (
+                  <>
+                    <label className="confirm-consent">
+                      <input
+                        type="checkbox"
+                        checked={consent}
+                        onChange={(event) => onConsentChange?.(event.currentTarget.checked)}
+                        disabled={!binding || bindingPending || bindingRequestPending || Boolean(bindingError)}
+                        aria-describedby="confirm-consent-note"
+                      />
+                      <span>Confirmo somente o vínculo exclusivo desta conta. Esta confirmação não autoriza orçamento, análise ou execução.</span>
+                    </label>
+                    <p id="confirm-consent-note" className="confirm-button-note">
+                      A opção começa desmarcada e só vale para este vínculo.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={onBind}
+                      disabled={!canBind || !signedIn || loadingAuth}
+                      className="confirm-action"
+                    >
+                      {bindingRequestPending ? "Confirmando vínculo…" : "Confirmar vínculo exclusivo"}
+                    </Button>
+                  </>
+                )}
+              </section>
             )}
 
             {signInRequired ? (
@@ -163,7 +288,7 @@ export function AccountConfirmationView({
               <Button
                 type="button"
                 onClick={onCheck}
-                disabled={loadingAuth || !signedIn || pending}
+                disabled={loadingAuth || !signedIn || pending || bindingRequestPending}
                 className="confirm-action"
               >
                 {pending ? "Verificando conta…" : result || error ? "Conferir novamente" : "Conferir minha conta"}
@@ -236,6 +361,18 @@ export function AccountConfirmationView({
         .account-confirmation .confirm-action:hover:not(:disabled){transform:translateY(-1px);opacity:.9}
         .account-confirmation .confirm-action:disabled{cursor:not-allowed;opacity:.55}
         .account-confirmation .confirm-button-note{margin-top:.65rem;color:var(--confirm-muted-2);font-size:.68rem;line-height:1.6;text-align:center}
+        .account-confirmation .confirm-binding{margin-top:1.2rem;border-top:1px solid var(--confirm-line);padding-top:1.2rem}
+        .account-confirmation .confirm-binding-heading{display:flex;align-items:center;justify-content:space-between;color:var(--confirm-green)}
+        .account-confirmation .confirm-binding-heading h3{margin-top:.4rem;font-size:1rem;font-weight:700;letter-spacing:-.025em;color:var(--confirm-ink)}
+        .account-confirmation .confirm-binding-copy{margin:.7rem 0;color:var(--confirm-muted);font-size:.76rem;line-height:1.7}
+        .account-confirmation .confirm-binding-loading{padding:.8rem 0}
+        .account-confirmation .confirm-binding-status{display:flex;align-items:flex-start;gap:.6rem;margin-top:.75rem;border:1px solid var(--confirm-border);border-radius:.8rem;background:var(--confirm-subtle);padding:.8rem;color:var(--confirm-green);font-size:.76rem;line-height:1.6}
+        .account-confirmation .confirm-binding-status p{color:var(--confirm-muted)}
+        .account-confirmation .confirm-binding-status strong{color:var(--confirm-ink)}
+        .account-confirmation .confirm-binding-status.is-warning{border-color:var(--confirm-warning-line);background:var(--confirm-warning-bg);color:var(--confirm-warning)}
+        .account-confirmation .confirm-consent{display:flex;align-items:flex-start;gap:.65rem;margin-top:1rem;border:1px solid var(--confirm-border);border-radius:.8rem;background:var(--confirm-subtle);padding:.8rem;color:var(--confirm-ink);font-size:.76rem;line-height:1.65}
+        .account-confirmation .confirm-consent input{width:1rem;height:1rem;flex:none;margin-top:.18rem;accent-color:var(--confirm-green)}
+        .account-confirmation .confirm-consent input:focus-visible{outline:2px solid var(--confirm-green);outline-offset:3px}
         .account-confirmation .confirm-aside{display:flex;flex-direction:column}
         .account-confirmation .confirm-aside-rule{width:2.2rem;height:2px;margin:1.2rem 0;background:var(--confirm-green)}
         .account-confirmation .confirm-aside>p:not(.confirm-eyebrow){color:var(--confirm-muted);font-size:.78rem;line-height:1.8}
@@ -257,7 +394,14 @@ export default function PortfolioAccountConfirmationPage() {
   const [result, setResult] = useState<PortfolioAccountConfirmation | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [binding, setBinding] = useState<OwnerBindingState | null>(null);
+  const [bindingPending, setBindingPending] = useState(false);
+  const [bindingRequestPending, setBindingRequestPending] = useState(false);
+  const [bindingError, setBindingError] = useState("");
+  const [bindingApplied, setBindingApplied] = useState<OwnerBindingApplied | null>(null);
+  const [consent, setConsent] = useState(false);
   const pendingRef = useRef(false);
+  const bindingPendingRef = useRef(false);
   const authIdentity = `${userId ?? ""}:${sessionId ?? ""}:${isSignedIn ? "in" : "out"}`;
   const currentIdentity = useRef(authIdentity);
   const requestNumber = useRef(0);
@@ -267,17 +411,29 @@ export default function PortfolioAccountConfirmationPage() {
     currentIdentity.current = authIdentity;
     requestNumber.current += 1;
     pendingRef.current = false;
+    bindingPendingRef.current = false;
     setPending(false);
     setResult(null);
     setError("");
+    setBinding(null);
+    setBindingPending(false);
+    setBindingRequestPending(false);
+    setBindingError("");
+    setBindingApplied(null);
+    setConsent(false);
   }, [authIdentity]);
 
   const checkAccount = async () => {
-    if (!isLoaded || !isSignedIn || !userId || pendingRef.current) return;
+    if (!isLoaded || !isSignedIn || !userId || pendingRef.current || bindingPendingRef.current) return;
     pendingRef.current = true;
     setPending(true);
     setResult(null);
     setError("");
+    setBinding(null);
+    setBindingPending(false);
+    setBindingError("");
+    setBindingApplied(null);
+    setConsent(false);
     const identity = authIdentity;
     const requestId = ++requestNumber.current;
     try {
@@ -285,6 +441,22 @@ export default function PortfolioAccountConfirmationPage() {
       const data = confirmationResponseSchema.parse(await response.json());
       if (requestNumber.current !== requestId || currentIdentity.current !== identity) return;
       setResult(data);
+      const officiallyConfirmed = data.environment === "production" &&
+        data.officialSession === "verified" && data.primaryEmail === "verified" && data.ownerMatch === "matches";
+      if (officiallyConfirmed) {
+        setBindingPending(true);
+        try {
+          const bindingResponse = await apiRequest("GET", "/api/investments/portfolio-pilot/account-binding");
+          const bindingData = ownerBindingStateSchema.parse(await bindingResponse.json());
+          if (requestNumber.current !== requestId || currentIdentity.current !== identity) return;
+          setBinding(bindingData);
+        } catch (bindingRequestError) {
+          if (requestNumber.current !== requestId || currentIdentity.current !== identity) return;
+          setBindingError(bindingFailureMessage(bindingRequestError));
+        } finally {
+          if (requestNumber.current === requestId && currentIdentity.current === identity) setBindingPending(false);
+        }
+      }
     } catch (requestError) {
       if (requestNumber.current !== requestId || currentIdentity.current !== identity) return;
       const status = requestError instanceof Error ? requestError.message.match(/^(\d+):/)?.[1] : undefined;
@@ -299,6 +471,37 @@ export default function PortfolioAccountConfirmationPage() {
     }
   };
 
+  const confirmBinding = async () => {
+    if (!isLoaded || !isSignedIn || !userId || !consent || !result || !binding ||
+      result.environment !== "production" || result.officialSession !== "verified" ||
+      result.primaryEmail !== "verified" || result.ownerMatch !== "matches" ||
+      binding.environment !== "production" || binding.ownerBound || binding.revoked ||
+      pendingRef.current || bindingPendingRef.current || bindingRequestPending) return;
+    bindingPendingRef.current = true;
+    setBindingRequestPending(true);
+    setBindingError("");
+    const identity = authIdentity;
+    const requestId = requestNumber.current;
+    try {
+      const response = await apiRequest("POST", "/api/investments/portfolio-pilot/account-binding", {
+        confirmExclusiveOwner: true,
+      });
+      const applied = ownerBindingAppliedSchema.parse(await response.json());
+      if (requestNumber.current !== requestId || currentIdentity.current !== identity) return;
+      setBindingApplied(applied);
+      setBinding({ ...binding, ownerBound: applied.ownerBound, revoked: applied.revoked, auditRecorded: applied.auditRecorded, executable: applied.executable });
+      setConsent(false);
+    } catch (bindingRequestError) {
+      if (requestNumber.current !== requestId || currentIdentity.current !== identity) return;
+      setBindingError(bindingFailureMessage(bindingRequestError));
+    } finally {
+      if (requestNumber.current === requestId && currentIdentity.current === identity) {
+        bindingPendingRef.current = false;
+        setBindingRequestPending(false);
+      }
+    }
+  };
+
   const responseBelongsToSession = currentIdentity.current === authIdentity;
   return (
     <AccountConfirmationView
@@ -308,6 +511,14 @@ export default function PortfolioAccountConfirmationPage() {
       signedIn={Boolean(isSignedIn && userId)}
       loadingAuth={!isLoaded}
       onCheck={() => void checkAccount()}
+      binding={responseBelongsToSession ? binding : null}
+      bindingPending={responseBelongsToSession && bindingPending}
+      bindingError={responseBelongsToSession ? bindingError : ""}
+      bindingApplied={responseBelongsToSession ? bindingApplied : null}
+      consent={responseBelongsToSession && consent}
+      onConsentChange={setConsent}
+      onBind={() => void confirmBinding()}
+      bindingRequestPending={responseBelongsToSession && bindingRequestPending}
     />
   );
 }

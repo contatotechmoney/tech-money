@@ -20,3 +20,24 @@ export const confirmationResponseSchema = z.object({
   checkedAt: z.string().datetime(),
   ownerBound: z.literal(false), accessGranted: z.literal(false), executable: z.literal(false),
 }).strict();
+
+/** A binding is not approval of an execution, model, tariff or budget. */
+export const ownerBindingConsentSchema = z.object({
+  confirmExclusiveOwner: z.literal(true),
+}).strict();
+
+export const ownerBindingStateSchema = z.object({
+  environment: z.literal("production"),
+  ownerBound: z.boolean(),
+  revoked: z.boolean(),
+  auditRecorded: z.boolean(),
+  executable: z.literal(false),
+}).strict();
+
+export const ownerBindingAppliedSchema = ownerBindingStateSchema.extend({
+  ownerBound: z.literal(true),
+  revoked: z.literal(false),
+  auditRecorded: z.literal(true),
+}).strict();
+
+export type OwnerBindingState = z.infer<typeof ownerBindingStateSchema>;

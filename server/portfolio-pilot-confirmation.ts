@@ -4,7 +4,7 @@ import type { Express, Request, RequestHandler } from "express";
 import type { PortfolioAccountConfirmation } from "../shared/portfolio-pilot-confirmation";
 import type { OfficialIdentity } from "./portfolio-pilot-owner";
 
-type SignedActor = { userId: string | null; sessionId: string | null };
+export type SignedActor = { userId: string | null; sessionId: string | null };
 export type AccountConfirmationDependencies = {
   environment: () => "production" | "development";
   ownerReference: () => string | undefined;
@@ -21,6 +21,18 @@ export function productionOwnerReference(subject: string): string {
   return createHash("sha256").update(`techmoney/portfolio-pilot/production/owner/v1\0${subject}`).digest("hex");
 }
 
+/** Bounds metadata calls only, never races a database commit or execution. */
+export async function boundedOfficialLookup<T>(request: Promise<T>, timeoutMs = 5000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([request, new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => reject(new Error("OFFICIAL_METADATA_UNAVAILABLE")),
+        Math.min(5000, Math.max(1, timeoutMs)));
+      timer.unref();
+    })]);
+  } finally { if (timer) clearTimeout(timer); }
+}
+
 export async function confirmOfficialProductionAccount(
   actor: SignedActor, deps: AccountConfirmationDependencies,
 ): Promise<PortfolioAccountConfirmation> {
@@ -35,16 +47,7 @@ export async function confirmOfficialProductionAccount(
     ownerMatch: "production_required",
   };
   if (!actor.userId || !actor.sessionId) return { ...result, officialSession: "inactive" };
-  const bounded = async <T>(request: Promise<T>): Promise<T> => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      return await Promise.race([request, new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error("OFFICIAL_METADATA_UNAVAILABLE")),
-          Math.min(5000, Math.max(1, deps.metadataTimeoutMs ?? 5000)));
-        timer.unref();
-      })]);
-    } finally { if (timer) clearTimeout(timer); }
-  };
+  const bounded = <T>(request: Promise<T>) => boundedOfficialLookup(request, deps.metadataTimeoutMs);
   try {
     const session = await bounded(deps.session(actor.sessionId));
     if (session.id !== actor.sessionId || session.userId !== actor.userId || session.status !== "active")
@@ -68,9 +71,9 @@ export async function confirmOfficialProductionAccount(
   }
 }
 
-const officialDependencies: AccountConfirmationDependencies = {
+export const officialAccountConfirmationDependencies: AccountConfirmationDependencies = {
   environment: () => process.env.NODE_ENV === "production" ? "production" : "development",
-  // Optional private production configuration. Not created/changed in this task.
+  // Server-only production configuration, never a browser value or permission.
   ownerReference: () => process.env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,
   session: id => clerkClient.sessions.getSession(id),
   user: id => clerkClient.users.getUser(id),
@@ -88,7 +91,7 @@ export function registerAccountConfirmationRoute(
         res.status(401).json({ error: "AUTHENTICATION_REQUIRED" }); return;
       }
       res.set("Pragma", "no-cache");
-      res.json(await confirmOfficialProductionAccount(actor, options?.deps ?? officialDependencies));
+      res.json(await confirmOfficialProductionAccount(actor, options?.deps ?? officialAccountConfirmationDependencies));
     } catch {
       res.status(503).json({ error: "ACCOUNT_CONFIRMATION_UNAVAILABLE", executable: false });
     }

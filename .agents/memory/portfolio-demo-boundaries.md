@@ -56,6 +56,17 @@ anterior pelo console não é adequado.
 **How to apply:** Mostrar somente resultados de consulta oficial no servidor;
 não confundir diagnóstico com vínculo ou conceder acesso automaticamente.
 
+O proprietário autorizou uma ação explícita de vínculo na mesma tela, separada
+do diagnóstico. Sua confirmação de vínculo não é aprovação de custo nem de
+execução.
+
+**Why:** O usuário escolheu preparar essa ação para revisão, mantendo inferência
+bloqueada e a conferência oficial no servidor como condição do vínculo.
+
+**How to apply:** Não voltar ao console do navegador, pedir novamente a
+identificação privada ou usar a aparência da tela como autorização. Não interpretar
+vínculo confirmado como consentimento genérico para análises futuras.
+
 **Why:** O usuário ampliou o escopo para preparar o executor seguro, mantendo
 aprovação específica antes de qualquer gasto ou compartilhamento e proibindo
 inferência real durante a implementação.

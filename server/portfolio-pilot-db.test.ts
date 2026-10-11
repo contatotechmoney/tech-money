@@ -7,6 +7,10 @@ import { verifiedPilotOwner } from "./portfolio-pilot-owner";
 import { bindReviewedProductionOwner } from "./portfolio-pilot-binding";
 import { PortfolioPilot } from "./portfolio-pilot";
 import { createPilotExecutor } from "./portfolio-pilot-executor";
+import express from "express";
+import { registerOwnerBindingAction } from "./portfolio-pilot-owner-binding-action";
+import { productionOwnerReference } from "./portfolio-pilot-confirmation";
+import { readProductionOwnerBinding } from "./portfolio-pilot-binding";
 
 // Refuse workspace/prod credentials. This suite is registered in the disposable DB runner.
 if (process.env.SYNTHETIC_DATABASE !== "1") throw new Error("DISPOSABLE_SYNTHETIC_DATABASE_REQUIRED");
@@ -80,6 +84,7 @@ describe("durable pilot ledger on disposable PostgreSQL", () => {
       const first = await bindReviewedProductionOwner(options);
       assert.equal(first.ownerBound, true); assert.equal(first.executable, false);
       await bindReviewedProductionOwner(options);
+      assert.equal((await pool.query("SELECT revision FROM portfolio_pilot_accounts WHERE user_id=$1", [actor])).rows[0].revision, 1);
       assert.equal((await pool.query("SELECT count(*)::int AS n FROM portfolio_pilot_audit WHERE user_id=$1", [actor])).rows[0].n, 2);
       assert.equal(await verifiedPilotOwner(pool, actor, "production", options.officialUser), actor);
       const other = `synthetic-${randomUUID()}`;
@@ -88,6 +93,86 @@ describe("durable pilot ledger on disposable PostgreSQL", () => {
         officialSession: async id => ({ id, userId: other, status: "active" }) }), /OWNER_BINDING_CONFLICT/);
       assert.equal((await pool.query("SELECT count(*)::int AS n FROM portfolio_pilot_accounts WHERE user_id=$1", [other])).rows[0].n, 0);
     } finally { await pool.query("DELETE FROM portfolio_pilot_owner_bindings WHERE clerk_user_id=$1", [actor]); }
+  });
+  it("HTTP consent to audited binding to re-opened status uses only fake Clerk and disposable PostgreSQL", async () => {
+    const owner = `synthetic-${randomUUID()}`;
+    const actor = { userId: owner, sessionId: "synthetic-http-session" };
+    const officialUser = async (id: string) => ({ id, primaryEmailAddressId: "synthetic-primary",
+      emailAddresses: [{ id: "synthetic-primary", verification: { status: "verified" } }] });
+    const officialSession = async (id: string) => ({ id, userId: owner, status: "active" });
+    const app = express(); app.use(express.json());
+    registerOwnerBindingAction(app, (req, _res, next) => { req.userId = actor.userId; next(); },
+      (_req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); }, {
+        metadata: { environment: () => "production", ownerReference: () => productionOwnerReference(owner),
+          now: Date.now, user: officialUser, session: officialSession },
+        signedActor: () => actor,
+        read: signed => readProductionOwnerBinding(pool, signed.userId!, officialUser),
+        bind: signed => bindReviewedProductionOwner({
+          expectedOwner: signed.userId!, auth: () => signed, officialUser, officialSession, pool,
+          environment: () => "production",
+        }),
+      });
+    const listener = app.listen(0, "127.0.0.1");
+    await new Promise<void>(resolve => listener.once("listening", resolve));
+    const port = (listener.address() as { port: number }).port;
+    const url = `http://127.0.0.1:${port}/api/investments/portfolio-pilot/account-binding`;
+    const post = () => fetch(url, { method: "POST",
+      headers: { "content-type": "application/json", origin: `https://127.0.0.1:${port}` },
+      body: JSON.stringify({ confirmExclusiveOwner: true }) });
+    try {
+      assert.equal((await (await fetch(url)).json()).ownerBound, false);
+      assert.equal((await pool.query("SELECT count(*)::int AS n FROM portfolio_pilot_accounts WHERE user_id=$1", [owner])).rows[0].n, 0);
+      assert.equal((await post()).status, 200);
+      const state = await (await fetch(url)).json();
+      assert.equal(state.ownerBound, true); assert.equal(state.auditRecorded, true); assert.equal(state.executable, false);
+      assert.doesNotMatch(JSON.stringify(state), /synthetic-|fingerprint|evidence/);
+      assert.equal((await post()).status, 200);
+      assert.equal((await pool.query("SELECT revision FROM portfolio_pilot_accounts WHERE user_id=$1", [owner])).rows[0].revision, 1);
+      actor.userId = `synthetic-${randomUUID()}`;
+      assert.equal((await fetch(url)).status, 403); assert.equal((await post()).status, 403);
+      actor.userId = owner;
+      await pool.query("UPDATE portfolio_pilot_owner_bindings SET revoked_at=now() WHERE clerk_user_id=$1", [owner]);
+      assert.equal((await (await fetch(url)).json()).revoked, true);
+      assert.equal((await post()).status, 409);
+      assert.equal((await pool.query("SELECT count(*)::int AS n FROM portfolio_pilot_audit WHERE user_id=$1", [owner])).rows[0].n, 2);
+    } finally {
+      await new Promise<void>(resolve => listener.close(() => resolve()));
+      await pool.query("DELETE FROM portfolio_pilot_owner_bindings WHERE clerk_user_id=$1", [owner]);
+    }
+  });
+  it("concurrent binding preserves singleton, one account revision and two durable proofs", async () => {
+    const owner = `synthetic-${randomUUID()}`;
+    const options = {
+      expectedOwner: owner, auth: () => ({ userId: owner, sessionId: "synthetic-concurrent-session" }),
+      officialUser: async (id: string) => ({ id, primaryEmailAddressId: "synthetic-primary",
+        emailAddresses: [{ id: "synthetic-primary", verification: { status: "verified" } }] }),
+      officialSession: async (id: string) => ({ id, userId: owner, status: "active" }),
+      pool, environment: () => "production" as const,
+    };
+    try {
+      const results = await Promise.all([bindReviewedProductionOwner(options), bindReviewedProductionOwner(options)]);
+      assert.ok(results.every(result => result.ownerBound && !result.executable));
+      assert.equal((await pool.query("SELECT revision FROM portfolio_pilot_accounts WHERE user_id=$1", [owner])).rows[0].revision, 1);
+      assert.equal((await pool.query("SELECT count(*)::int AS n FROM portfolio_pilot_audit WHERE user_id=$1", [owner])).rows[0].n, 2);
+    } finally { await pool.query("DELETE FROM portfolio_pilot_owner_bindings WHERE clerk_user_id=$1", [owner]); }
+  });
+  it("refuses a repeated binding with missing durable audit instead of claiming success or repairing silently", async () => {
+    const owner = `synthetic-${randomUUID()}`;
+    const options = {
+      expectedOwner: owner, auth: () => ({ userId: owner, sessionId: "synthetic-integrity-session" }),
+      officialUser: async (id: string) => ({ id, primaryEmailAddressId: "synthetic-primary",
+        emailAddresses: [{ id: "synthetic-primary", verification: { status: "verified" } }] }),
+      officialSession: async (id: string) => ({ id, userId: owner, status: "active" }),
+      pool, environment: () => "production" as const,
+    };
+    try {
+      await bindReviewedProductionOwner(options);
+      // Deliberately corrupt only this disposable synthetic fixture.
+      await pool.query("DELETE FROM portfolio_pilot_audit WHERE user_id=$1", [owner]);
+      await assert.rejects(bindReviewedProductionOwner(options), /DURABLE_AUDIT_NOT_READY/);
+      assert.equal((await pool.query("SELECT revision FROM portfolio_pilot_accounts WHERE user_id=$1", [owner])).rows[0].revision, 1);
+      assert.equal((await readProductionOwnerBinding(pool, owner, options.officialUser)).ownerBound, false);
+    } finally { await pool.query("DELETE FROM portfolio_pilot_owner_bindings WHERE clerk_user_id=$1", [owner]); }
   });
   it("runs approval-to-six-agents-to-private-history through durable adapters with only fake provider", async () => {
     const actor = `synthetic-${randomUUID()}`, now = Date.now();
