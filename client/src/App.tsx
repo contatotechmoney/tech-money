@@ -34,6 +34,7 @@ import Suitability from "@/pages/suitability";
 import Settings from "@/pages/settings";
 import InvestmentReview from "@/pages/investment-review";
 import InvestmentAssignments from "@/pages/investment-assignments";
+import PortfolioAccountConfirmationPage from "@/pages/portfolio-account-confirmation";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -209,6 +210,7 @@ function Router() {
       <ProtectedRoute investment path="/investments/agents/:ticker" component={InvestmentReport} />
       <ProtectedRoute investment path="/investments/agents" component={AIAgents} />
       <ProtectedRoute investment path="/investments/portfolio/simulation" component={PortfolioSimulation} />
+      <Route path="/investments/portfolio/pilot/confirm-account" component={PortfolioAccountConfirmationPage} />
       <ProtectedRoute investment path="/investments/portfolio/pilot" component={PortfolioPilot} />
       <ProtectedRoute
         investment

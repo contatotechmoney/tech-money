@@ -1,4 +1,4 @@
-# Conferência assistida da própria conta em produção
+# Conferência simples da própria conta
 
 O operador já recebeu a identificação privadamente. Não pedir novamente nem
 colocar o identificador em código, GitHub ou documentação.
@@ -7,7 +7,36 @@ O Agent não tem a sessão do navegador do proprietário. As requisições anôn
 ao Invest retornam 401. As credenciais Clerk do desenvolvimento não podem
 substituir as credenciais da instância de produção.
 
-## Uma conferência no navegador já autenticado
+## Caminho atual preparado: sem console
+
+Após implantação autorizada, abrir no Invest:
+`/investments/portfolio/pilot/confirm-account`, entrar pela autenticação Clerk
+normal e selecionar **Conferir minha conta**. Na preparação, a mesma rota é
+navegável na prévia do Replit. Desenvolvimento não confirma contas de produção.
+
+A consulta GET protegida usa `getAuth(req)`, consulta a sessão ativa e o usuário
+no serviço oficial Clerk e confere somente o e-mail principal verificado.
+A resposta mostra estados, nunca identificador, e-mail, sessão, token ou digest.
+Não lê carteira, grava banco, vincula acesso, faz análise nem envia mensagem.
+
+Correspondência usa uma referência privada, exclusivamente do servidor de
+produção: `PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE`. Seu valor é uma referência
+unidirecional com domínio de produção, derivada pelo operador da identificação
+já confirmada privadamente. Não publicar o valor, não pedir o identificador outra
+vez e não usar contas de desenvolvimento para preenchê-la. Nenhuma variável foi
+criada/alterada nesta tarefa; sem referência válida o resultado é
+**Referência do titular indisponível**. Nunca escolher primeira conta ou nome.
+
+Mesmo três resultados positivos são diagnóstico oficial de leitura, não
+vínculo aplicado nem autorização para executar. O procedimento separado de
+vínculo continua exigindo revisão do operador e conferência oficial nova.
+Execução real permanece desabilitada. Não é necessário o proprietário operar
+console, compartilhar credenciais ou fazer esta conferência antes da implantação.
+
+## Histórico técnico preservado: diagnóstico anterior pelo console
+
+O bloco abaixo pertence à preparação anterior, é preservado para auditoria
+e testes históricos e **não é o caminho recomendado ao proprietário**.
 
 No Invest publicado, conectado à própria conta, executar o bloco abaixo no
 console do navegador e compartilhar somente o resultado. Ele faz dois GETs

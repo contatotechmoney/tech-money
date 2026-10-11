@@ -9,6 +9,7 @@ import { clerkClient } from "@clerk/express";
 import type { EngineMarket } from "../shared/portfolio-pilot-engine";
 import type { PilotRun, PilotExecutionContext } from "./portfolio-pilot-executor";
 import { preparePrivatePilot } from "./portfolio-pilot-runtime";
+import { registerAccountConfirmationRoute } from "./portfolio-pilot-confirmation";
 
 // No display-name matching, first-account inference, browser flags, or environment escape hatch.
 // No owner identity has been unequivocally bound for this preparation phase.
@@ -44,7 +45,7 @@ export interface PilotDependencies {
   ledger: PilotLedger | null;
   now(): number;
   execute?: (pilot: PortfolioPilot, actor: string, budgetId: string) => Promise<PilotRun>;
-  beforeAdmission?: (actor: string) => Promise<void>;
+  beforeAdmission?: (actor: string, modelKey?: string) => Promise<void>;
   requireModelSelection?: boolean;
   extraBlockers?: string[];
 }
@@ -88,7 +89,7 @@ export class PortfolioPilot {
   async selectModel(actor: string, raw: unknown) {
     this.owner(actor);
     const { modelKey } = z.object({ modelKey: z.string().min(1) }).strict().parse(raw);
-    await this.deps.beforeAdmission?.(actor);
+    await this.deps.beforeAdmission?.(actor, modelKey);
     const matches = this.deps.models().filter(model => model.key === modelKey &&
       model.validUntil > this.deps.now() && model.accountPricingVerified);
     if (matches.length !== 1) fail("MODEL_PRICE_UNCONFIRMED");
@@ -105,7 +106,7 @@ export class PortfolioPilot {
   }
   private async context(actor: string, ids: string[], modelKey: string) {
     this.owner(actor);
-    await this.deps.beforeAdmission?.(actor);
+    await this.deps.beforeAdmission?.(actor, modelKey);
     const now = this.deps.now();
     const all = await this.deps.positions(actor); // Owned snapshot, never client quantities or prices.
     const positions = ids.map(id => all.find(p => p.id === id) ?? fail("POSITION_NOT_OWNED"))
@@ -280,6 +281,7 @@ async function resolveRuntimePilot(actor: string): Promise<PortfolioPilot> {
 }
 export function registerPortfolioPilotRoutes(app: Express, auth: RequestHandler, pilot?: PortfolioPilot) {
   const privateResponse: RequestHandler = (_req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); };
+  registerAccountConfirmationRoute(app, auth, privateResponse);
   const handle = (work: (p: PortfolioPilot, actor: string, body: unknown) => unknown): RequestHandler => async (req, res) => {
     try {
       const instance = pilot ?? await resolveRuntimePilot(req.userId!);
@@ -287,7 +289,7 @@ export function registerPortfolioPilotRoutes(app: Express, auth: RequestHandler,
     }
     catch (error) {
       const code = error instanceof z.ZodError ? "INVALID_REQUEST" : error instanceof Error ? error.message : "";
-      const known = /^(PILOT_CLOSED|POSITION_NOT_OWNED|QUANTITY_REQUIRED|MODEL_PRICE_UNCONFIRMED|MODEL_SELECTION_REQUIRED|MARKET_DATA_UNVERIFIED|NOUS_CREDENTIAL_UNAVAILABLE|ACCOUNT_TARIFF_UNVERIFIED|EXECUTOR_NOT_CONNECTED|DURABLE_AUDIT_NOT_READY|BUDGET_EXCEEDED|IDEMPOTENCY_CONFLICT|BUDGET_EXPIRED|EXECUTION_ACTIVE|BUDGET_NOT_FOUND|APPROVAL_INVALIDATED|APPROVAL_REQUIRED|REAL_EXECUTION_DISABLED|INVALID_REQUEST)$/;
+      const known = /^(PILOT_CLOSED|POSITION_NOT_OWNED|QUANTITY_REQUIRED|MODEL_PRICE_UNCONFIRMED|MODEL_SELECTION_REQUIRED|MARKET_DATA_UNVERIFIED|NOUS_CREDENTIAL_UNAVAILABLE|ACCOUNT_TARIFF_UNVERIFIED|TOKENIZER_UNVERIFIED|EXECUTOR_NOT_CONNECTED|DURABLE_AUDIT_NOT_READY|BUDGET_EXCEEDED|IDEMPOTENCY_CONFLICT|BUDGET_EXPIRED|EXECUTION_ACTIVE|BUDGET_NOT_FOUND|APPROVAL_INVALIDATED|APPROVAL_REQUIRED|REAL_EXECUTION_DISABLED|INVALID_REQUEST)$/;
       res.status(code === "PILOT_CLOSED" || code === "REAL_EXECUTION_DISABLED" ? 403 :
         code === "BUDGET_NOT_FOUND" ? 404 : code === "INVALID_REQUEST" ? 400 : known.test(code) ? 409 : 503)
         .json({ error: known.test(code) ? code : "PILOT_UNAVAILABLE", executable: false });

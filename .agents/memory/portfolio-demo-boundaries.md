@@ -47,6 +47,15 @@ O proprietário já confirmou sua identificação privadamente. Não pedir novam
 o identificador nem publicá-lo; conferir a sessão e o e-mail principal no Clerk
 de produção, sem transferir a identidade para desenvolvimento.
 
+A conferência do proprietário deve ser feita por uma tela simples no Invest,
+não pelo console do navegador ou compartilhamento de cookies/tokens/chaves.
+
+**Why:** O usuário informou que o proprietário não é técnico e o procedimento
+anterior pelo console não é adequado.
+
+**How to apply:** Mostrar somente resultados de consulta oficial no servidor;
+não confundir diagnóstico com vínculo ou conceder acesso automaticamente.
+
 **Why:** O usuário ampliou o escopo para preparar o executor seguro, mantendo
 aprovação específica antes de qualquer gasto ou compartilhamento e proibindo
 inferência real durante a implementação.

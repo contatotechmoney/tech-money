@@ -21,7 +21,8 @@ export async function preparePrivatePilot(options: Pick<PilotDependencies, "owne
   const credentialAvailable = !!options.credential()?.trim();
   if (options.ownerId && credentialAvailable) await adapter.catalogue();
   let market: PilotMarket | null = null;
-  const ready = !!options.ownerId && credentialAvailable && !!options.tokenCounter &&
+  const counterVerified = !!options.tokenCounter?.modelId && !!options.tokenCounter.methodology.trim();
+  const ready = !!options.ownerId && credentialAvailable && counterVerified &&
     !!options.marketObservation && sources.size > 0;
   return new PortfolioPilot({
     ownerId: options.ownerId, positions: options.positions, ledger: options.ledger, now,
@@ -29,12 +30,16 @@ export async function preparePrivatePilot(options: Pick<PilotDependencies, "owne
     executorReady: ready,
     extraBlockers: [
       ...(!credentialAvailable ? ["NOUS_CREDENTIAL_UNAVAILABLE"] : []),
-      ...(!options.tokenCounter ? ["TOKENIZER_UNVERIFIED"] : []),
+      ...(!counterVerified ? ["TOKENIZER_UNVERIFIED"] : []),
       ...(!options.marketObservation || !sources.size ? ["MARKET_SOURCE_NOT_CONNECTED"] : []),
     ],
-    beforeAdmission: async actor => {
+    beforeAdmission: async (actor, modelKey) => {
       if (!options.ownerId || actor !== options.ownerId) throw new Error("PILOT_CLOSED");
       await adapter.catalogue();
+      const selected = adapter.models().find(model => model.key === modelKey);
+      if (options.tokenCounter && selected &&
+          (!counterVerified || selected.modelId !== options.tokenCounter.modelId))
+        throw new Error("TOKENIZER_UNVERIFIED");
       if (options.marketObservation && sources.size) {
         const positions = await options.positions(actor);
         market = verifyPilotMarket(await options.marketObservation(actor),

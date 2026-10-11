@@ -86,11 +86,14 @@ resultados não se tornam recomendações aprovadas.
 
 ## Uma ação mínima assistida
 
-Executar a conferência documentada em
-[Conferência da própria conta](portfolio-pilot-owner-self-check.md), no navegador
-já autenticado do Invest publicado, e retornar somente o relatório sem
-identificadores/cookies/tokens/chaves. Diagnóstico de navegador não autoriza
-vínculo: o procedimento ainda exige nova conferência oficial no servidor.
+A etapa posterior prepara a tela `/investments/portfolio/pilot/confirm-account`,
+com o botão **Conferir minha conta**, sem console ou compartilhamento de dados
+pessoais. Consulte [Conferência da própria conta](portfolio-pilot-owner-self-check.md).
+A consulta protegida de leitura não aplica vínculo. Sua referência privada de
+produção não foi configurada nesta tarefa e a tela informa essa ausência.
+Os resultados desta preparação posterior estão em
+`docs/evidence/portfolio-pilot-account-confirmation.json`; os números de 354
+testes acima preservam a validação anterior.
 
 ## Etapa de produção preparada, não executada
 
