@@ -141,6 +141,13 @@
       "when": 1791640000000,
       "tag": "0017_portfolio_pilot",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791744000000,
+      "tag": "0018_portfolio_pilot_singleton_publish_compat",
+      "breakpoints": true
     }
   ]
 }

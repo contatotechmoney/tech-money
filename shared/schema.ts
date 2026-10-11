@@ -192,7 +192,8 @@ export const portfolioPilotOwnerBindings = pgTable("portfolio_pilot_owner_bindin
   verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull(),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
 }, t => [
-  check("portfolio_pilot_owner_singleton_check", sql`${t.singleton}`),
+  // Explicit comparison avoids nested CHECK introspection in the official publish diff.
+  check("portfolio_pilot_owner_singleton_check", sql`${t.singleton} = true`),
   check("portfolio_pilot_owner_environment_check", sql`${t.clerkEnvironment} IN ('development','production')`),
   check("portfolio_pilot_owner_evidence_check", sql`length(${t.evidenceDigest}) = 64`),
   check("portfolio_pilot_owner_method_check", sql`${t.verificationMethod} = 'official_clerk_owner_attestation'`),
