@@ -1,0 +1,159 @@
+.tm-brand-mark {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.tm-brand-mark span {
+  display: block;
+  width: 12px;
+  border-radius: 3px;
+  background: #087d61;
+  transform-origin: bottom;
+  animation: tm-brand-rise 2.1s ease-in-out infinite alternate;
+}
+
+.tm-brand-mark span:nth-child(1) {
+  height: 22px;
+  animation-delay: -0.6s;
+}
+
+.tm-brand-mark span:nth-child(2) {
+  height: 31px;
+  animation-delay: -1.2s;
+}
+
+.tm-brand-mark span:nth-child(3) {
+  height: 36px;
+  animation-delay: -1.8s;
+}
+
+.tm-brand-name {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.tm-brand-area {
+  color: #087d61;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.35px;
+  line-height: 1.3;
+}
+
+.tm-brand-mark--compact {
+  height: 30px;
+  gap: 4px;
+}
+
+.tm-brand-mark--compact span {
+  width: 8px;
+  border-radius: 2px;
+}
+
+.tm-brand-mark--compact span:nth-child(1) {
+  height: 18px;
+}
+
+.tm-brand-mark--compact span:nth-child(2) {
+  height: 25px;
+}
+
+.tm-brand-mark--compact span:nth-child(3) {
+  height: 30px;
+}
+
+.tm-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+}
+
+.tm-brand-lockup--compact {
+  gap: 10px;
+}
+
+.tm-brand-lockup--compact .tm-brand-area {
+  color: inherit;
+}
+
+.dark .tm-brand-mark span {
+  background: #49c5a3;
+}
+
+.tm-brand-lockup--auth .tm-brand-mark span {
+  background: #087d61;
+}
+
+.tm-brand-on-dark .tm-brand-mark span {
+  background: #49c5a3;
+}
+
+.tm-brand-mobile {
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.tm-brand-mobile .tm-brand-name {
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.tm-brand-mobile .tm-brand-area {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.tm-brand-lockup--compact .tm-brand-name {
+  font-size: 16px;
+  letter-spacing: 1.5px;
+}
+
+.tm-brand-lockup--compact .tm-brand-area {
+  display: block;
+  color: inherit;
+}
+
+.tm-brand-mobile .tm-brand-area {
+  font-size: 10px;
+}
+
+.tm-brand-mobile .tm-brand-name {
+  font-size: 14px;
+}
+
+.tm-brand-lockup--selection .tm-brand-name {
+  font-size: 22px;
+}
+
+.tm-brand-lockup--selection .tm-brand-area {
+  font-size: 10px;
+}
+
+.tm-brand-lockup--selection .tm-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+@keyframes tm-brand-rise {
+  from {
+    transform: scaleY(0.76);
+    opacity: 0.75;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-brand-mark span {
+    animation: none !important;
+    transform: none;
+  }
+}

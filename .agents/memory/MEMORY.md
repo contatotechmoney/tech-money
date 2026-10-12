@@ -1,1 +1,15 @@
 - [Clerk production hosting](clerk-production-hosting.md) — Clerk proxy authentication needs a server deployment, not static hosting.
+- [GitHub connector publishing](github-connector-publishing.md) — publish through the authenticated API proxy when shell Git lacks connector credentials.
+- [Secret attachment hygiene](secret-attachment-hygiene.md) — internal backup history is append-only; keep credentials out of attachments and Git.
+- [Investment governance](investment-governance.md) — client-paid fees, no product commissions; partial analysis and missing review cannot become approved advice.
+- [Validation timeouts](validation-timeouts.md) — incremental checks have stalled without diagnostics; confirm with a fresh compiler check before blaming code.
+- [Email DNS verification](email-dns-verification.md) — check live nameservers and provider status before directing DNS edits; a website dashboard is not proof of DNS ownership.
+- [Cloudflare como referência](cloudflare-scope.md) — neste projeto, tudo deve se relacionar com o Cloudflare; não usar o Wix nas próximas soluções.
+- [Delivery safety](delivery-monitoring-boundaries.md) — nesta fase, envios e monitoramento automático suspensos; preservar registros e não atribuir origem ao portal antigo sem prova.
+- [Testes de interface](ui-test-jsx.md) — SSR/JSX e cache sem afrouxar autorização; executor de navegador pode faltar e listeners temporários podem persistir portas.
+- [Access auth boundaries](access-auth-boundaries.md) — Coop is a visual reference only; preserve Clerk sessions, MFA/CAPTCHA and separate Supabase registration.
+- [Dependency security](dependency-security.md) — parent updates may retain vulnerable transitive locks; resolve compatible corrected releases without bypassing security.
+- [Review queue boundaries](review-queue-boundaries.md) — pending decisions concern current documents, not historical audits or delivery confirmations.
+- [Publish governance safety](publish-governance-safety.md) — verify SQL functions/triggers separately from the table diff; table-only schema must not authorize advice.
+- [Identidade Invest e Finance](brand-identity-boundaries.md) — marca atual de três barras; históricos e marcas de terceiros permanecem preservados fora das superfícies ativas.
+- [Demonstração de carteira](portfolio-demo-boundaries.md) — personas de IA, dados fictícios separados da carteira real e versões estáveis para o histórico.

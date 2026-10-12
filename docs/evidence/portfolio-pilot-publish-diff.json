@@ -1,0 +1,25 @@
+{
+  "source": "official explainSchemaDiff; captured after physical development constraint verification",
+  "hasStructuralDataLoss": false,
+  "maybeNonBackwardsCompatible": false,
+  "tablesToRemove": [],
+  "tablesToTruncate": [],
+  "columnsToRemove": [],
+  "schemasToRemove": [],
+  "matViewsToRemove": [],
+  "warnings": [],
+  "failedStatementsSha256": "737a04fe24b24b3601bb81175eeb35106415111ec4fba89df0c8a6168a3aa4b5",
+  "statementsSha256": "a63c288b769300e31cb1568072c88c7f25f2f4b1cf9fd9f90321f5eff12d3068",
+  "failedStatementsToExecute": [
+    "CREATE TABLE \"portfolio_pilot_accounts\" (\n\t\"user_id\" text PRIMARY KEY NOT NULL,\n\t\"state\" jsonb DEFAULT '{\"runs\":[],\"events\":[],\"budgets\":[]}'::jsonb NOT NULL,\n\t\"revision\" integer DEFAULT 0 NOT NULL,\n\t\"updated_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\tCONSTRAINT \"portfolio_pilot_revision_check\" CHECK (revision >= 0)\n);\n",
+    "CREATE TABLE \"portfolio_pilot_owner_bindings\" (\n\t\"singleton\" boolean PRIMARY KEY DEFAULT true NOT NULL,\n\t\"clerk_user_id\" text NOT NULL,\n\t\"clerk_environment\" text NOT NULL,\n\t\"evidence_digest\" text NOT NULL,\n\t\"verification_method\" text NOT NULL,\n\t\"verified_at\" timestamp with time zone NOT NULL,\n\t\"revoked_at\" timestamp with time zone,\n\tCONSTRAINT \"portfolio_pilot_owner_environment_check\" CHECK (clerk_environment = ANY (ARRAY['development'::text, 'production'::text])),\n\tCONSTRAINT \"portfolio_pilot_owner_evidence_check\" CHECK (length(evidence_digest) = 64),\n\tCONSTRAINT \"portfolio_pilot_owner_method_check\" CHECK (verification_method = 'official_clerk_owner_attestation'::text),\n\tCONSTRAINT \"portfolio_pilot_owner_singleton_check\" CHECK (CHECK (singleton))\n);\n",
+    "CREATE TABLE \"portfolio_pilot_audit\" (\n\t\"id\" bigserial PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"event_index\" integer NOT NULL,\n\t\"event\" jsonb NOT NULL,\n\t\"recorded_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\tCONSTRAINT \"portfolio_pilot_audit_user_id_event_index_key\" UNIQUE(\"user_id\",\"event_index\"),\n\tCONSTRAINT \"portfolio_pilot_event_index_check\" CHECK (event_index >= 0)\n);\n",
+    "ALTER TABLE \"portfolio_pilot_audit\" ADD CONSTRAINT \"portfolio_pilot_audit_user_id_fkey\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"portfolio_pilot_accounts\"(\"user_id\") ON DELETE no action ON UPDATE no action;"
+  ],
+  "statementsToExecute": [
+    "CREATE TABLE \"portfolio_pilot_audit\" (\n\t\"id\" bigserial PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"event_index\" integer NOT NULL,\n\t\"event\" jsonb NOT NULL,\n\t\"recorded_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\tCONSTRAINT \"portfolio_pilot_audit_user_id_event_index_key\" UNIQUE(\"user_id\",\"event_index\"),\n\tCONSTRAINT \"portfolio_pilot_event_index_check\" CHECK (event_index >= 0)\n);\n",
+    "CREATE TABLE \"portfolio_pilot_accounts\" (\n\t\"user_id\" text PRIMARY KEY NOT NULL,\n\t\"state\" jsonb DEFAULT '{\"runs\":[],\"events\":[],\"budgets\":[]}'::jsonb NOT NULL,\n\t\"revision\" integer DEFAULT 0 NOT NULL,\n\t\"updated_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\tCONSTRAINT \"portfolio_pilot_revision_check\" CHECK (revision >= 0)\n);\n",
+    "CREATE TABLE \"portfolio_pilot_owner_bindings\" (\n\t\"singleton\" boolean PRIMARY KEY DEFAULT true NOT NULL,\n\t\"clerk_user_id\" text NOT NULL,\n\t\"clerk_environment\" text NOT NULL,\n\t\"evidence_digest\" text NOT NULL,\n\t\"verification_method\" text NOT NULL,\n\t\"verified_at\" timestamp with time zone NOT NULL,\n\t\"revoked_at\" timestamp with time zone,\n\tCONSTRAINT \"portfolio_pilot_owner_environment_check\" CHECK (clerk_environment = ANY (ARRAY['development'::text, 'production'::text])),\n\tCONSTRAINT \"portfolio_pilot_owner_evidence_check\" CHECK (length(evidence_digest) = 64),\n\tCONSTRAINT \"portfolio_pilot_owner_method_check\" CHECK (verification_method = 'official_clerk_owner_attestation'::text),\n\tCONSTRAINT \"portfolio_pilot_owner_singleton_check\" CHECK (singleton = true)\n);\n",
+    "ALTER TABLE \"portfolio_pilot_audit\" ADD CONSTRAINT \"portfolio_pilot_audit_user_id_fkey\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"portfolio_pilot_accounts\"(\"user_id\") ON DELETE no action ON UPDATE no action;"
+  ]
+}

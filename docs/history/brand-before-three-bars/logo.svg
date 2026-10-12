@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" role="img" aria-labelledby="title">
+  <title id="title">Tech Money</title>
+  <rect width="160" height="40" rx="8" fill="#1b4d3e"/>
+  <g fill="#2a9d8f">
+    <rect x="10" y="7" width="10" height="10"/>
+    <rect x="10" y="23" width="10" height="10"/>
+    <rect x="27" y="15" width="10" height="10"/>
+  </g>
+  <rect x="27" y="27" width="10" height="10" fill="#264653"/>
+  <text x="48" y="26" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700">Tech Money</text>
+</svg>

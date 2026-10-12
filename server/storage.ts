@@ -1,6 +1,7 @@
 import { type User, type InsertUser } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
+import type { AnalysisQuality } from "../shared/report-quality";
 
 export type PortfolioHolding = {
   id: string;
@@ -17,15 +18,43 @@ export type PortfolioTransactionType = "buy" | "sell";
 
 export type ReportDeliveryChannel = "email" | "whatsapp";
 
+export const PROVIDER_EVENT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+export const PROVIDER_EVENT_MAX_PENDING = 10_000;
+type ProviderDeliveryEvent = {
+  channel: ReportDeliveryChannel;
+  providerMessageId: string;
+  status: Extract<ReportDeliveryStatus, "sent" | "delivered" | "failed">;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+};
+
+export type ReportDeliveryStatus =
+  | "pending"
+  | "processing"
+  | "awaiting_provider"
+  | "sent"
+  | "delivered"
+  | "failed";
 export type ReportDeliveryRequest = {
   id: string;
   userId: string;
+  reportId: string | null;
+  professionalReviewId?: string | null;
+  idempotencyKey: string;
   ticker: string;
   channel: ReportDeliveryChannel;
   contact: string;
   useRegisteredContact: boolean;
-  status: string;
+  status: ReportDeliveryStatus;
+  providerMessageId: string | null;
+  attemptCount: number;
+  errorCode: string | null;
+  errorMessage: string | null;
   requestedAt: string;
+  updatedAt: string;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  confirmationOverdueAt: string | null;
 };
 
 export type PortfolioTransaction = {
@@ -112,11 +141,35 @@ export interface IStorage {
 
   createReportDeliveryRequest(input: {
     userId: string;
+    reportId: string;
+    professionalReviewId?: string;
+    idempotencyKey: string;
     ticker: string;
     channel: ReportDeliveryChannel;
     contact: string;
     useRegisteredContact: boolean;
   }): Promise<ReportDeliveryRequest>;
+  getReportDeliveryRequest(userId: string, id: string): Promise<ReportDeliveryRequest | undefined>;
+  listReportDeliveryRequests(userId: string, ticker: string): Promise<ReportDeliveryRequest[]>;
+  claimReportDeliveryRequests(limit: number, id?: string): Promise<ClaimedReportDelivery[]>;
+  flagUnconfirmedReportDeliveries(before: Date, limit: number): Promise<ReportDeliveryRequest[]>;
+  pruneReportDeliveryProviderEvents(): Promise<void>;
+  updateReportDeliveryRequest(
+    id: string,
+    update: {
+      status: ReportDeliveryStatus;
+      providerMessageId?: string | null;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+    },
+  ): Promise<void>;
+  updateReportDeliveryStatusFromProvider(input: {
+    channel: ReportDeliveryChannel;
+    providerMessageId: string;
+    status: Extract<ReportDeliveryStatus, "sent" | "delivered" | "failed">;
+    errorCode?: string | null;
+    errorMessage?: string | null;
+  }): Promise<{ matched: boolean; status?: ReportDeliveryStatus }>;
 }
 
 export class MemStorage implements IStorage {
@@ -332,7 +385,8 @@ export class MemStorage implements IStorage {
       `SELECT id, user_id AS "userId", ticker, company_name AS "companyName",
         generated_at AS "generatedAt", price::float8 AS price,
         change_percent::float8 AS "changePercent", signal, summary,
-        strengths, risks, outlook, source
+         strengths, risks, risk_score::float8 AS "riskScore", outlook, source,
+         analysis_quality AS "analysisQuality"
        FROM investment_reports
        WHERE user_id = $1 ${ticker ? "AND ticker = $2" : ""}
        ORDER BY generated_at DESC`,
@@ -345,12 +399,13 @@ export class MemStorage implements IStorage {
     const { rows } = await pool.query(
       `INSERT INTO investment_reports
         (id, user_id, ticker, company_name, price, change_percent, signal,
-         summary, strengths, risks, outlook, source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12)
+          summary, strengths, risks, risk_score, outlook, source, analysis_quality)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12, $13, $14::jsonb)
        RETURNING id, user_id AS "userId", ticker, company_name AS "companyName",
         generated_at AS "generatedAt", price::float8 AS price,
         change_percent::float8 AS "changePercent", signal, summary,
-        strengths, risks, outlook, source`,
+         strengths, risks, risk_score::float8 AS "riskScore", outlook, source,
+         analysis_quality AS "analysisQuality"`,
       [
         randomUUID(),
         input.userId,
@@ -362,8 +417,10 @@ export class MemStorage implements IStorage {
         input.summary,
         JSON.stringify(input.strengths),
         JSON.stringify(input.risks),
+        input.riskScore,
         input.outlook,
         input.source,
+        JSON.stringify(input.analysisQuality ?? null),
       ],
     );
     return rows[0];
@@ -371,29 +428,323 @@ export class MemStorage implements IStorage {
 
   async createReportDeliveryRequest(input: {
     userId: string;
+    reportId: string;
+    professionalReviewId?: string;
+    idempotencyKey: string;
     ticker: string;
     channel: ReportDeliveryChannel;
     contact: string;
     useRegisteredContact: boolean;
   }): Promise<ReportDeliveryRequest> {
     const { rows } = await pool.query(
-      `INSERT INTO report_delivery_requests
-        (id, user_id, ticker, channel, contact, use_registered_contact)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, user_id AS "userId", ticker, channel, contact,
-        use_registered_contact AS "useRegisteredContact", status,
-        requested_at AS "requestedAt"`,
+      `INSERT INTO report_delivery_requests AS d
+        (id, user_id, report_id, idempotency_key, ticker, channel, contact, use_registered_contact, professional_review_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (user_id, idempotency_key) DO NOTHING
+       RETURNING ${REPORT_DELIVERY_COLUMNS}`,
       [
         randomUUID(),
         input.userId,
+        input.reportId,
+        input.idempotencyKey,
         input.ticker,
         input.channel,
         input.contact,
         input.useRegisteredContact,
+        input.professionalReviewId ?? null,
       ],
     );
-    return normalizeReportDeliveryRequest(rows[0]);
+    if (rows[0]) return normalizeReportDeliveryRequest(rows[0]);
+    const existing = await pool.query(
+      `SELECT ${REPORT_DELIVERY_COLUMNS}
+       FROM report_delivery_requests d
+       WHERE d.user_id = $1 AND d.idempotency_key = $2`,
+      [input.userId, input.idempotencyKey],
+    );
+    return normalizeReportDeliveryRequest(existing.rows[0]);
   }
+
+  async getReportDeliveryRequest(userId: string, id: string): Promise<ReportDeliveryRequest | undefined> {
+    const { rows } = await pool.query(
+      `SELECT ${REPORT_DELIVERY_COLUMNS}
+       FROM report_delivery_requests d
+       WHERE d.id = $1 AND d.user_id = $2`,
+      [id, userId],
+    );
+    return rows[0] ? normalizeReportDeliveryRequest(rows[0]) : undefined;
+  }
+
+  async listReportDeliveryRequests(userId: string, ticker: string): Promise<ReportDeliveryRequest[]> {
+    const { rows } = await pool.query(
+      `SELECT ${REPORT_DELIVERY_COLUMNS}
+       FROM report_delivery_requests d
+       WHERE d.user_id = $1 AND d.ticker = $2
+       ORDER BY d.requested_at DESC, d.id DESC`,
+      [userId, ticker],
+    );
+    return rows.map(normalizeReportDeliveryRequest);
+  }
+
+  async flagUnconfirmedReportDeliveries(before: Date, limit: number): Promise<ReportDeliveryRequest[]> {
+    if (!Number.isFinite(before.getTime()) || !Number.isInteger(limit) || limit < 1 || limit > 1000) {
+      throw new Error("Invalid unconfirmed delivery scan parameters");
+    }
+    // Lock and persist the alert together: overlapping workers cannot alert the same request twice.
+    const { rows } = await pool.query(
+      `WITH overdue AS (
+         SELECT id FROM report_delivery_requests
+         WHERE status = 'sent' AND sent_at <= $1
+           AND confirmation_overdue_at IS NULL
+         ORDER BY sent_at, id
+         LIMIT $2
+         FOR UPDATE SKIP LOCKED
+       )
+       UPDATE report_delivery_requests d
+       SET confirmation_overdue_at = NOW(), updated_at = NOW()
+       FROM overdue
+       WHERE d.id = overdue.id AND d.status = 'sent'
+         AND d.confirmation_overdue_at IS NULL
+       RETURNING ${REPORT_DELIVERY_COLUMNS}`,
+      [before, limit],
+    );
+    return rows.map(normalizeReportDeliveryRequest);
+  }
+
+  async claimReportDeliveryRequests(limit: number, id?: string): Promise<ClaimedReportDelivery[]> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `UPDATE report_delivery_requests
+         SET status = 'failed', error_code = 'PROCESSING_TIMEOUT',
+             error_message = 'O processamento foi interrompido antes da confirmação do provedor.',
+             updated_at = NOW()
+         WHERE status = 'processing'
+           AND processing_started_at < NOW() - INTERVAL '10 minutes'`,
+      );
+      const params: unknown[] = [limit];
+      const idFilter = id ? "AND d.id = $2" : "";
+      if (id) params.push(id);
+      const { rows } = await client.query(
+        `SELECT d.id
+         FROM report_delivery_requests d
+         WHERE d.status IN ('pending', 'awaiting_provider')
+           AND (d.status = 'pending' OR d.updated_at < NOW() - INTERVAL '1 minute')
+           ${idFilter}
+         ORDER BY d.requested_at
+         LIMIT $1
+         FOR UPDATE SKIP LOCKED`,
+        params,
+      );
+      if (!rows.length) {
+        await client.query("COMMIT");
+        return [];
+      }
+
+      const claimed = await client.query(
+        `UPDATE report_delivery_requests d
+         SET status = 'processing', attempt_count = attempt_count + 1,
+             error_code = NULL, error_message = NULL, updated_at = NOW(),
+             processing_started_at = NOW()
+         FROM investment_reports r
+         WHERE d.id = ANY($1::varchar[]) AND r.id = d.report_id AND r.user_id = d.user_id
+         RETURNING ${REPORT_DELIVERY_COLUMNS},
+           r.id AS "reportReportId", r.user_id AS "reportUserId",
+           r.ticker AS "reportTicker", r.company_name AS "reportCompanyName",
+           r.generated_at AS "reportGeneratedAt", r.price::float8 AS "reportPrice",
+           r.change_percent::float8 AS "reportChangePercent", r.signal AS "reportSignal",
+           r.summary AS "reportSummary", r.strengths AS "reportStrengths",
+           r.risks AS "reportRisks", r.risk_score::float8 AS "reportRiskScore",
+           r.outlook AS "reportOutlook", r.source AS "reportSource"`,
+        [rows.map((row) => row.id)],
+      );
+      await client.query("COMMIT");
+      return claimed.rows.map((row) => ({
+        ...normalizeReportDeliveryRequest(row),
+        report: {
+          id: row.reportReportId,
+          userId: row.reportUserId,
+          ticker: row.reportTicker,
+          companyName: row.reportCompanyName,
+          generatedAt: new Date(row.reportGeneratedAt).toISOString(),
+          price: row.reportPrice,
+          changePercent: row.reportChangePercent,
+          signal: row.reportSignal,
+          summary: row.reportSummary,
+          strengths: row.reportStrengths,
+          risks: row.reportRisks,
+          riskScore: row.reportRiskScore,
+          outlook: row.reportOutlook,
+          source: row.reportSource,
+        },
+      }));
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateReportDeliveryRequest(
+    id: string,
+    update: {
+      status: ReportDeliveryStatus;
+      providerMessageId?: string | null;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+    },
+  ): Promise<void> {
+    await withProviderEventTransaction(async (client) => {
+      const { rows } = await client.query(
+        `UPDATE report_delivery_requests
+         SET status = $2::varchar, provider_message_id = COALESCE($3, provider_message_id),
+             error_code = $4::varchar, error_message = $5, updated_at = NOW(),
+             sent_at = CASE WHEN $2::varchar IN ('sent', 'delivered') THEN COALESCE(sent_at, NOW()) ELSE sent_at END,
+             delivered_at = CASE WHEN $2::varchar = 'delivered' THEN COALESCE(delivered_at, NOW()) ELSE delivered_at END
+         WHERE id = $1 AND status NOT IN ('delivered', 'failed')
+         RETURNING channel, provider_message_id`,
+        [
+          id,
+          update.status,
+          update.providerMessageId ?? null,
+          update.errorCode ?? null,
+          update.errorMessage ?? null,
+        ],
+      );
+      const linked = rows[0];
+      if (linked?.provider_message_id) {
+        await pruneProviderEvents(client);
+        const events = await client.query(
+          `SELECT channel, provider_message_id AS "providerMessageId", status,
+                  error_code AS "errorCode", error_message AS "errorMessage"
+           FROM report_delivery_provider_events
+           WHERE channel = $1 AND provider_message_id = $2 ORDER BY id`,
+          [linked.channel, linked.provider_message_id],
+        );
+        for (const event of events.rows) await applyProviderEvent(client, event);
+        await client.query(
+          `DELETE FROM report_delivery_provider_events WHERE channel = $1 AND provider_message_id = $2`,
+          [linked.channel, linked.provider_message_id],
+        );
+      }
+    });
+  }
+
+  async pruneReportDeliveryProviderEvents(): Promise<void> {
+    await withProviderEventTransaction(pruneProviderEvents);
+  }
+
+  async updateReportDeliveryStatusFromProvider(input: ProviderDeliveryEvent):
+    Promise<{ matched: boolean; status?: ReportDeliveryStatus }> {
+    // Reject oversized identifiers rather than truncating and matching a different message.
+    if (!input.providerMessageId || input.providerMessageId.length > 512) {
+      throw new Error("Invalid provider message identifier");
+    }
+    const event = {
+      ...input,
+      errorCode: input.errorCode?.slice(0, 128),
+      errorMessage: input.errorMessage?.slice(0, 1000),
+    };
+    return withProviderEventTransaction(async (client) => {
+      const result = await applyProviderEvent(client, event);
+      if (result.matched) return result;
+      await pruneProviderEvents(client);
+      const duplicate = await client.query(
+        `SELECT 1 FROM report_delivery_provider_events
+         WHERE channel = $1 AND provider_message_id = $2 AND status = $3`,
+        [event.channel, event.providerMessageId, event.status],
+      );
+      if (!duplicate.rowCount) {
+        const count = await client.query(`SELECT COUNT(*)::int AS total FROM report_delivery_provider_events`);
+        if (count.rows[0].total >= PROVIDER_EVENT_MAX_PENDING) {
+          // Do not acknowledge or evict valid confirmations when full: the provider must retry.
+          throw new Error("Pending provider event capacity exceeded");
+        }
+        await client.query(
+          `INSERT INTO report_delivery_provider_events
+             (channel, provider_message_id, status, error_code, error_message)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [event.channel, event.providerMessageId, event.status, event.errorCode ?? null, event.errorMessage ?? null],
+        );
+      }
+      return result;
+    });
+  }
+}
+
+// Shared by webhook ingestion, linking and retention. The transaction lock prevents
+// check-before-link races across processes, and makes the capacity check atomic.
+async function withProviderEventTransaction<T>(action: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(73125, 1)");
+    const result = await action(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function pruneProviderEvents(client: PoolClient): Promise<void> {
+  await client.query(
+    `DELETE FROM report_delivery_provider_events
+     WHERE received_at < NOW() - ($1::bigint * INTERVAL '1 millisecond')`,
+    [PROVIDER_EVENT_RETENTION_MS],
+  );
+}
+
+async function applyProviderEvent(client: PoolClient, input: ProviderDeliveryEvent):
+  Promise<{ matched: boolean; status?: ReportDeliveryStatus }> {
+    const { rows } = await client.query(
+      `UPDATE report_delivery_requests
+       SET status = CASE
+           WHEN $3::varchar = 'delivered' AND status NOT IN ('delivered', 'failed') THEN 'delivered'
+           WHEN $3::varchar = 'failed' AND status <> 'delivered' THEN 'failed'
+           WHEN $3::varchar = 'sent' AND status NOT IN ('delivered', 'failed') THEN 'sent'
+           ELSE status
+         END,
+         error_code = CASE
+           WHEN status IN ('delivered', 'failed') THEN error_code
+           WHEN $3::varchar = 'failed' AND status <> 'delivered' THEN $4::varchar
+           WHEN $3::varchar <> 'failed' THEN NULL
+           ELSE error_code
+         END,
+         error_message = CASE
+           WHEN status IN ('delivered', 'failed') THEN error_message
+           WHEN $3::varchar = 'failed' AND status <> 'delivered' THEN $5
+           WHEN $3::varchar <> 'failed' THEN NULL
+           ELSE error_message
+         END,
+         updated_at = CASE WHEN status IN ('delivered', 'failed') OR status = $3::varchar THEN updated_at ELSE NOW() END,
+         sent_at = CASE
+           WHEN status IN ('delivered', 'failed') THEN sent_at
+           WHEN $3::varchar IN ('sent', 'delivered') THEN COALESCE(sent_at, NOW())
+           ELSE sent_at
+         END,
+         delivered_at = CASE
+           WHEN $3::varchar = 'delivered' AND status NOT IN ('delivered', 'failed')
+             THEN COALESCE(delivered_at, NOW())
+           ELSE delivered_at
+         END
+       WHERE channel = $1
+         AND provider_message_id = $2
+       RETURNING status`,
+      [
+        input.channel,
+        input.providerMessageId,
+        input.status,
+        input.errorCode ?? null,
+        input.errorMessage ?? null,
+      ],
+    );
+    if (!rows[0]) return { matched: false };
+    return { matched: true, status: rows[0].status as ReportDeliveryStatus };
 }
 
 type PositionState = { quantity: number; cost: number; realizedProfit: number };
@@ -486,20 +837,26 @@ function roundMoney(value: number): number {
 }
 
 function normalizeReportDeliveryRequest(
-  request: Omit<ReportDeliveryRequest, "requestedAt"> & { requestedAt: unknown },
+  request: Omit<ReportDeliveryRequest, "requestedAt" | "updatedAt" | "sentAt" | "deliveredAt" | "confirmationOverdueAt"> & {
+    requestedAt: unknown;
+    updatedAt: unknown;
+    sentAt: unknown;
+    deliveredAt: unknown;
+    confirmationOverdueAt: unknown;
+  },
 ): ReportDeliveryRequest {
-  const requestedAt = request.requestedAt;
   return {
-    id: request.id,
-    userId: request.userId,
-    ticker: request.ticker,
-    channel: request.channel,
-    contact: request.contact,
-    useRegisteredContact: request.useRegisteredContact,
-    status: request.status,
-    requestedAt: requestedAt instanceof Date
-      ? requestedAt.toISOString()
-      : String(requestedAt),
+    ...request,
+    attemptCount: Number(request.attemptCount),
+    requestedAt: new Date(request.requestedAt as string | number | Date).toISOString(),
+    updatedAt: new Date(request.updatedAt as string | number | Date).toISOString(),
+    sentAt: request.sentAt ? new Date(request.sentAt as string | number | Date).toISOString() : null,
+    deliveredAt: request.deliveredAt
+      ? new Date(request.deliveredAt as string | number | Date).toISOString()
+      : null,
+    confirmationOverdueAt: request.confirmationOverdueAt
+      ? new Date(request.confirmationOverdueAt as string | number | Date).toISOString()
+      : null,
   };
 }
 
@@ -517,12 +874,28 @@ export type InvestmentReport = {
   summary: string;
   strengths: string[];
   risks: string[];
+  riskScore: number | null;
   outlook: string;
   source: string;
+  analysisQuality?: AnalysisQuality | null;
 };
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export type ClaimedReportDelivery = ReportDeliveryRequest & {
+  report: InvestmentReport;
+};
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 export async function closeStorage(): Promise<void> {
   await pool.end();
 }
+
+const REPORT_DELIVERY_COLUMNS = `d.id, d.user_id AS "userId", d.report_id AS "reportId",
+  d.professional_review_id AS "professionalReviewId",
+  d.idempotency_key AS "idempotencyKey", d.ticker, d.channel, d.contact,
+  d.use_registered_contact AS "useRegisteredContact",
+  d.status, d.provider_message_id AS "providerMessageId",
+  d.attempt_count::int AS "attemptCount", d.error_code AS "errorCode",
+  d.error_message AS "errorMessage", d.requested_at AS "requestedAt",
+  d.updated_at AS "updatedAt", d.processing_started_at AS "processingStartedAt",
+  d.sent_at AS "sentAt", d.delivered_at AS "deliveredAt",
+  d.confirmation_overdue_at AS "confirmationOverdueAt"`;

@@ -5,7 +5,7 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { transformSync } from "esbuild";
 import { runInNewContext } from "node:vm";
-import { authLink, getAuthRedirect, withAppBase } from "../client/src/lib/auth-redirect";
+import { authLink, getAuthRedirect, getHostDestination, withAppBase } from "../client/src/lib/auth-redirect";
 
 describe("investment entry and authentication destination", () => {
   const destination = "/investments/agents";
@@ -77,16 +77,42 @@ describe("investment entry and authentication destination", () => {
   it("keeps the investment routes protected and wires both Clerk flows", () => {
     const app = readFileSync("client/src/App.tsx", "utf8");
     const login = readFileSync("client/src/pages/login.tsx", "utf8");
+    const access = readFileSync("client/src/components/auth-access-page.tsx", "utf8");
     assert.match(app, /<ProtectedRoute investment path="\/investments\/agents" component=\{AIAgents\}/);
     assert.match(app, /if \(!isLoaded\) return <LoadingScreen \/>/);
     assert.match(app, /if \(!isSignedIn\) return null/);
-    assert.match(app, /return <>\{children\}<\/>/);
-    assert.equal((app.match(/forceRedirectUrl=\{destination\}/g) || []).length, 2);
-    assert.match(app, /signUpForceRedirectUrl=\{destination\}/);
-    assert.match(app, /signInForceRedirectUrl=\{destination\}/);
-    assert.equal((app.match(/useState\(\(\) => getAuthRedirect\(search, basePath\)\)/g) || []).length, 2);
-    assert.match(login, /navigate\(redirectPath, \{ replace: true \}\)/);
-    assert.match(login, /href=\{authLink\("\/sign-up", redirectPath\)\}/);
-    assert.match(login, /navigate\(authLink\("\/sign-in", redirectPath\)\)/);
+    assert.match(app, /return registerPortal \? <PortalRegistration>\{children\}<\/PortalRegistration> : <>\{children\}<\/>/);
+    assert.match(app, /<AuthGuard registerPortal=\{investment\}>/);
+    assert.equal((access.match(/forceRedirectUrl=\{destination\}/g) || []).length, 2);
+    assert.match(access, /signUpForceRedirectUrl=\{destination\}/);
+    assert.match(access, /signInForceRedirectUrl=\{destination\}/);
+    assert.match(access, /React.useState\(\(\) => getAuthRedirect\(search, basePath, window.location.hostname\)\)/);
+    assert.match(access, /navigate\(redirectPath, \{ replace: true \}\)/);
+    assert.match(access, /authLink\("\/sign-up", redirectPath\)/);
+    assert.match(access, /navigate\(nativeHref\)/);
+    assert.match(login, /<AuthAccessPage \/>/);
+    assert.match(app, /path="\/sign-in\/\*\?"/);
+    assert.match(app, /path="\/sign-up\/\*\?"/);
+  });
+  it("chooses defaults only for the exact Invest and Finance hosts", () => {
+    assert.equal(getHostDestination("INVEST.TechMoney.com.br."), destination);
+    assert.equal(getAuthRedirect("", "", "invest.techmoney.com.br"), destination);
+    assert.equal(getAuthRedirect("", "", "finance.techmoney.com.br"), "/dashboard");
+    for (const host of ["localhost", "finance.techmoney.com.br.evil.test", "ai.techmoney.com.br"]) {
+      assert.equal(getHostDestination(host), "/areas");
+    }
+  });
+  it("explicit valid redirects prevail over either domain default", () => {
+    assert.equal(getAuthRedirect("?redirect=%2Fdashboard", "", "invest.techmoney.com.br"), "/dashboard");
+    assert.equal(getAuthRedirect("?redirect=%2Finvestments%2Fagents", "", "finance.techmoney.com.br"), destination);
+    assert.equal(getAuthRedirect("?redirect=%2Fapp%2Freports%2Ftest%3Fa%3D1%23x", "/app", "finance.techmoney.com.br"), "/reports/test?a=1#x");
+  });
+  it("uses the safe host default for invalid and multiply encoded redirects", () => {
+    for (const value of ["//evil.test", "https://evil.test", "/%2f%2fevil.test", "/%255cevil.test",
+      "/%73ign-in", "/x/%2e%2e/sign-up", "/sign-up/sso-callback", "/%0d%0aevil"]) {
+      for (const host of ["invest.techmoney.com.br", "finance.techmoney.com.br", "localhost"]) {
+        assert.equal(getAuthRedirect(`?redirect=${encodeURIComponent(value)}`, "", host), getHostDestination(host), value);
+      }
+    }
   });
 });

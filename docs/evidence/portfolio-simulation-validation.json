@@ -1,0 +1,52 @@
+{
+  "reviewDate": "2026-10-10",
+  "mode": "simulation_only",
+  "syntheticTests": { "total": 300, "passed": 300, "failed": 0, "groups": [70, 23, 101, 59, 47] },
+  "typecheck": "passed",
+  "build": "passed_with_existing_chunk_size_warning",
+  "portfolioBrowser": {
+    "result": "passed",
+    "stages": [
+      "anonymous-demo-protected",
+      "portfolio-button-separate-demo-no-auto-start",
+      "explicit-start-six-illustrative-agents",
+      "deterministic-completion-no-real-portfolio-read",
+      "private-history-reopened-after-reload",
+      "private-history-reopened-after-fictitious-sign-out-and-in",
+      "other-user-empty-history-detail-404-mobile-dark",
+      "unavailable-history-explicit-error-no-fake-empty",
+      "third-central-card-six-ai-profiles-rv-rf-preserved"
+    ],
+    "desktopWidth": 1280,
+    "mobileWidth": 375,
+    "reducedMotion": true,
+    "pageErrors": 0,
+    "externalProviderCalls": 0,
+    "realDatabaseQueries": 0,
+    "legacyCalls": 0,
+    "tokensConsumed": 0,
+    "realCreditsChanged": 0,
+    "realAccountsCreated": 0,
+    "deliveryWorkerEnabled": false,
+    "realPortfolioReadsDuringDemo": 0,
+    "blockedOptionalFontRequests": 9,
+    "blockedOptionalFontHosts": ["fonts.googleapis.com"],
+    "existingRvProfiles": 10,
+    "existingRfProfiles": 6,
+    "newPortfolioProfiles": 6
+  },
+  "previousSimulationBrowser": "passed",
+  "developmentSchema": { "newTables": 1, "columns": 5, "indexesIncludingPrimaryKey": 3, "scenarioChecks": 1 },
+  "production": {
+    "modified": false,
+    "existingGovernanceControls": "21/21 previously confirmed by reviewer; not reapplied",
+    "officialPendingSchemaOperations": 3,
+    "structuralDataLoss": false,
+    "maybeNonBackwardsCompatible": false,
+    "warnings": []
+  },
+  "publicationPerformed": false,
+  "mergePerformed": false,
+  "portraitStatus": "six originals unavailable in accessible workspace and repositories; temporary initials",
+  "nativeSafari": "not tested"
+}

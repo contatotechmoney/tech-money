@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "stages": [
+    "anonymous-access-redirect",
+    "fictitious-email-code-access",
+    "action-selection",
+    "study-start",
+    "queued",
+    "running",
+    "completed-fictional-result",
+    "history-reload-and-reopen",
+    "second-user-isolation",
+    "real-delivery-analysis-checkout-credits-blocked",
+    "authenticated-legacy-widget-no-poll-or-focus-query"
+  ],
+  "screenshots": [
+    "01-access",
+    "02-empty",
+    "03-queued",
+    "04-progress",
+    "05-result",
+    "06-history",
+    "07-monitoring-suspended"
+  ],
+  "isolation": true,
+  "errors": [],
+  "legacyHistoryBrowserRequests": 0,
+  "counters": {
+    "externalCalls": 0,
+    "databaseCalls": 0,
+    "legacyCalls": 0,
+    "signIns": 2,
+    "studiesCreated": 1,
+    "synthetic": true,
+    "productionWorkerEnabled": false,
+    "tokensConsumed": 0,
+    "realCreditsChanged": 0,
+    "accountsCreated": 0
+  },
+  "externalBrowserRequestsBlocked": 4,
+  "passed": true
+}

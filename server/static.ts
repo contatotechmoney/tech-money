@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+import { applyBrandMetadata } from "../shared/brand-metadata";
 
 export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "public");
@@ -10,10 +11,13 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, { index: false }));
 
   // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.use("*", (req, res) => {
+    const html = fs.readFileSync(path.resolve(distPath, "index.html"), "utf8");
+    const host = req.hostname.toLowerCase().replace(/\.$/, "");
+    const origin = /^(?:invest|finance)\.techmoney\.com\.br$/.test(host) ? `https://${host}` : undefined;
+    res.type("html").send(applyBrandMetadata(html, host, req.originalUrl, origin));
   });
 }

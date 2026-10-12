@@ -1,0 +1,216 @@
+.tm-auth-shell {
+  --tm-auth-bg: #ffffff;
+  --tm-auth-ink: #182a2e;
+  --tm-auth-muted: #617171;
+  --tm-auth-line: #e1e8e6;
+  --tm-auth-green: #087d61;
+  --tm-auth-stage: #f4f7f6;
+  box-sizing: border-box;
+  min-height: 100dvh;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: clamp(24px, 7vh, 72px) 16px;
+  background: var(--tm-auth-stage);
+  color: var(--tm-auth-ink);
+  color-scheme: light;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tm-auth-shell *,
+.tm-auth-shell *::before,
+.tm-auth-shell *::after {
+  box-sizing: border-box;
+}
+
+.tm-auth-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 32px;
+  border: 1px solid var(--tm-auth-line);
+  border-top: 3px solid var(--tm-auth-green);
+  border-radius: 12px;
+  background: var(--tm-auth-bg);
+  box-shadow: 0 12px 35px #173b2910;
+}
+
+.tm-auth-brand {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  column-gap: 13px;
+  row-gap: 5px;
+  align-items: center;
+  margin: 0 0 27px;
+  color: var(--tm-auth-ink);
+}
+
+.tm-auth-brand .tm-brand-lockup {
+  display: contents;
+}
+
+.tm-auth-brand .tm-brand-mark {
+  grid-row: span 2;
+  height: 36px;
+  margin-right: 2px;
+}
+
+.tm-auth-brand .tm-brand-copy {
+  display: contents;
+}
+
+.tm-auth-brand .tm-brand-name {
+  align-self: end;
+  color: var(--tm-auth-ink);
+}
+
+.tm-auth-brand .tm-brand-area {
+  align-self: center;
+  color: var(--tm-auth-muted);
+  text-align: left;
+  color: var(--tm-auth-green);
+}
+
+.tm-auth-title {
+  margin: 0 0 21px;
+  color: var(--tm-auth-ink);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.65px;
+  line-height: 1.25;
+}
+
+.tm-auth-navigation {
+  display: flex;
+  gap: 22px;
+  margin: 0 0 24px;
+  border-bottom: 1px solid var(--tm-auth-line);
+}
+
+.tm-auth-nav-link {
+  margin-bottom: -1px;
+  padding: 11px 0;
+  border-bottom: 2px solid transparent;
+  color: var(--tm-auth-muted);
+  font: inherit;
+  text-decoration: none;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+
+.tm-auth-nav-link:hover {
+  color: var(--tm-auth-ink);
+}
+
+.tm-auth-nav-link[aria-current="page"] {
+  border-bottom-color: var(--tm-auth-green);
+  color: var(--tm-auth-ink);
+  font-weight: 500;
+}
+
+.tm-auth-shell a:focus-visible,
+.tm-auth-shell button:focus-visible,
+.tm-auth-shell input:focus-visible,
+.tm-auth-shell select:focus-visible,
+.tm-auth-shell textarea:focus-visible {
+  outline: 2px solid var(--tm-auth-green);
+  outline-offset: 3px;
+}
+
+.tm-auth-content form {
+  width: 100%;
+}
+
+.tm-auth-content label {
+  display: block;
+  margin-bottom: 18px;
+  color: var(--tm-auth-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tm-auth-content input:not(.tm-auth-clerk-code),
+.tm-auth-content select,
+.tm-auth-content textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  margin-top: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--tm-auth-line);
+  border-radius: 8px;
+  background: var(--tm-auth-bg);
+  color: var(--tm-auth-ink);
+  font: 400 16px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.tm-auth-content input::placeholder,
+.tm-auth-content textarea::placeholder {
+  color: var(--tm-auth-muted);
+  opacity: 0.9;
+}
+
+.tm-auth-content form button[type="submit"],
+.tm-auth-content .tm-auth-clerk-primary {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--tm-auth-green);
+  color: #fff;
+  font: 500 14px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.tm-auth-content form button[type="submit"]:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.tm-auth-content p {
+  overflow-wrap: anywhere;
+}
+
+.tm-auth-content .tm-auth-clerk-root,
+.tm-auth-content .tm-auth-clerk-card-box,
+.tm-auth-content .tm-auth-clerk-card {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tm-auth-helper {
+  margin: -4px 0 20px;
+  color: var(--tm-auth-muted);
+  font-size: 13px;
+}
+
+.tm-auth-other-methods {
+  display: block;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--tm-auth-line);
+  color: var(--tm-auth-green);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-auth-shell *,
+  .tm-auth-shell *::before,
+  .tm-auth-shell *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

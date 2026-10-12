@@ -1,0 +1,127 @@
+{
+  "date": "2026-10-10",
+  "scope": "Owner-only portfolio pilot preparation, no real execution or publication",
+  "gitHub": {
+    "repository": "contatotechmoney/tech-money",
+    "pullRequest": 3,
+    "branch": "review/invest-finance-simulation-20261007",
+    "parentBeforeUpdate": "995463bdc1eddde3c29a373cbbadac98ebaf5edb",
+    "preserveHistory": true,
+    "forcePush": false
+  },
+  "checks": {
+    "validateSynthetic": {
+      "command": "npm run validate:synthetic",
+      "exitCode": 0,
+      "compiler": "passed",
+      "tests": 336,
+      "passed": 336,
+      "failed": 0,
+      "skipped": 0,
+      "suites": [
+        { "name": "validation", "tests": 70 },
+        { "name": "disposable PostgreSQL", "tests": 28 },
+        { "name": "quality", "tests": 101 },
+        { "name": "Invest simulation and pilot", "tests": 90 },
+        { "name": "access", "tests": 47 }
+      ]
+    },
+    "build": {
+      "command": "npm run build",
+      "exitCode": 0,
+      "warning": "Existing bundle-size warning; no compilation failure"
+    },
+    "preview": {
+      "workflow": "Start application",
+      "port": 5000,
+      "started": true,
+      "anonymousStatus": 401,
+      "anonymousIdentity": 401,
+      "anonymousHistory": 401,
+      "screenshot": "Unauthenticated pilot route shows preserved access screen",
+      "signedInUIVisualVerification": false,
+      "note": "Authenticated executor/approval/history verified synthetically, not with real accounts"
+    },
+    "diffWhitespace": "passed"
+  },
+  "coverage": [
+    "Six fake agent calls, Denise last, deterministic synthetic outputs",
+    "No approval, foreign identity, browser-forged cost and missing executor refused",
+    "Changed position/model/price, expired budget, and unchanged-price metadata refresh",
+    "Idempotent receipt and concurrent requests do not duplicate dispatch",
+    "Reserved maximum checked before provider call; budget exhaustion",
+    "Price mismatch, excessive usage, partial failure, timeout and uncertain-outcome lock",
+    "Durable state/audit, transaction rollback, cross-connection serialization, private reopened history",
+    "Official owner lookup mocked: explicit reviewed subject, proof, environment and verified primary email",
+    "No equal weights for missing quantities; full-portfolio coverage without renormalizing missing history",
+    "Classes from supplied data, distinct D+0/D+1, benchmark only when supplied",
+    "Sourced dated macro only; no fixed current rates or invented scenarios",
+    "Nous exact model IDs, exact decimal rate conversion, duplicate rejection and account-pricing gate"
+  ],
+  "developmentDatabase": {
+    "additiveMigration": "migrations/0017_portfolio_pilot.sql",
+    "appliedWith": "Official executeSql, environment development, explicit transaction",
+    "confirmedTables": [
+      "portfolio_pilot_accounts",
+      "portfolio_pilot_audit",
+      "portfolio_pilot_owner_bindings"
+    ],
+    "ownerBindingCreated": false,
+    "existingRecordsModified": false,
+    "startupDDL": false
+  },
+  "production": {
+    "databaseReadOrWrite": false,
+    "migrationApplied": false,
+    "permissionsChanged": false,
+    "publishedByAgent": false,
+    "mergedByAgent": false,
+    "secretsChanged": false,
+    "dnsChanged": false
+  },
+  "nousEvidence": {
+    "source": "https://inference-api.nousresearch.com/v1/models",
+    "method": "Unauthenticated GET, catalogue metadata only",
+    "effectiveAccountPricingVerified": false,
+    "models": [
+      {
+        "id": "deepseek/deepseek-v4.1-flash",
+        "canonicalSlug": "deepseek/deepseek-v4.1-flash",
+        "inputUsdPerMillion": "0.106",
+        "outputUsdPerMillion": "0.513",
+        "cacheReadUsdPerMillion": "0.004"
+      },
+      {
+        "id": "deepseek/deepseek-v4.1-flash:US",
+        "canonicalSlug": "deepseek/deepseek-v4.1-flash:US",
+        "inputUsdPerMillion": "0.363",
+        "outputUsdPerMillion": "1.089",
+        "cacheReadUsdPerMillion": "0.0115"
+      }
+    ],
+    "hermesConfigurationsChanged": false
+  },
+  "b3Provenance": [
+    { "path": "comite_db/motor_carteira.py", "blob": "a21de07c3a0cb96f7bb900506827745c795bcb4f" },
+    { "path": "comite_db/montar_comite_carteira.py", "blob": "24ef7e496911b4f36f6d56bb1b2b2a35e338a496" },
+    { "path": "comite_db/gerar_relatorio_carteira.py", "blob": "e751a04cc3fb80e3b92cf424acc11e4542fc2e22" }
+  ],
+  "safety": {
+    "realLLMCalls": 0,
+    "realTokensConsumed": 0,
+    "realQuotesRequested": 0,
+    "realPositionsReadOrShared": 0,
+    "realCreditsMoved": 0,
+    "realMessagesSent": 0,
+    "personalNotebookDataCopied": false,
+    "newAccessGranted": false,
+    "humanReviewRequired": true,
+    "automaticPilotExecutionEnabled": false,
+    "realProviderConnected": false
+  },
+  "remainingBlockers": [
+    "Independently confirmed owner Clerk ID and matching official authenticated evidence",
+    "Authenticated Nous account-effective tariff and validated bounded/cancellable provider adapter",
+    "Verified supplied market-data feed, quantities, histories and optional benchmark; no external quotes requested here"
+  ]
+}

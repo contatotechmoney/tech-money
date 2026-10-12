@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/lib/analytics";
 import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
 
 type Quote = { price: number; changePercent: number; companyName: string; updatedAt: string };
 type TransactionType = "buy" | "sell";
@@ -73,23 +75,44 @@ export default function InvestmentPortfolio() {
 
   const saveTransaction = useMutation({
     mutationFn: async () => {
+      const action = editingId ? "updated" : "created";
+      const normalizedTicker = ticker.trim().toUpperCase();
       const path = editingId
         ? `/api/investments/portfolio/transactions/${editingId}`
         : "/api/investments/portfolio/transactions";
       const response = await apiRequest(editingId ? "PATCH" : "POST", path, {
         ticker, transactionType, quantity, price, operationDate,
       });
-      return response.json();
+      return {
+        payload: await response.json(),
+        analytics: {
+          action,
+          ticker: normalizedTicker,
+          transactionType,
+        },
+      };
     },
-    onSuccess: () => {
+    onSuccess: ({ analytics }) => {
+      trackEvent("portfolio_transaction_saved", {
+        action: analytics.action,
+        ticker: analytics.ticker,
+        transaction_type: analytics.transactionType,
+      });
       resetForm();
       void queryClient.invalidateQueries({ queryKey: ["/api/investments/portfolio"] });
     },
   });
 
   const deleteTransaction = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/investments/portfolio/transactions/${id}`),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["/api/investments/portfolio"] }),
+    mutationFn: (transaction: PortfolioTransaction) =>
+      apiRequest("DELETE", `/api/investments/portfolio/transactions/${transaction.id}`),
+    onSuccess: (_data, transaction) => {
+      trackEvent("portfolio_transaction_deleted", {
+        ticker: transaction.ticker,
+        transaction_type: transaction.transactionType,
+      });
+      void queryClient.invalidateQueries({ queryKey: ["/api/investments/portfolio"] });
+    },
   });
 
   const data = portfolioQuery.data;
@@ -126,7 +149,13 @@ export default function InvestmentPortfolio() {
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{t("portfolioTitle")}</h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">{t("portfolioDescription")}</p>
         </div>
-        {data && <div className="flex items-center gap-2 text-xs text-muted-foreground"><RefreshCw className="h-3.5 w-3.5" />{t("updatedAt")} {formatDateTime(data.updatedAt)}</div>}
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/investments/portfolio/simulation" className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#c8d9ce] bg-[#f2f7f3] px-4 text-sm font-semibold text-[#28684f] transition-colors hover:bg-[#e4efe7]">
+            <BriefcaseBusiness className="h-4 w-4" /> Analisar minha carteira
+          </Link>
+          <Link href="/investments/portfolio/simulation" className="inline-flex items-center rounded-full border border-[#d7b77a] bg-[#fff7e7] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.1em] text-[#77591e] hover:bg-[#fff0d2]">Simulação</Link>
+          {data && <div className="flex items-center gap-2 text-xs text-muted-foreground"><RefreshCw className="h-3.5 w-3.5" />{t("updatedAt")} {formatDateTime(data.updatedAt)}</div>}
+        </div>
       </div>
 
       {error && <Alert variant="destructive"><AlertDescription>{getErrorMessage(error, t("marketDataError"))}</AlertDescription></Alert>}
@@ -222,7 +251,7 @@ export default function InvestmentPortfolio() {
                   <TableCell className="text-right">{number.format(transaction.quantity)}</TableCell>
                   <TableCell className="text-right">{currency.format(transaction.price)}</TableCell>
                   <TableCell className={`text-right ${transaction.realizedProfit === null ? "text-muted-foreground" : transaction.realizedProfit >= 0 ? "text-emerald-700" : "text-red-700"}`}>{transaction.realizedProfit === null ? "—" : currency.format(transaction.realizedProfit)}</TableCell>
-                  <TableCell><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={() => editTransaction(transaction)} aria-label={t("edit")}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => deleteTransaction.mutate(transaction.id)} disabled={deleteTransaction.isPending} aria-label={t("removeTransaction")}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                  <TableCell><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={() => editTransaction(transaction)} aria-label={t("edit")}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => deleteTransaction.mutate(transaction)} disabled={deleteTransaction.isPending} aria-label={t("removeTransaction")}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
                 </TableRow>
               ))}</TableBody>
             </Table>

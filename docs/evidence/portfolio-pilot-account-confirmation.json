@@ -1,0 +1,72 @@
+{
+  "phase": "simple account confirmation prepared; not published; real execution closed",
+  "validation": {
+    "base": 70,
+    "disposableDatabase": 29,
+    "quality": 101,
+    "investPilotAndConfirmation": 125,
+    "access": 47,
+    "totalPassed": 372,
+    "newConfirmationAndCounterTests": 18,
+    "failed": 0,
+    "skipped": 0,
+    "typecheck": "passed",
+    "build": "passed; existing large-bundle warning",
+    "anonymousPreviewEndpointStatus": 401,
+    "desktopScreenshot": "1280x900; signed out; existing initial language dialog present",
+    "mobileScreenshot": "390x844; signed out; existing initial language dialog present",
+    "realAuthenticatedUiVerified": false
+  },
+  "confirmation": {
+    "page": "/investments/portfolio/pilot/confirm-account",
+    "endpoint": "/api/investments/portfolio-pilot/account-confirmation",
+    "method": "GET",
+    "authentication": "existing middleware plus getAuth(req), active official session and exact returned user",
+    "email": "verified primary only; verified secondary is insufficient",
+    "automaticRequests": false,
+    "polling": false,
+    "databaseReads": false,
+    "databaseWrites": false,
+    "personalFieldsReturned": false,
+    "ownerReferenceInstalled": false,
+    "ownerReferenceSource": "optional private production server configuration; absent remains explicitly unavailable",
+    "developmentChecksProductionIdentity": false,
+    "grantsAccess": false,
+    "appliesOwnerBinding": false
+  },
+  "realEvidence": {
+    "existingProductionAuthenticatedSubjectObservedMatchingPrivateConfirmation": true,
+    "existingProductionAuthLogObservedAt": "2026-10-11T18:37:57.751Z",
+    "completeOfficialProductionSessionAndPrimaryEmailProofObtained": false,
+    "ownerBindingApplied": false,
+    "authenticatedNousMetadataObtained": false,
+    "accountEffectiveTariffConfirmed": false,
+    "modelSelected": false,
+    "verifiedTokenizerInstalled": false,
+    "verifiedMarketSourceInstalled": false,
+    "productionMigrationApplied": false
+  },
+  "safety": {
+    "realExecutionEnabled": false,
+    "realInferenceCalls": 0,
+    "paidTokens": 0,
+    "realPortfolioReads": 0,
+    "realPortfolioDataTransmitted": 0,
+    "realCreditMovements": 0,
+    "realMessagesSent": 0,
+    "productionWrites": 0,
+    "secretsOrHermesChanged": false,
+    "published": false,
+    "merged": false,
+    "approvalRequiredForEachSpecificBudget": true,
+    "limits": {
+      "ceilingUsd": 1,
+      "calls": 6,
+      "inputTokens": 18000,
+      "outputTokens": 6000,
+      "timeoutMs": 90000,
+      "retries": 0,
+      "maxBudgetValidityMs": 120000
+    }
+  }
+}

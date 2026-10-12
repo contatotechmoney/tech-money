@@ -9,6 +9,8 @@ import {
   LogOut,
   Menu,
   Settings,
+  ShieldCheck,
+  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -16,6 +18,10 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSelector } from "@/components/language-selector";
 import { useClerk, useUser } from "@clerk/react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import type { PendingReviews } from "@shared/review-pending";
+import { TechMoneyBrand } from "@/components/tech-money-brand";
 
 export default function InvestmentLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -23,6 +29,26 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
   const { t } = useLanguage();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const reviewAccess = useQuery<{ assignments: { clientId: string }[]; canManageAssignments?: boolean }>({
+    queryKey: ["/api/investments/review-access", user?.id ?? ""],
+    enabled: !!user?.id,
+    staleTime: 0,
+    queryFn: async () => (await apiRequest("GET", "/api/investments/review-access")).json(),
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const pendingReviews = useQuery<PendingReviews>({
+    queryKey: ["/api/investments/review-pending", user?.id ?? ""],
+    enabled: !!user?.id && reviewAccess.isSuccess && !reviewAccess.isError && (reviewAccess.data?.assignments?.length ?? 0) > 0,
+    staleTime: 0,
+    queryFn: async () => (await apiRequest("GET", "/api/investments/review-pending")).json(),
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const assignedClientIds = new Set((reviewAccess.isSuccess && !reviewAccess.isError ? reviewAccess.data?.assignments ?? [] : []).map(({ clientId }) => clientId));
+  const pendingCount = pendingReviews.isSuccess && !pendingReviews.isError
+    ? pendingReviews.data.items.filter((item) => assignedClientIds.has(item.clientId)).length
+    : undefined;
   const userName =
     user?.fullName ||
     user?.primaryEmailAddress?.emailAddress ||
@@ -38,6 +64,13 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
     { label: t("aiAgents"), icon: BrainCircuit, href: "/investments/agents" },
     { label: t("portfolio"), icon: BriefcaseBusiness, href: "/investments/portfolio" },
     { label: t("investmentReports"), icon: ChartNoAxesCombined, href: "/investments/reports" },
+    { label: "Perfil do investidor", icon: ShieldCheck, href: "/investments/suitability" },
+    ...(reviewAccess.isSuccess && !reviewAccess.isError && reviewAccess.data?.assignments?.length
+      ? [{ label: "Revisão profissional", icon: ShieldCheck, href: "/investments/review", count: pendingCount }]
+      : []),
+    ...(reviewAccess.data?.canManageAssignments === true
+      ? [{ label: "Atribuições de clientes", icon: UsersRound, href: "/investments/assignments" }]
+      : []),
     { label: t("creditsPlans"), icon: CreditCard, href: "/investments/credits" },
     { label: t("investmentSettings"), icon: Settings, href: "/investments/settings" },
   ];
@@ -48,21 +81,8 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
     <div className="flex h-full flex-col border-r border-[#143d31] bg-[#1b4d3e] text-white">
       <div className="p-6">
         <Link href="/areas" className="block">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-0.5" aria-hidden="true">
-              <div className="flex flex-col gap-0.5">
-                <div className="flex h-4 w-4 items-center justify-center bg-[#2a9d8f] text-[8px] font-bold">T</div>
-                <div className="flex h-4 w-4 items-center justify-center bg-[#2a9d8f] text-[8px] font-bold">T</div>
-              </div>
-              <div className="mt-2 flex flex-col gap-0.5">
-                <div className="flex h-4 w-4 items-center justify-center bg-[#264653] text-[8px] font-bold">M</div>
-                <div className="flex h-4 w-4 items-center justify-center bg-[#2a9d8f] text-[8px] font-bold">R</div>
-              </div>
-            </div>
-            <span className="ml-1 text-xl font-bold tracking-tight">Tech Money®</span>
-          </div>
+          <TechMoneyBrand areaLabel="INVESTIMENTOS" className="tm-brand-on-dark" />
         </Link>
-        <p className="mt-2 pl-1 text-[10px] uppercase tracking-wider text-white/70">{t("investmentArea")}</p>
       </div>
 
       <div className="flex-1 space-y-1 px-3 py-4">
@@ -76,7 +96,12 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
               }`}
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
+              <span className="min-w-0 flex-1">{item.label}</span>
+              {"count" in item && typeof item.count === "number" && (
+                <span aria-label={`${item.count} revisões pendentes`} className={`min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-semibold leading-4 ${isActive(item.href) ? "bg-white text-[#1b4d3e]" : "bg-[#e9c46a] text-[#263b34]"}`}>
+                  {item.count}
+                </span>
+              )}
             </div>
           </Link>
         ))}
@@ -122,13 +147,14 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
         </SheetContent>
       </Sheet>
 
-      <main className="flex min-h-screen flex-1 flex-col md:ml-64">
+      <main className="flex min-w-0 min-h-screen flex-1 flex-col md:ml-64">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur md:px-6">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileOpen(true)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="hidden items-center gap-3 md:flex">
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t("investmentArea")}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="md:hidden"><TechMoneyBrand areaLabel="INVESTIMENTOS" className="tm-brand-mobile" /></div>
+            <span className="hidden md:inline text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">INVESTIMENTOS</span>
           </div>
           <LanguageSelector />
         </header>
