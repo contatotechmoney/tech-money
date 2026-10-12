@@ -9,13 +9,22 @@ export type VerifiedTokenCounter = {
 };
 type Transport = (url: string, init: RequestInit) => Promise<Response>;
 
+export type AccountTariffProof = {
+  modelId: string; priceVersion: string; source: string;
+  inputUsdMicrosPerMillion: number; outputUsdMicrosPerMillion: number;
+  verifiedAt: number; validUntil: number;
+};
+/** Trusted server evidence, not a browser flag or the mere presence of Authorization. */
+export type AccountTariffVerifier = (model: Readonly<PilotModel>) => Promise<AccountTariffProof | null>;
+
 /** Explicit Nous credential only; never falls back to OpenAI/Hermes credentials.
  * Credentials stay in the server closure. No retries, streaming, redirects or logs.
- * The official Hermes pricing implementation scopes /v1/models to its credential.
+ * An authenticated catalogue alone is NOT proof of account-effective billing.
  */
 export function createNousPilotAdapter(options: {
   credential: () => string | undefined;
   tokenCounter?: VerifiedTokenCounter;
+  accountTariffVerifier?: AccountTariffVerifier;
   armed: boolean;
   now?: () => number;
   transport?: Transport;
@@ -25,6 +34,9 @@ export function createNousPilotAdapter(options: {
   let models: PilotModel[] = [];
   let catalogueCredential: string | undefined;
   async function catalogue(signal?: AbortSignal): Promise<PilotModel[]> {
+    // Never retain verified prices after a failed refresh.
+    models = [];
+    catalogueCredential = undefined;
     const credential = options.credential();
     if (!credential?.trim()) throw new Error("NOUS_CREDENTIAL_UNAVAILABLE");
     const response = await transport(NOUS_MODEL_CATALOGUE, {
@@ -33,8 +45,28 @@ export function createNousPilotAdapter(options: {
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(5_000)]) : AbortSignal.timeout(5_000),
     });
     if (!response.ok) throw new Error("ACCOUNT_TARIFF_UNVERIFIED");
-    models = parseNousCatalogue(await response.json(), now())
-      .map(model => ({ ...model, accountPricingVerified: true }));
+    const observed = parseNousCatalogue(await response.json(), now());
+    const verified: PilotModel[] = [];
+    for (const model of observed) {
+      const proof = await options.accountTariffVerifier?.(Object.freeze({ ...model }));
+      let valid = false;
+      if (proof) {
+        let secureSource = false;
+        try {
+          const url = new URL(proof.source);
+          secureSource = url.protocol === "https:" && !url.username && !url.password;
+        } catch { /* unavailable evidence stays closed */ }
+        valid = secureSource && proof.modelId === model.modelId && proof.priceVersion === model.priceVersion &&
+          proof.inputUsdMicrosPerMillion === model.inputUsdMicrosPerMillion &&
+          proof.outputUsdMicrosPerMillion === model.outputUsdMicrosPerMillion &&
+          Number.isFinite(proof.verifiedAt) && proof.verifiedAt <= now() &&
+          Number.isFinite(proof.validUntil) && proof.validUntil > now() && proof.verifiedAt <= proof.validUntil;
+      }
+      verified.push({ ...model, accountPricingVerified: valid,
+        ...(valid && proof ? { validUntil: Math.min(model.validUntil, proof.validUntil),
+          accountPricingSource: proof.source } : {}) });
+    }
+    models = verified;
     if (!models.length) throw new Error("ACCOUNT_TARIFF_UNVERIFIED");
     catalogueCredential = credential;
     return models;
@@ -53,6 +85,7 @@ export function createNousPilotAdapter(options: {
         throw new Error("TOKEN_LIMIT_EXCEEDED");
       const current = (await catalogue(input.signal)).find(model => model.modelId === input.modelId);
       if (!current || current.priceVersion !== input.priceVersion) throw new Error("APPROVAL_INVALIDATED");
+      if (current.accountPricingVerified !== true) throw new Error("ACCOUNT_TARIFF_UNVERIFIED");
       const credential = options.credential();
       if (!credential || credential !== catalogueCredential) throw new Error("ACCOUNT_TARIFF_UNVERIFIED");
       input.signal.throwIfAborted();

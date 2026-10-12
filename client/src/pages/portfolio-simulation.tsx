@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, Check, Clock3, FlaskConical, RotateCw, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
+import { PortfolioBudgetRehearsal } from "@/components/portfolio-budget-rehearsal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +62,7 @@ export default function PortfolioSimulation() {
 function SimulationBody({ userId }: { userId: string }) {
   const cache = useQueryClient();
   const requestKey = useRef<string | null>(null);
+  const [reviewItems, setReviewItems] = useState([false, false, false]);
   const [activeId, setActiveId] = useState<string | null>(() => {
     const requested = new URLSearchParams(window.location.search).get("study");
     return isUuid(requested) ? requested : null;
@@ -160,6 +162,8 @@ function SimulationBody({ userId }: { userId: string }) {
           </div>
         </header>
 
+        <PortfolioBudgetRehearsal onStart={() => createStudy.mutate()} disabled={!canStart} />
+
         <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <section className="min-w-0 space-y-6">
             <Card className="overflow-hidden rounded-2xl border-[#cbd9d0] bg-[#fbfcf8] shadow-sm">
@@ -204,7 +208,10 @@ function SimulationBody({ userId }: { userId: string }) {
                 })}
               </CardContent>
             </Card>
-            {activeStudy?.status === "completed" && activeStudy.synthesis && <section className="overflow-hidden rounded-2xl border border-[#a8c8b3] bg-[#e3f0e7] p-5 sm:p-7"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.13em] text-[#28684f]"><Sparkles className="h-4 w-4" /> Síntese ilustrativa · Denise</div><p className="mt-4 text-sm leading-7 text-[#345847]">{activeStudy.synthesis}</p><p className="mt-4 border-t border-[#bfd5c5] pt-3 text-xs leading-5 text-[#557362]">Não é recomendação, aprovação ou aconselhamento financeiro.</p></section>}
+            {activeStudy?.status === "completed" && activeStudy.synthesis && <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_250px]">
+              <section className="overflow-hidden rounded-2xl border border-[#a8c8b3] bg-[#e3f0e7] p-5 sm:p-7"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.13em] text-[#28684f]"><Sparkles className="h-4 w-4" /> Síntese ilustrativa · Denise</div><p className="mt-4 text-sm leading-7 text-[#345847]">{activeStudy.synthesis}</p><p className="mt-4 border-t border-[#bfd5c5] pt-3 text-xs leading-5 text-[#557362]">Não é recomendação, aprovação ou aconselhamento financeiro.</p></section>
+              <ReviewChecklist checked={reviewItems} onToggle={index => setReviewItems(current => current.map((value, item) => item === index ? !value : value))} />
+            </div>}
           </section>
 
           <aside className="min-w-0 space-y-5">
@@ -221,6 +228,17 @@ function SimulationBody({ userId }: { userId: string }) {
       </div>
     </main>
   );
+}
+
+function ReviewChecklist({ checked, onToggle }: { checked: boolean[]; onToggle: (index: number) => void }) {
+  const items = ["Separar proporções fictícias de resultados reais", "Rever as limitações citadas na síntese", "Confirmar que não há recomendação ou aprovação profissional"];
+  return <section className="rounded-2xl border border-[#cbd9d0] bg-[#fbfcf8] p-5" aria-label="Lista simulada de revisão humana">
+    <p className="font-mono text-[10px] font-semibold uppercase tracking-[.14em] text-[#84978d]">CONFERÊNCIA SIMULADA</p>
+    <h2 className="mt-2 text-sm font-semibold">Revisão humana</h2>
+    <p className="mt-1 text-xs leading-5 text-[#6b8177]">Uma lista pessoal de leitura; não registra aprovação nem envia para fila.</p>
+    <div className="mt-4 space-y-3">{items.map((item, index) => <label key={item} className="flex cursor-pointer items-start gap-2.5 text-xs leading-5 text-[#587066]"><input type="checkbox" checked={checked[index]} onChange={() => onToggle(index)} className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[#28684f]" /><span>{item}</span></label>)}</div>
+    <p className="mt-4 border-t border-[#e0e9e2] pt-3 text-[10px] leading-4 text-[#71877b]">{checked.filter(Boolean).length} de {items.length} itens conferidos · apenas nesta sessão.</p>
+  </section>;
 }
 
 function MiniMetric({ label, value }: { label: string; value: string }) {

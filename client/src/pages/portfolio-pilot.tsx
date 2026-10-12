@@ -190,6 +190,9 @@ function PilotBody({ userId }: { userId: string }) {
         <Link href="/investments/portfolio/pilot/confirm-account" className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--pilot-border)] bg-[var(--pilot-surface)] px-4 py-2 text-sm font-semibold text-[var(--pilot-green)] transition-opacity hover:opacity-75">
           <ShieldCheck className="h-4 w-4" /> Conferir minha conta
         </Link>
+        <Link href="/investments/portfolio/simulation" className="mb-5 ml-2 inline-flex items-center gap-2 rounded-full border border-[var(--pilot-border)] bg-[var(--pilot-surface)] px-4 py-2 text-sm font-semibold text-[var(--pilot-green)] transition-opacity hover:opacity-75">
+          <WalletCards className="h-4 w-4" /> Ver simulação fictícia
+        </Link>
         <header className="relative overflow-hidden rounded-[1.7rem] border border-[var(--pilot-border)] bg-[var(--pilot-surface)] p-6 shadow-[0_20px_55px_rgba(38,73,57,.08)] sm:p-10">
           <div className="pointer-events-none absolute -right-12 -top-16 h-64 w-64 rounded-full border border-[var(--pilot-border)]" />
           <div className="relative max-w-3xl">

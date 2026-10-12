@@ -24,6 +24,7 @@ export type PilotModel = {
   inputUsdMicrosPerMillion: number; outputUsdMicrosPerMillion: number;
   verifiedAt: number; validUntil: number; source: string;
   accountPricingVerified?: boolean;
+  accountPricingSource?: string;
 };
 export type PilotMarket = { version: string; verifiedAt: number; source: string; validUntil: number; verified: boolean; prices: Record<string, number>; engine?: EngineMarket };
 type Approval = { budgetId: string; fingerprint: string; approvedAt: number };
@@ -171,7 +172,8 @@ export class PortfolioPilot {
            inputUsdMicrosPerMillion: context.model.inputUsdMicrosPerMillion,
            outputUsdMicrosPerMillion: context.model.outputUsdMicrosPerMillion,
            verifiedAt: context.model.verifiedAt, validUntil: context.model.validUntil,
-           accountPricingVerified: context.model.accountPricingVerified === true },
+           accountPricingVerified: context.model.accountPricingVerified === true,
+           accountPricingSource: context.model.accountPricingSource },
         positions: context.positions, createdAt: now,
         expiresAt: Math.min(now + PILOT_LIMITS.validityMs, context.model.validUntil, context.market.validUntil),
         maxSpendUsdMicros: input.maxSpendUsdMicros, estimatedMaxUsdMicros: context.estimate,

@@ -67,6 +67,16 @@ bloqueada e a conferência oficial no servidor como condição do vínculo.
 identificação privada ou usar a aparência da tela como autorização. Não interpretar
 vínculo confirmado como consentimento genérico para análises futuras.
 
+Uma consulta autenticada de catálogo não comprova, sozinha, a tarifa efetiva
+da conta. Manter bloqueado orçamento executável até existir prova independente
+da tarifa aplicável ao identificador exato, com fonte e validade.
+
+**Why:** A primeira preparação promovia metadados de catálogo a preço efetivo
+somente por usar autenticação, sem evidência de faturamento.
+
+**How to apply:** Não tratar credencial presente ou HTTP 200 como confirmação
+econômica; não transformar valores fictícios do ensaio em tarifas reais.
+
 **Why:** O usuário ampliou o escopo para preparar o executor seguro, mantendo
 aprovação específica antes de qualquer gasto ou compartilhamento e proibindo
 inferência real durante a implementação.

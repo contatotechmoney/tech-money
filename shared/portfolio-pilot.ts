@@ -22,7 +22,7 @@ export type PilotBudget = {
   pricing?: {
     modelId: string; provider: string; source: string;
     inputUsdMicrosPerMillion: number; outputUsdMicrosPerMillion: number;
-    verifiedAt: number; validUntil: number; accountPricingVerified: boolean;
+    verifiedAt: number; validUntil: number; accountPricingVerified: boolean; accountPricingSource?: string;
   };
   createdAt: number; expiresAt: number; maxSpendUsdMicros: number;
   estimatedMaxUsdMicros: number; limits: typeof PILOT_LIMITS;

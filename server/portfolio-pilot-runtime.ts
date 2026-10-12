@@ -1,6 +1,6 @@
 import type { KeyObject } from "node:crypto";
 import { PortfolioPilot, type PilotDependencies, type PilotMarket } from "./portfolio-pilot";
-import { createNousPilotAdapter, type VerifiedTokenCounter } from "./portfolio-pilot-nous";
+import { createNousPilotAdapter, type VerifiedTokenCounter, type AccountTariffVerifier } from "./portfolio-pilot-nous";
 import { createPilotExecutor } from "./portfolio-pilot-executor";
 import { verifyPilotMarket } from "./portfolio-pilot-market";
 
@@ -10,6 +10,7 @@ import { verifyPilotMarket } from "./portfolio-pilot-market";
 export async function preparePrivatePilot(options: Pick<PilotDependencies, "ownerId" | "positions" | "ledger"> & {
   credential: () => string | undefined; armed: boolean;
   tokenCounter?: VerifiedTokenCounter;
+  accountTariffVerifier?: AccountTariffVerifier;
   marketObservation?: (owner: string) => Promise<unknown>;
   trustedSources?: ReadonlyMap<string, { url: string; publicKey: KeyObject }>;
   now?: () => number;
@@ -22,7 +23,8 @@ export async function preparePrivatePilot(options: Pick<PilotDependencies, "owne
   if (options.ownerId && credentialAvailable) await adapter.catalogue();
   let market: PilotMarket | null = null;
   const counterVerified = !!options.tokenCounter?.modelId && !!options.tokenCounter.methodology.trim();
-  const ready = !!options.ownerId && credentialAvailable && counterVerified &&
+  const tariffVerified = adapter.models().some(model => model.accountPricingVerified === true);
+  const ready = !!options.ownerId && credentialAvailable && tariffVerified && counterVerified &&
     !!options.marketObservation && sources.size > 0;
   return new PortfolioPilot({
     ownerId: options.ownerId, positions: options.positions, ledger: options.ledger, now,
@@ -31,6 +33,7 @@ export async function preparePrivatePilot(options: Pick<PilotDependencies, "owne
     extraBlockers: [
       ...(!credentialAvailable ? ["NOUS_CREDENTIAL_UNAVAILABLE"] : []),
       ...(!counterVerified ? ["TOKENIZER_UNVERIFIED"] : []),
+      ...(!tariffVerified ? ["ACCOUNT_TARIFF_UNVERIFIED"] : []),
       ...(!options.marketObservation || !sources.size ? ["MARKET_SOURCE_NOT_CONNECTED"] : []),
     ],
     beforeAdmission: async (actor, modelKey) => {

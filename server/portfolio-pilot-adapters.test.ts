@@ -19,11 +19,17 @@ const catalogue = (prompt = "0.0000001060") => ({ data: [{
   id: modelId, name: "same name", canonical_slug: modelId,
   supported_parameters: ["max_tokens"], pricing: { prompt, completion: "0.0000005130" },
 }] });
-function providerFixture(options: { armed?: boolean; counter?: boolean; badUsage?: boolean; badOutput?: boolean } = {}) {
+function providerFixture(options: { armed?: boolean; counter?: boolean; badUsage?: boolean; badOutput?: boolean; tariff?: boolean } = {}) {
   const requests: { method: string; body?: string }[] = [];
   let payload = catalogue();
   const adapter = createNousPilotAdapter({
     credential: () => "synthetic-not-a-real-key", armed: options.armed !== false,
+    accountTariffVerifier: options.tariff === false ? undefined : async model => ({
+      modelId: model.modelId, priceVersion: model.priceVersion, source: "https://synthetic.invalid/account-billing",
+      inputUsdMicrosPerMillion: model.inputUsdMicrosPerMillion,
+      outputUsdMicrosPerMillion: model.outputUsdMicrosPerMillion,
+      verifiedAt: now, validUntil: now + 120_000,
+    }),
     tokenCounter: options.counter === false ? undefined : { modelId, methodology: "synthetic counter, not production proof", count: () => 20 },
     now: () => now,
     transport: async (_url, init) => {
@@ -174,6 +180,68 @@ describe("stateless official identity proof and closed runtime", () => {
     assert.equal(writes, 0);
   });
 });
+describe("account-effective tariff proof — metadata and synthetic transport only", () => {
+  it("does not promote an authenticated catalogue into effective pricing or dispatch", async () => {
+    const f = providerFixture({ tariff: false });
+    const input = await f.input();
+    assert.equal(f.adapter.models()[0].accountPricingVerified, false);
+    await assert.rejects(f.adapter.provider.complete(input), /ACCOUNT_TARIFF_UNVERIFIED/);
+    assert.equal(f.requests.filter(request => request.method === "POST").length, 0);
+  });
+  it("rejects expired, future, insecure, foreign, changed-price and wrong-version evidence", async () => {
+    for (const override of [
+      { validUntil: now }, { verifiedAt: now + 1 }, { source: "http://synthetic.invalid/billing" },
+      { source: "https://user:password@synthetic.invalid/billing" },
+      { modelId: "foreign" }, { priceVersion: "foreign" },
+      { inputUsdMicrosPerMillion: -1 }, { outputUsdMicrosPerMillion: -1 },
+    ]) {
+      const adapter = createNousPilotAdapter({
+        credential: () => "synthetic", armed: false, now: () => now,
+        transport: async () => Response.json(catalogue()),
+        accountTariffVerifier: async model => ({
+          modelId: model.modelId, priceVersion: model.priceVersion,
+          source: "https://synthetic.invalid/account-billing",
+          inputUsdMicrosPerMillion: model.inputUsdMicrosPerMillion,
+          outputUsdMicrosPerMillion: model.outputUsdMicrosPerMillion,
+          verifiedAt: now, validUntil: now + 120_000, ...override,
+        }),
+      });
+      assert.equal((await adapter.catalogue())[0].accountPricingVerified, false);
+    }
+  });
+  it("clears a previous verified catalogue when authentication refresh fails", async () => {
+    let rejected = false;
+    const adapter = createNousPilotAdapter({
+      credential: () => "synthetic", armed: false, now: () => now,
+      transport: async () => rejected ? Response.json({}, { status: 401 }) : Response.json(catalogue()),
+      accountTariffVerifier: async model => ({
+        modelId: model.modelId, priceVersion: model.priceVersion,
+        source: "https://synthetic.invalid/account-billing",
+        inputUsdMicrosPerMillion: model.inputUsdMicrosPerMillion,
+        outputUsdMicrosPerMillion: model.outputUsdMicrosPerMillion,
+        verifiedAt: now, validUntil: now + 1000,
+      }),
+    });
+    const first = (await adapter.catalogue())[0];
+    assert.equal(first.accountPricingVerified, true);
+    assert.equal(first.validUntil, now + 1000);
+    assert.equal(first.accountPricingSource, "https://synthetic.invalid/account-billing");
+    rejected = true;
+    await assert.rejects(adapter.catalogue(), /ACCOUNT_TARIFF_UNVERIFIED/);
+    assert.deepEqual(adapter.models(), []);
+  });
+  it("keeps runtime closed without separately verified billing even with other synthetic prerequisites", async () => {
+    const runtime = await preparePrivatePilot({
+      ownerId: "synthetic", credential: () => "synthetic", armed: false, now: () => now,
+      positions: async () => [], ledger: { transaction: async () => { throw new Error("UNEXPECTED_WRITE"); } },
+      tokenCounter: { modelId, methodology: "synthetic", count: () => 20 },
+      transport: async () => Response.json(catalogue()),
+    });
+    assert.equal(runtime.status("synthetic").executable, false);
+    assert.ok(runtime.status("synthetic").blockers.includes("ACCOUNT_TARIFF_UNVERIFIED"));
+  });
+});
+
 describe("explicit selection and six-agent adapter lifecycle — synthetic ledger only", () => {
   it("requires selection and budget approval, records six receipts, and invalidates approval on model change", async () => {
     const f = providerFixture();
