@@ -112,5 +112,22 @@
     "loginVerified": false,
     "domainSwitched": false,
     "realAnalysisEnabled": false
+  },
+  "ownerRestoreVerification": {
+    "accounts": 1,
+    "bindings": 1,
+    "auditEvents": 2,
+    "accountMatchesOriginal": true,
+    "bindingMatchesOriginal": true,
+    "auditMatchesOriginal": true,
+    "publicApiGrants": 0,
+    "sourceUntouched": true,
+    "realAnalysisEnabled": false,
+    "cloudflareLoginVerified": false,
+    "receivedClerkKeyTypes": [
+      "sk_test_",
+      "pk_test_"
+    ],
+    "productionClerkCredentialsPending": true
   }
 }
