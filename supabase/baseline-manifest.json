@@ -101,5 +101,16 @@
   "cloudflareWorkerUploaded": true,
   "cloudflarePublicUrlsEnabled": false,
   "cloudflareDatabaseConnected": false,
-  "cloudflareLoginVerified": false
+  "cloudflareLoginVerified": false,
+  "hyperdriveValidation": {
+    "id": "090bdfc5d2a8489eb1ccb8ea766e8566",
+    "originTls": "verify-full",
+    "cachingDisabled": true,
+    "remoteReadOnlyQueryPassed": true,
+    "tables": 18,
+    "ownerBindings": 0,
+    "loginVerified": false,
+    "domainSwitched": false,
+    "realAnalysisEnabled": false
+  }
 }

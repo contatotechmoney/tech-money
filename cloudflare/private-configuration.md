@@ -30,7 +30,7 @@ Required before domain cutover: verify same production subject with the same
 Clerk instance, restore and reconcile source data/audit, confirm exclusive owner,
 test simulations in the new environment, keep inference blocked, verify rollback.
 
-## Required Hyperdrive connection (not yet provisioned)
+## Hyperdrive connection (provisioned and remote query verified)
 
 Direct pg and Postgres.js origin connections failed before authentication in
 remote Workers. A public TLS-only native socket succeeded using the official
@@ -40,7 +40,7 @@ SSL verify-full and the official CA downloaded from this project's Database
 Settings. Disable query caching (identity and revocation reads must be fresh).
 Bind it as INVEST_DATABASE and set INVEST_DATABASE_PROJECT=igxtlcbyucshupsldijj.
 Enter credentials through platform storage with user handoff; never extract the
-existing secret into logs/chat. Do not add a binding ID until provisioned.
+existing secret into logs/chat. Binding INVEST_DATABASE is now configured with ID 090bdfc5d2a8489eb1ccb8ea766e8566. Remote READ ONLY query returned 18 public tables and zero owner bindings. Clerk configuration, restored owner audit and login verification remain pending.
 No destination login or owner binding has been verified yet.
 
 Official documentation:

@@ -17,5 +17,14 @@
   "build": {
     "command": "npm run build:cloudflare-client && node scripts/migration/build-worker.mjs"
   },
-  "no_bundle": true
+  "no_bundle": true,
+  "hyperdrive": [
+    {
+      "binding": "INVEST_DATABASE",
+      "id": "090bdfc5d2a8489eb1ccb8ea766e8566"
+    }
+  ],
+  "vars": {
+    "INVEST_DATABASE_PROJECT": "igxtlcbyucshupsldijj"
+  }
 }
