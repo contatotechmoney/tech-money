@@ -1,0 +1,99 @@
+{
+  "projectRef": "igxtlcbyucshupsldijj",
+  "sourceCommit": "5ebdbffa405bf6d059353d14a48461f1028ea72a",
+  "applied": true,
+  "requiresEmptyDatabase": true,
+  "entries": [
+    {
+      "file": "migrations/0000_investment_portfolio.sql",
+      "sha256": "521891d6da22e771d0d3ca1654a5242145ed54b51661bb8cf773d949724d51bb"
+    },
+    {
+      "file": "migrations/0001_portfolio_transactions.sql",
+      "sha256": "a336a92582e7452d44950a706bbb510272f495648403f3b75756e581c4150bd2"
+    },
+    {
+      "file": "migrations/0002_fat_nighthawk.sql",
+      "sha256": "56e1bb2027bb1ce9578d3a2296e17bc90193375bc9ade8812b07a01321964690"
+    },
+    {
+      "file": "migrations/0003_suitability.sql",
+      "sha256": "17772896b31579d76dceacd9f67813f74f2809f608cf4215d0ee7cec5560674b"
+    },
+    {
+      "file": "migrations/0004_suitability_term_context.sql",
+      "sha256": "9144cac5517154c6f61a51539895859d1c3a20e3d2169822ec8f4c7d7cced147"
+    },
+    {
+      "file": "migrations/0005_report_risk_suitability_context.sql",
+      "sha256": "8874614343fecfe9512a144c003480f8960d54d3910fc0f32fc04fbd063e03ce"
+    },
+    {
+      "file": "migrations/0003_report_delivery_processing.sql",
+      "sha256": "771f21d4d1682dca02025f21c1eaf8bf508d45dc1ebae9193029d3cb0bc11f38"
+    },
+    {
+      "file": "migrations/0004_report_delivery_reliability.sql",
+      "sha256": "a80deedc90e039ab3380a729cc3ac89edb030f7dc528b6a3375f3a33f7881477"
+    },
+    {
+      "file": "migrations/0006_suitability_schema_recovery.sql",
+      "sha256": "411e3a0c34cb33507923ff68efaf2c8d37b288f95ca989414b33e5c042858119"
+    },
+    {
+      "file": "migrations/0007_report_delivery_provider_index.sql",
+      "sha256": "97c7046d180671d5e0e8aa4c38c6b385288404d9a22ee0b5680d1adfb9e78655"
+    },
+    {
+      "file": "migrations/0008_report_analysis_quality.sql",
+      "sha256": "503e782550af65526be42b096b78aca080428539492d1d09cf464f198fcc4a78"
+    },
+    {
+      "file": "migrations/0009_hermes_analysis_jobs.sql",
+      "sha256": "01345b9f5af5cf955b7a04664bd86d873082d252c87b0248b8207cf0b69fa528"
+    },
+    {
+      "file": "migrations/0010_report_delivery_confirmation_alert.sql",
+      "sha256": "ff107ffb592f4f9a2deb4c44ade5710ec8f949bc447fb01867844e688ffcaf42"
+    },
+    {
+      "file": "migrations/0011_investment_professional_review.sql",
+      "sha256": "f66dd6e7d4cfe0039bea914919589ed64cdff62926ccfd19ae2d81117d1f5091"
+    },
+    {
+      "file": "migrations/0012_report_delivery_provider_events.sql",
+      "sha256": "4c2c750ca85086c2c11b3bc000873b1da1140b5f9fcde392bf17d4ee83ac0c3a"
+    },
+    {
+      "file": "migrations/0013_investment_assignment_management.sql",
+      "sha256": "1f354d002a0ff9baa43f26fa3809383ff451f6f5a9d001f9ca66d0a3d745e49b"
+    },
+    {
+      "file": "migrations/0014_investment_simulation.sql",
+      "sha256": "37945a6dfa566047368075c0eb2b4d6b4ed6d4e9ca971bd16fdafdb12978f276"
+    },
+    {
+      "file": "migrations/0015_investment_governance_controls.sql",
+      "sha256": "491b4c684ef2f765e97ec60755590576a43d0be830fc351808a3d28281d5b0f3"
+    },
+    {
+      "file": "migrations/0016_portfolio_simulation.sql",
+      "sha256": "9058af9f0c7927cac0b68b3a1429e32806f227c093f580a23cd76d7b8a3e65e2"
+    },
+    {
+      "file": "migrations/0017_portfolio_pilot.sql",
+      "sha256": "70c3eb926c174c95d02d8f081dc91c8d4ccc71a2d6e417f0b617e9ae3e7d81a8"
+    },
+    {
+      "file": "migrations/0018_portfolio_pilot_singleton_publish_compat.sql",
+      "sha256": "f809e4531b64f25f05c2ddf8533154362f5e71d6d399f154e6e20fccc55d0c7f"
+    }
+  ],
+  "verifiedTableCount": 18,
+  "verifiedEnabledTriggerCount": 3,
+  "verifiedOwnerBindingCount": 0,
+  "verifiedPublicApiGrantCount": 0,
+  "productionSourceDataCopied": false,
+  "cloudflareAccountId": "7b0f8175648953195cf34a6ef8c87e16",
+  "domainSwitched": false
+}

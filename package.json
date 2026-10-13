@@ -19,10 +19,15 @@
     "test:quality": "env -u HERMES_ANALYSIS_ENABLED -u HERMES_API_KEY -u DATABASE_URL -u LLM_API_KEY -u OPENAI_API_KEY -u LLM_API_BASE -u LLM_MODEL tsx --tsconfig tsconfig.quality.json --test server/agents.test.ts server/report-policy.test.ts server/quality-routes.test.ts server/quality-ui.test.ts server/suitability.test.ts server/hermes.test.ts server/hermes-ui.test.ts server/professional-review.test.ts server/report-delivery-simulation.test.ts",
     "db:push": "drizzle-kit push",
     "test:simulation-browser": "node scripts/tests/simulation-browser.test.mjs",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "build:cloudflare-client": "vite build --config vite.cloudflare.config.ts",
+    "test:migration": "node --test cloudflare/*.test.mjs",
+    "build:cloudflare-worker": "node scripts/migration/build-worker.mjs",
+    "test:migration-runtime": "node scripts/migration/check-runtime.mjs"
   },
   "dependencies": {
     "@babel/traverse": "^7.29.8",
+    "@clerk/backend": "3.16.10",
     "@clerk/express": "^2.1.61",
     "@clerk/react": "^6.14.5",
     "@clerk/shared": "^4.29.3",
@@ -96,6 +101,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@replit/vite-plugin-cartographer": "^0.4.4",
     "@replit/vite-plugin-dev-banner": "^0.1.1",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.4",
@@ -117,7 +123,8 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
-    "vite": "^7.1.9"
+    "vite": "^7.1.9",
+    "wrangler": "^4.150.0"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

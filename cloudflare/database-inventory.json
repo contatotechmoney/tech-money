@@ -1,0 +1,59 @@
+{
+  "sourceCommit": "5ebdbffa405bf6d059353d14a48461f1028ea72a",
+  "tables": [
+    "investment_consultant_authorizations",
+    "investment_assignment_administrators",
+    "investment_review_professional",
+    "investment_assignment_audit",
+    "users",
+    "portfolio_holdings",
+    "portfolio_transactions",
+    "investment_reports",
+    "investment_professional_reviews",
+    "investment_simulation_studies",
+    "portfolio_simulation_studies",
+    "portfolio_pilot_accounts",
+    "portfolio_pilot_audit",
+    "portfolio_pilot_owner_bindings",
+    "report_delivery_requests",
+    "report_delivery_provider_events",
+    "suitability_profiles",
+    "suitability_terms"
+  ],
+  "migrationFiles": [
+    "migrations/0000_investment_portfolio.sql",
+    "migrations/0001_portfolio_transactions.sql",
+    "migrations/0002_fat_nighthawk.sql",
+    "migrations/0003_report_delivery_processing.sql",
+    "migrations/0003_suitability.sql",
+    "migrations/0004_report_delivery_reliability.sql",
+    "migrations/0004_suitability_term_context.sql",
+    "migrations/0005_report_risk_suitability_context.sql",
+    "migrations/0006_suitability_schema_recovery.sql",
+    "migrations/0007_report_delivery_provider_index.sql",
+    "migrations/0008_report_analysis_quality.sql",
+    "migrations/0009_hermes_analysis_jobs.sql",
+    "migrations/0010_report_delivery_confirmation_alert.sql",
+    "migrations/0011_investment_professional_review.sql",
+    "migrations/0012_report_delivery_provider_events.sql",
+    "migrations/0013_investment_assignment_management.sql",
+    "migrations/0014_investment_simulation.sql",
+    "migrations/0015_investment_governance_controls.sql",
+    "migrations/0016_portfolio_simulation.sql",
+    "migrations/0017_portfolio_pilot.sql",
+    "migrations/0018_portfolio_pilot_singleton_publish_compat.sql"
+  ],
+  "functionsInMigrationSource": [
+    "prevent_investment_review_changes",
+    "renew_investment_consultant_authorization"
+  ],
+  "triggersInMigrationSource": [
+    "investment_assignment_audit_immutable",
+    "investment_authorization_renewal",
+    "investment_review_immutable"
+  ],
+  "productionIntrospectionRequired": true,
+  "productionExportCompleted": false,
+  "supabaseProjectCreated": true,
+  "realAnalysisEnabled": false
+}
