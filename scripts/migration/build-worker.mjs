@@ -7,6 +7,7 @@ await build({
   outfile: 'dist/cloudflare/worker.mjs',
   bundle: true,
   platform: 'node',
+  conditions: ['workerd'],
   format: 'esm',
   target: 'es2022',
   external: ['cloudflare:*', 'node:*'],

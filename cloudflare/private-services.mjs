@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { createClerkClient } from '@clerk/backend';
-import { supabaseDatabaseConfig } from './database-config.mjs';
+import { migrationDatabaseConfig } from './database-config.mjs';
 
 function clerk(env) {
   if (!env.CLERK_SECRET_KEY?.startsWith('sk_live_') || !env.CLERK_PUBLISHABLE_KEY?.startsWith('pk_live_'))
@@ -19,7 +19,7 @@ export const privateServices = {
   user(id, env) { return clerk(env).users.getUser(id); },
   async binding(actor, fingerprint, env) {
     // Never share a socket/pool between Worker requests. No Replit fallback.
-    const config = supabaseDatabaseConfig(env);
+    const config = migrationDatabaseConfig(env);
     const client = new pg.Client({ ...config, connectionTimeoutMillis: 5000,
       query_timeout: 5000, application_name: 'invest-migration-readonly' });
     try {

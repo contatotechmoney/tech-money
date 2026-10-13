@@ -10,6 +10,18 @@ export function supabaseDatabaseConfig(bindings) {
     && decodeURIComponent(url.username) === `postgres.${INVEST_SUPABASE_PROJECT}`;
   if (!direct && !pooler) throw new Error('WRONG_DATABASE_PROJECT');
   if (!url.password || !url.username || url.pathname !== '/postgres') throw new Error('INVALID_DATABASE_CREDENTIALS');
-  if (url.searchParams.get('sslmode') !== 'verify-full') throw new Error('DATABASE_TLS_VERIFICATION_REQUIRED');
-  return {connectionString: value, max: 2, ssl: {rejectUnauthorized: true}};
+  if (url.searchParams.has('sslmode') && url.searchParams.get('sslmode') !== 'verify-full') throw new Error('DATABASE_TLS_VERIFICATION_REQUIRED');
+  url.searchParams.set('sslmode', 'verify-full');
+  return {connectionString: url.toString(), max: 2, ssl: {rejectUnauthorized: true}};
+}
+
+// Hyperdrive terminates the trusted Worker socket and validates origin TLS.
+// Its origin must be this Supabase project, verify-full, caching disabled.
+// No direct-driver fallback: a failed/missing binding keeps migration closed.
+export function migrationDatabaseConfig(bindings) {
+  const connectionString = bindings?.INVEST_DATABASE?.connectionString;
+  if (!connectionString) throw new Error('INVEST_HYPERDRIVE_NOT_CONFIGURED');
+  if (bindings.INVEST_DATABASE_PROJECT !== INVEST_SUPABASE_PROJECT)
+    throw new Error('WRONG_DATABASE_PROJECT');
+  return {connectionString, max: 2};
 }

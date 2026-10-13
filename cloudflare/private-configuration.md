@@ -12,7 +12,7 @@ Server bindings (enter values directly into Cloudflare secret storage):
 | CLERK_SECRET_KEY | Existing Replit production Clerk instance, sk_live_ key; never create a replacement identity instance |
 | CLERK_PUBLISHABLE_KEY | Same instance's pk_live_ key |
 | PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE | Existing verified production owner's subject; no name/email guessing |
-| INVEST_DATABASE_URL | New Supabase project's private PostgreSQL connection; sslmode=verify-full; project igxtlcbyucshupsldijj |
+| INVEST_DATABASE_URL (diagnostic only) | New Supabase project's private PostgreSQL connection; sslmode=verify-full; project igxtlcbyucshupsldijj |
 | INVEST_MIGRATION_ORIGIN | Exact HTTPS origin of the isolated migration environment, without path/trailing slash |
 
 The database reader only queries binding/account/audit proof under BEGIN READ ONLY.
@@ -29,3 +29,20 @@ origin may be enabled after access protection is in place and verified.
 Required before domain cutover: verify same production subject with the same
 Clerk instance, restore and reconcile source data/audit, confirm exclusive owner,
 test simulations in the new environment, keep inference blocked, verify rollback.
+
+## Required Hyperdrive connection (not yet provisioned)
+
+Direct pg and Postgres.js origin connections failed before authentication in
+remote Workers. A public TLS-only native socket succeeded using the official
+Supabase CA; this does not prove the password or database queries work.
+Use Cloudflare Hyperdrive, with origin project igxtlcbyucshupsldijj,
+SSL verify-full and the official CA downloaded from this project's Database
+Settings. Disable query caching (identity and revocation reads must be fresh).
+Bind it as INVEST_DATABASE and set INVEST_DATABASE_PROJECT=igxtlcbyucshupsldijj.
+Enter credentials through platform storage with user handoff; never extract the
+existing secret into logs/chat. Do not add a binding ID until provisioned.
+No destination login or owner binding has been verified yet.
+
+Official documentation:
+https://developers.cloudflare.com/hyperdrive/configuration/tls-ssl-certificates-for-hyperdrive/
+https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/node-postgres/
