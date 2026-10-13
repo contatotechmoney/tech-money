@@ -10,3 +10,7 @@ vite.config.ts.*
 .env
 .env.*
 .wrangler/
+
+# Private owner migration archives must never enter source control.
+*.private.json
+private-exports/
