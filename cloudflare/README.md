@@ -66,7 +66,19 @@ replay still passes (18 tables, 3 triggers) using a repository-local PGlite depe
 Live Replit account verification was refreshed: official session and existing owner
 binding remain confirmed. This is not evidence of a migrated login.
 
-Cloudflare account currently has no Invest migration Worker, secrets or private
-origin. Real login and Supabase connectivity have therefore NOT been validated
+At preparation time, the Cloudflare account had no Invest migration Worker,
+secrets or private origin. See the deployment update below. Real login and Supabase connectivity have therefore NOT been validated
 in Cloudflare. The Supabase binding/audit still needs a reviewed source restore.
 See private-configuration.md for required server-only settings.
+
+## Isolated Cloudflare upload (2026-10-13)
+
+The operator authorized the five Wrangler OAuth permissions and login completed.
+Uploaded techmoney-invest-migration, version 28b375ec-2a13-4e87-8544-fe8f8d91ed1c.
+Cloudflare accepted the Worker (44 ms startup). Both production workers.dev and
+preview URLs are disabled; the dashboard confirms no custom domains or routes.
+No existing worker/domain changed. Runtime variables/secrets remain empty.
+
+The Supabase connection field is prepared as a Secret in the dashboard, with no
+value saved. Credential entry is an operator handoff. Database connection, restored
+owner audit and real Cloudflare login remain unverified. Inference stays blocked.

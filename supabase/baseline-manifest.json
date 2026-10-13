@@ -95,5 +95,11 @@
   "verifiedPublicApiGrantCount": 0,
   "productionSourceDataCopied": false,
   "cloudflareAccountId": "7b0f8175648953195cf34a6ef8c87e16",
-  "domainSwitched": false
+  "domainSwitched": false,
+  "cloudflareWorker": "techmoney-invest-migration",
+  "cloudflareWorkerVersion": "28b375ec-2a13-4e87-8544-fe8f8d91ed1c",
+  "cloudflareWorkerUploaded": true,
+  "cloudflarePublicUrlsEnabled": false,
+  "cloudflareDatabaseConnected": false,
+  "cloudflareLoginVerified": false
 }
