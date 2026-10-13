@@ -5,3 +5,12 @@ server/public
 vite.config.ts.*
 *.tar.gz
 /generated-artifacts/
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+.wrangler/
+
+# Private owner migration archives must never enter source control.
+*.private.json
+private-exports/

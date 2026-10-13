@@ -1,0 +1,30 @@
+{
+  "name": "techmoney-invest-migration",
+  "main": "dist/cloudflare/worker.mjs",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "enable_nodejs_http_server_modules"
+  ],
+  "compatibility_date": "2026-10-13",
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "dist/public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
+  },
+  "build": {
+    "command": "npm run build:cloudflare-client && node scripts/migration/build-worker.mjs"
+  },
+  "no_bundle": true,
+  "hyperdrive": [
+    {
+      "binding": "INVEST_DATABASE",
+      "id": "090bdfc5d2a8489eb1ccb8ea766e8566"
+    }
+  ],
+  "vars": {
+    "INVEST_DATABASE_PROJECT": "igxtlcbyucshupsldijj"
+  }
+}

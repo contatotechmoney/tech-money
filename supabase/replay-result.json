@@ -1,0 +1,72 @@
+{
+  "passed": true,
+  "synthetic": true,
+  "productionChanged": false,
+  "tables": [
+    {
+      "tablename": "hermes_analysis_jobs"
+    },
+    {
+      "tablename": "investment_assignment_administrators"
+    },
+    {
+      "tablename": "investment_assignment_audit"
+    },
+    {
+      "tablename": "investment_consultant_authorizations"
+    },
+    {
+      "tablename": "investment_professional_reviews"
+    },
+    {
+      "tablename": "investment_reports"
+    },
+    {
+      "tablename": "investment_review_professional"
+    },
+    {
+      "tablename": "investment_simulation_studies"
+    },
+    {
+      "tablename": "portfolio_holdings"
+    },
+    {
+      "tablename": "portfolio_pilot_accounts"
+    },
+    {
+      "tablename": "portfolio_pilot_audit"
+    },
+    {
+      "tablename": "portfolio_pilot_owner_bindings"
+    },
+    {
+      "tablename": "portfolio_simulation_studies"
+    },
+    {
+      "tablename": "portfolio_transactions"
+    },
+    {
+      "tablename": "report_delivery_provider_events"
+    },
+    {
+      "tablename": "report_delivery_requests"
+    },
+    {
+      "tablename": "suitability_profiles"
+    },
+    {
+      "tablename": "suitability_terms"
+    }
+  ],
+  "triggers": [
+    {
+      "tgname": "investment_assignment_audit_immutable"
+    },
+    {
+      "tgname": "investment_authorization_renewal"
+    },
+    {
+      "tgname": "investment_review_immutable"
+    }
+  ]
+}
