@@ -25,7 +25,10 @@
   },
   "secrets": {
     "required": [
-      "INTEREST_RATE_KEY"
+      "INTEREST_RATE_KEY",
+      "INTEREST_ACCESS_ISSUER",
+      "INTEREST_ACCESS_AUD",
+      "INTEREST_OWNER_EMAIL"
     ]
   }
 }

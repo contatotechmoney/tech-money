@@ -1,9 +1,9 @@
 {
-  "state": "prepared_not_deployed",
+  "state": "deployed_owner_login_validation_pending",
   "testsPassed": 33,
   "browserSyntheticContactUpdate": "passed",
-  "databaseSchemaApplied": false,
-  "cloudflareAccessConfigured": false,
+  "databaseSchemaApplied": true,
+  "cloudflareAccessConfigured": true,
   "ownerAccessRequired": true,
   "requiredPrivateVariables": [
     "INTEREST_ACCESS_ISSUER",
@@ -18,5 +18,14 @@
   "realAnalysisEnabled": false,
   "instagramNotificationsEnabled": false,
   "instagramBlocker": "Requires recipient profile and supported Meta messaging permissions; no credentials or notification channel configured.",
-  "deploymentGate": "Apply additive schema; configure owner-only Cloudflare Access policy and exact issuer/audience; authenticate owner; verify anonymous and other identities denied before publishing."
+  "deploymentGate": "Owner must complete emailed login code; verify authenticated list and save.",
+  "anonymousPageStatus": 302,
+  "anonymousApiStatus": 302,
+  "publicPageStatus": 200,
+  "executionStatus": 404,
+  "managementColumnsVerified": 4,
+  "auditRlsVerified": true,
+  "publicGrantsVerified": 0,
+  "deploymentVersion": "d55dfb7e-88e0-4095-8a6a-062d723b9435",
+  "ownerLoginVerified": false
 }
