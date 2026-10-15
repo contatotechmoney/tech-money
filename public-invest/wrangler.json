@@ -31,5 +31,17 @@
       "INTEREST_ACCESS_AUD",
       "INTEREST_OWNER_EMAIL"
     ]
+  },
+  "services": [
+    {
+      "binding": "INVEST_NOTIFICATIONS",
+      "service": "sistema",
+      "entrypoint": "InvestNotifications"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "*/5 * * * *"
+    ]
   }
 }

@@ -1,3 +1,5 @@
+import {deliverPending,testNotice} from './notifications.mjs';
+import {notificationQueue} from './notification-store.mjs';
 import {ownerIdentity,adminRequest} from './admin.mjs';
 import {adminStore} from './admin-store.mjs';
 import pg from 'pg';
@@ -13,15 +15,17 @@ export const store={async capture(data,request,env){
  stage='cleanup';await client.query('DELETE FROM invest_interest_rate_limits WHERE expires_at<now()');
  stage='rate';const rate=await client.query("INSERT INTO invest_interest_rate_limits(bucket,hits,expires_at) VALUES($1,1,now()+interval '11 minutes') ON CONFLICT(bucket) DO UPDATE SET hits=invest_interest_rate_limits.hits+1 RETURNING hits",[bucket]);
  if(rate.rows[0].hits>8){await client.query('COMMIT');transaction=false;throw new Error('RATE_LIMIT');}
- stage='insert';await client.query('INSERT INTO invest_interest_requests(name,email,interest,contact_consent,marketing_opt_in,is_test) VALUES($1,$2,$3,true,$4,$5) ON CONFLICT(email,is_test) DO NOTHING',[data.name,data.email,data.interest,data.marketingOptIn,env.INTEREST_TEST_MODE==='true']);
+ stage='insert';const inserted=await client.query('INSERT INTO invest_interest_requests(name,email,interest,contact_consent,marketing_opt_in,is_test) VALUES($1,$2,$3,true,$4,$5) ON CONFLICT(email,is_test) DO NOTHING RETURNING id',[data.name,data.email,data.interest,data.marketingOptIn,env.INTEREST_TEST_MODE==='true']);
+ if(inserted.rowCount&&env.INTEREST_TEST_MODE!=='true')await client.query('INSERT INTO invest_interest_notifications(interest_id) VALUES($1) ON CONFLICT DO NOTHING',[inserted.rows[0].id]);
  await client.query('COMMIT');transaction=false;
  }catch(error){console.error(JSON.stringify({component:'interest',stage,code:/^[A-Z0-9_]{3,40}$/.test(error.code||'')?error.code:'unavailable',timeout:/timeout|terminated/i.test(error.message||'')}));throw error;}finally{if(transaction)await client.query('ROLLBACK').catch(()=>{});if(connected)client.end().catch(()=>{});else client.connection?.stream?.destroy();}
 }};
-export default {async fetch(request,env){const url=new URL(request.url);
+export default {async scheduled(event,env,ctx){ctx.waitUntil(deliverPending(env,notificationQueue));},async fetch(request,env,ctx){const url=new URL(request.url);
  if(url.pathname==='/'){url.pathname='/index.html';request=new Request(url,request);}
+ if(url.pathname==='/api/admin/telegram-test')return testNotice(request,env,await ownerIdentity(request,env));
  if(url.pathname==='/api/admin/interessados')return adminRequest(request,env,adminStore,await ownerIdentity(request,env));
  if(url.pathname==='/contatos'||url.pathname==='/contatos.html'){if(!await ownerIdentity(request,env))return new Response('Área exclusiva. Acesso não autorizado.',{status:403,headers:{'Cache-Control':'no-store'}});url.pathname='/contatos.html';request=new Request(url,request);}
- if(url.pathname==='/api/interesse')return interestRequest(request,env,store);
+ if(url.pathname==='/api/interesse'){const response=await interestRequest(request,env,store);if(response.status===202&&env.INTEREST_TEST_MODE!=='true')ctx.waitUntil(deliverPending(env,notificationQueue).catch(()=>{}));return response;}
  if(url.pathname.startsWith('/api/'))return Response.json({error:'Não disponível.',realAnalysisEnabled:false},{status:404,headers:{'Cache-Control':'no-store'}});
  if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405});
  if(!['/','/index.html','/style.css','/form.js','/logo.svg','/contatos','/contatos.html','/contatos.css','/contatos.js'].includes(url.pathname))return new Response('Página não encontrada',{status:404});
