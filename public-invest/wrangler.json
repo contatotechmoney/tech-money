@@ -1,0 +1,31 @@
+{
+  "name": "techmoney-invest-interest",
+  "main": "../dist/public-invest/worker.mjs",
+  "compatibility_date": "2026-10-14",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": false,
+  "preview_urls": false,
+  "no_bundle": true,
+  "assets": {
+    "directory": "./assets",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "hyperdrive": [
+    {
+      "binding": "INTEREST_DATABASE",
+      "id": "090bdfc5d2a8489eb1ccb8ea766e8566"
+    }
+  ],
+  "vars": {
+    "INTEREST_ORIGIN": "http://127.0.0.1:19625",
+    "INTEREST_TEST_MODE": "true"
+  },
+  "secrets": {
+    "required": [
+      "INTEREST_RATE_KEY"
+    ]
+  }
+}

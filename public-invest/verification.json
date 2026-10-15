@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-14",
+  "state": "private_preview_validated_not_public",
+  "tests": {
+    "unitAndMigrationPassed": 28,
+    "browserDesktopSaved": true,
+    "mobileWidth": 390,
+    "mobileHorizontalOverflow": false,
+    "invalidEmailBlocked": true,
+    "contactConsentRequired": true,
+    "marketingDefault": false,
+    "duplicateEmailRecords": 1,
+    "duplicateCannotChangeConsent": true,
+    "marketingOptInPersistedSeparately": true,
+    "publicTableGrants": 0,
+    "rlsTables": 2,
+    "originalOwnerBindings": 1,
+    "originalAuditEvents": 2,
+    "paidAndAnalysisEndpointsBlocked": true
+  },
+  "customerDataUsed": false,
+  "inferenceCalls": 0,
+  "currentInvestDeploymentChanged": false,
+  "publicationApproved": false,
+  "hyperdriveOrigin": "db.igxtlcbyucshupsldijj.supabase.co:5432",
+  "hyperdriveTls": "verify-full",
+  "releaseRequirements": [
+    "Obtain confirmation to publish this separate capture page",
+    "Set INTEREST_ORIGIN to the final exact HTTPS origin",
+    "Set INTEREST_TEST_MODE=false and remove the preview noindex tag only for approved release",
+    "Keep existing Invest DNS and Clerk unchanged",
+    "Repeat HTTPS browser capture and database verification after publication"
+  ]
+}
