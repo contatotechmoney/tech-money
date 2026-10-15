@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-14",
-  "state": "private_preview_validated_not_public",
+  "date": "2026-10-15",
+  "state": "public_https_capture_verified",
   "tests": {
     "unitAndMigrationPassed": 28,
     "browserDesktopSaved": true,
@@ -16,19 +16,21 @@
     "rlsTables": 2,
     "originalOwnerBindings": 1,
     "originalAuditEvents": 2,
-    "paidAndAnalysisEndpointsBlocked": true
+    "paidAndAnalysisEndpointsBlocked": true,
+    "publicHttpsBrowserSaved": true,
+    "publicCaptureDatabaseRecords": 1,
+    "publicContactConsentVerified": true,
+    "publicMarketingDefaultFalseVerified": true,
+    "syntheticPublicationRecordMarkedTest": true,
+    "productionExecuteEndpointStatus": 404
   },
   "customerDataUsed": false,
   "inferenceCalls": 0,
   "currentInvestDeploymentChanged": false,
-  "publicationApproved": false,
+  "publicationApproved": true,
   "hyperdriveOrigin": "db.igxtlcbyucshupsldijj.supabase.co:5432",
   "hyperdriveTls": "verify-full",
-  "releaseRequirements": [
-    "Obtain confirmation to publish this separate capture page",
-    "Set INTEREST_ORIGIN to the final exact HTTPS origin",
-    "Set INTEREST_TEST_MODE=false and remove the preview noindex tag only for approved release",
-    "Keep existing Invest DNS and Clerk unchanged",
-    "Repeat HTTPS browser capture and database verification after publication"
-  ]
+  "releaseRequirements": [],
+  "publicUrl": "https://techmoney-invest-interest.techmoney.workers.dev",
+  "deploymentVersion": "3d37dc45-862d-4576-ae18-683d6cbbd0af"
 }

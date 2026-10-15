@@ -5,7 +5,7 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "workers_dev": false,
+  "workers_dev": true,
   "preview_urls": false,
   "no_bundle": true,
   "assets": {
@@ -20,8 +20,8 @@
     }
   ],
   "vars": {
-    "INTEREST_ORIGIN": "http://127.0.0.1:19625",
-    "INTEREST_TEST_MODE": "true"
+    "INTEREST_ORIGIN": "https://techmoney-invest-interest.techmoney.workers.dev",
+    "INTEREST_TEST_MODE": "false"
   },
   "secrets": {
     "required": [
