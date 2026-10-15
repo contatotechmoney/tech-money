@@ -1,0 +1,34 @@
+{
+  "state": "identity_adapter_prepared_schema_applied",
+  "replitCancellationSafe": false,
+  "domainCutoverCompleted": false,
+  "existingReplitLoginChanged": false,
+  "realAnalysisEnabled": false,
+  "testsPassed": 28,
+  "workerBuildPassed": true,
+  "mappingSchemaApplied": true,
+  "originalDataVerified": {
+    "pilotAccounts": 1,
+    "ownerBindings": 1,
+    "originalAuditEvents": 2
+  },
+  "destinationCounts": {
+    "holdings": 0,
+    "transactions": 0,
+    "reports": 0,
+    "portfolioSimulations": 0,
+    "supabaseAuthUsers": 0
+  },
+  "sourceProductionReconciliationComplete": false,
+  "supabaseLoginLiveVerified": false,
+  "identityLinkConfirmed": false,
+  "businessApiMigrationComplete": false,
+  "requiredBeforeCancellation": [
+    "Inventory and export current Replit production data and files, including active users",
+    "Configure and verify independent Supabase authentication on isolated migration origin",
+    "Confirm verified new owner identity maps exclusively to original account without rewriting legacy IDs",
+    "Port frontend authentication and required business APIs; keep all execution and billing paths blocked",
+    "Validate backup restoration, authenticated portal workflows and rollback",
+    "Switch Invest domain only after acceptance and verify operation without Replit dependencies"
+  ]
+}

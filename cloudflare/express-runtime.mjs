@@ -1,3 +1,5 @@
+import {supabaseMigrationStatus} from './supabase-auth/identity.mjs';
+import {supabaseIdentityStore} from './supabase-auth/store.mjs';
 import express from 'express';
 import { createServer } from 'node:http';
 import { httpServerHandler } from 'cloudflare:node';
@@ -29,6 +31,9 @@ export default {
     const pathname = new URL(request.url).pathname;
     if (pathname === '/api/__clerk' || pathname.startsWith('/api/__clerk/')) {
       return migrationClerkProxy(request, env);
+    }
+    if (pathname === '/api/migration/supabase-status') {
+      return supabaseMigrationStatus(request, env, supabaseIdentityStore);
     }
     if (pathname === '/api/migration/pilot-status') {
       return pilotMigrationStatus(request, env, privateServices);
