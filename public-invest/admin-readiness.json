@@ -1,5 +1,5 @@
 {
-  "state": "deployed_owner_login_validation_pending",
+  "state": "deployed_owner_login_verified",
   "testsPassed": 33,
   "browserSyntheticContactUpdate": "passed",
   "databaseSchemaApplied": true,
@@ -18,7 +18,7 @@
   "realAnalysisEnabled": false,
   "instagramNotificationsEnabled": false,
   "instagramBlocker": "Requires recipient profile and supported Meta messaging permissions; no credentials or notification channel configured.",
-  "deploymentGate": "Owner must complete emailed login code; verify authenticated list and save.",
+  "deploymentGate": "Authenticated list verified; no genuine contacts present. Contact editing tested using local synthetic data.",
   "anonymousPageStatus": 302,
   "anonymousApiStatus": 302,
   "publicPageStatus": 200,
@@ -26,6 +26,9 @@
   "managementColumnsVerified": 4,
   "auditRlsVerified": true,
   "publicGrantsVerified": 0,
-  "deploymentVersion": "d55dfb7e-88e0-4095-8a6a-062d723b9435",
-  "ownerLoginVerified": false
+  "deploymentVersion": "fafe1c34-ffa3-4b4b-bfc7-5af28eb1fb9d",
+  "ownerLoginVerified": true,
+  "authenticatedListVerified": true,
+  "authenticatedEmptyStateVerified": true,
+  "productionContactEditVerified": false
 }
