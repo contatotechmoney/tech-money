@@ -1,3 +1,5 @@
+import {ownerIdentity,adminRequest} from './admin.mjs';
+import {adminStore} from './admin-store.mjs';
 import pg from 'pg';
 import {interestRequest} from './intake.mjs';
 export const store={async capture(data,request,env){
@@ -16,10 +18,12 @@ export const store={async capture(data,request,env){
  }catch(error){console.error(JSON.stringify({component:'interest',stage,code:/^[A-Z0-9_]{3,40}$/.test(error.code||'')?error.code:'unavailable',timeout:/timeout|terminated/i.test(error.message||'')}));throw error;}finally{if(transaction)await client.query('ROLLBACK').catch(()=>{});if(connected)client.end().catch(()=>{});else client.connection?.stream?.destroy();}
 }};
 export default {async fetch(request,env){const url=new URL(request.url);
+ if(url.pathname==='/api/admin/interessados')return adminRequest(request,env,adminStore,await ownerIdentity(request,env));
+ if(url.pathname==='/contatos'||url.pathname==='/contatos.html'){if(!await ownerIdentity(request,env))return new Response('Área exclusiva. Acesso não autorizado.',{status:403,headers:{'Cache-Control':'no-store'}});url.pathname='/contatos.html';request=new Request(url,request);}
  if(url.pathname==='/api/interesse')return interestRequest(request,env,store);
  if(url.pathname.startsWith('/api/'))return Response.json({error:'Não disponível.',realAnalysisEnabled:false},{status:404,headers:{'Cache-Control':'no-store'}});
  if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405});
- if(!['/','/index.html','/style.css','/form.js','/logo.svg'].includes(url.pathname))return new Response('Página não encontrada',{status:404});
+ if(!['/','/index.html','/style.css','/form.js','/logo.svg','/contatos','/contatos.html','/contatos.css','/contatos.js'].includes(url.pathname))return new Response('Página não encontrada',{status:404});
  const response=await env.ASSETS.fetch(request);const h=new Headers(response.headers);
  h.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
  h.set('Referrer-Policy','strict-origin-when-cross-origin');h.set('X-Content-Type-Options','nosniff');

@@ -1,0 +1,22 @@
+{
+  "state": "prepared_not_deployed",
+  "testsPassed": 33,
+  "browserSyntheticContactUpdate": "passed",
+  "databaseSchemaApplied": false,
+  "cloudflareAccessConfigured": false,
+  "ownerAccessRequired": true,
+  "requiredPrivateVariables": [
+    "INTEREST_ACCESS_ISSUER",
+    "INTEREST_ACCESS_AUD",
+    "INTEREST_OWNER_EMAIL"
+  ],
+  "requiredAccessPaths": [
+    "/contatos",
+    "/contatos.html",
+    "/api/admin/*"
+  ],
+  "realAnalysisEnabled": false,
+  "instagramNotificationsEnabled": false,
+  "instagramBlocker": "Requires recipient profile and supported Meta messaging permissions; no credentials or notification channel configured.",
+  "deploymentGate": "Apply additive schema; configure owner-only Cloudflare Access policy and exact issuer/audience; authenticate owner; verify anonymous and other identities denied before publishing."
+}
