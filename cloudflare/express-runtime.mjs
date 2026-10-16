@@ -1,3 +1,4 @@
+import {migrationPortal} from './portal.ts';
 import {supabaseMigrationStatus} from './supabase-auth/identity.mjs';
 import {supabaseIdentityStore,authMigrationRate} from './supabase-auth/store.mjs';
 import {confirmSupabaseOwner} from './supabase-auth/identity.mjs';
@@ -49,6 +50,7 @@ export default {
     if (pathname === '/api/migration/runtime' && request.method === 'GET') {
       return expressHandler.fetch(request, env, context);
     }
+    if(pathname==='/api/migration/session'||pathname.startsWith('/api/investments/')||pathname.startsWith('/api/suitability/'))return migrationPortal(request,env);
     return stagingGateway.fetch(request, env, context);
   },
 };

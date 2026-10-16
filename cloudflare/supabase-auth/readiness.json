@@ -1,10 +1,10 @@
 {
-  "state": "identity_adapter_prepared_schema_applied",
+  "state": "records_restored_owner_linked_portal_preview_prepared",
   "replitCancellationSafe": false,
   "domainCutoverCompleted": false,
   "existingReplitLoginChanged": false,
   "realAnalysisEnabled": false,
-  "testsPassed": 28,
+  "testsPassed": 43,
   "workerBuildPassed": true,
   "mappingSchemaApplied": true,
   "originalDataVerified": {
@@ -15,20 +15,32 @@
   "destinationCounts": {
     "holdings": 0,
     "transactions": 0,
-    "reports": 0,
-    "portfolioSimulations": 0,
-    "supabaseAuthUsers": 0
+    "reports": 86,
+    "portfolioSimulations": 3,
+    "supabaseAuthUsers": 1,
+    "investmentSimulations": 2,
+    "suitabilityProfiles": 1
   },
   "sourceProductionReconciliationComplete": false,
-  "supabaseLoginLiveVerified": false,
-  "identityLinkConfirmed": false,
+  "supabaseLoginLiveVerified": true,
+  "identityLinkConfirmed": true,
   "businessApiMigrationComplete": false,
   "requiredBeforeCancellation": [
-    "Inventory and export current Replit production data and files, including active users",
-    "Configure and verify independent Supabase authentication on isolated migration origin",
-    "Confirm verified new owner identity maps exclusively to original account without rewriting legacy IDs",
-    "Port frontend authentication and required business APIs; keep all execution and billing paths blocked",
-    "Validate backup restoration, authenticated portal workflows and rollback",
-    "Switch Invest domain only after acceptance and verify operation without Replit dependencies"
-  ]
+    "Inventory managed login users and application storage before retiring Replit",
+    "Validate authenticated Cloudflare portal with restored owner-scoped records",
+    "Complete and validate remaining portfolio/profile writes and simulation creation without inference",
+    "Reconcile any new Replit records immediately before cutover",
+    "Verify rollback and public domain operation without Replit dependencies"
+  ],
+  "sourceDatabaseReconciliationComplete": true,
+  "frontendSupabaseBuildPassed": true,
+  "portalPreviewReadOnly": true,
+  "sourceDatabase": {
+    "existingTables": 16,
+    "allTablesExact": true,
+    "privateBackupSaved": true,
+    "restorationIdempotentTestPassed": true,
+    "conflictingDestinationRejected": true,
+    "verifiedAt": "2026-10-16"
+  }
 }
