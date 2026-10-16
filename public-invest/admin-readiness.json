@@ -1,0 +1,41 @@
+{
+  "state": "deployed_owner_login_verified",
+  "testsPassed": 33,
+  "browserSyntheticContactUpdate": "passed",
+  "databaseSchemaApplied": true,
+  "cloudflareAccessConfigured": true,
+  "ownerAccessRequired": true,
+  "requiredPrivateVariables": [
+    "INTEREST_ACCESS_ISSUER",
+    "INTEREST_ACCESS_AUD",
+    "INTEREST_OWNER_EMAIL"
+  ],
+  "requiredAccessPaths": [
+    "/contatos",
+    "/contatos.html",
+    "/api/admin/*"
+  ],
+  "realAnalysisEnabled": false,
+  "instagramNotificationsEnabled": false,
+  "deploymentGate": "Authenticated list verified; no genuine contacts present. Contact editing tested using local synthetic data.",
+  "anonymousPageStatus": 302,
+  "anonymousApiStatus": 302,
+  "publicPageStatus": 200,
+  "executionStatus": 404,
+  "managementColumnsVerified": 4,
+  "auditRlsVerified": true,
+  "publicGrantsVerified": 0,
+  "deploymentVersion": "89557e45-9057-4c75-9ea4-09226de2f22d",
+  "ownerLoginVerified": true,
+  "authenticatedListVerified": true,
+  "authenticatedEmptyStateVerified": true,
+  "productionContactEditVerified": true,
+  "telegramNotificationsEnabled": true,
+  "telegramTestDeliveryVerified": true,
+  "telegramAutomaticCaptureVerified": true,
+  "telegramDuplicateSuppressionVerified": true,
+  "telegramNoticeContainsPersonalData": false,
+  "notificationQueueRls": true,
+  "notificationQueuePublicGrants": 0,
+  "telegramRetrySchedule": "every 5 minutes, maximum 8 attempts"
+}
