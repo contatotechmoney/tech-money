@@ -6,13 +6,14 @@
     "enable_nodejs_http_server_modules"
   ],
   "compatibility_date": "2026-10-13",
-  "workers_dev": false,
+  "workers_dev": true,
   "preview_urls": false,
   "assets": {
     "directory": "dist/public",
     "binding": "ASSETS",
     "run_worker_first": true,
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "html_handling": "none"
   },
   "build": {
     "command": "npm run build:cloudflare-client && node scripts/migration/build-worker.mjs"
@@ -25,6 +26,8 @@
     }
   ],
   "vars": {
-    "INVEST_DATABASE_PROJECT": "igxtlcbyucshupsldijj"
+    "INVEST_DATABASE_PROJECT": "igxtlcbyucshupsldijj",
+    "INVEST_MIGRATION_ORIGIN": "https://techmoney-invest-migration.techmoney.workers.dev",
+    "INVEST_SUPABASE_URL": "https://igxtlcbyucshupsldijj.supabase.co"
   }
 }

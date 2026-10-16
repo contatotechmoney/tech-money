@@ -1,0 +1,53 @@
+{
+  "state": "records_restored_owner_linked_readonly_preview_published",
+  "replitCancellationSafe": false,
+  "domainCutoverCompleted": false,
+  "existingReplitLoginChanged": false,
+  "realAnalysisEnabled": false,
+  "testsPassed": 53,
+  "workerBuildPassed": true,
+  "mappingSchemaApplied": true,
+  "originalDataVerified": {
+    "pilotAccounts": 1,
+    "ownerBindings": 1,
+    "originalAuditEvents": 2
+  },
+  "destinationCounts": {
+    "holdings": 0,
+    "transactions": 0,
+    "reports": 86,
+    "portfolioSimulations": 3,
+    "supabaseAuthUsers": 1,
+    "investmentSimulations": 2,
+    "suitabilityProfiles": 1
+  },
+  "sourceProductionReconciliationComplete": false,
+  "supabaseLoginLiveVerified": true,
+  "identityLinkConfirmed": true,
+  "businessApiMigrationComplete": false,
+  "requiredBeforeCancellation": [
+    "Inventory managed login users and application storage before retiring Replit",
+    "Validate authenticated Cloudflare portal with restored owner-scoped records",
+    "Complete and validate remaining portfolio/profile writes and simulation creation without inference",
+    "Reconcile any new Replit records immediately before cutover",
+    "Verify rollback and public domain operation without Replit dependencies"
+  ],
+  "sourceDatabaseReconciliationComplete": true,
+  "frontendSupabaseBuildPassed": true,
+  "portalPreviewReadOnly": true,
+  "sourceDatabase": {
+    "existingTables": 16,
+    "allTablesExact": true,
+    "privateBackupSaved": true,
+    "restorationIdempotentTestPassed": true,
+    "conflictingDestinationRejected": true,
+    "verifiedAt": "2026-10-16"
+  },
+  "portalPreviewPublished": true,
+  "portalPreviewVersion": "0c161d12-d21b-41b8-b6cf-d24895cf0742",
+  "typeCheckPassed": true,
+  "managedProductionIdentities": 2,
+  "sourceObjectStorageBuckets": 0,
+  "authenticatedPortalLiveVerified": false,
+  "sourceManagedUserInventorySaved": true
+}
