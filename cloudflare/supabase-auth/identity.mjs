@@ -7,7 +7,7 @@ export async function verifiedSupabaseIdentity(request,env,fetcher=fetch){
  const config=authConfiguration(env);if(new URL(request.url).origin!==config.origin)return null;
  const cookies=request.headers.get('Cookie')||'';const matches=[...cookies.matchAll(/(?:^|;\s*)__Host-invest-migration=([^;]+)/g)];if(matches.length!==1)return null;
  const token=matches[0][1];if(!/^[A-Za-z0-9_.-]{20,8192}$/.test(token))return null;
- try{const response=await fetcher(config.url+'/auth/v1/user',{headers:{apikey:config.key,Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(5000)});if(!response.ok)return null;const user=await response.json();
+ try{const response=await fetcher(config.url+'/auth/v1/user',{headers:{apikey:config.key,Authorization:'Bearer '+token},redirect:'manual',signal:AbortSignal.timeout(5000)});if(!response.ok)return null;const user=await response.json();
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id)||user.role!=='authenticated'||user.is_anonymous===true||!user.email_confirmed_at||!Number.isFinite(Date.parse(user.email_confirmed_at))||Date.parse(user.email_confirmed_at)>Date.now()||user.email?.toLowerCase()!==config.owner)return null;
  return {provider:'supabase',subject:user.id,email:user.email.toLowerCase(),verifiedAt:user.email_confirmed_at};}catch{return null;}
 }

@@ -7,7 +7,7 @@ export async function loginRequest(request,env,services){
  if(!env.INVEST_MIGRATION_RATE_KEY)return json({error:'LOGIN_CONFIGURATION_REQUIRED'},503);
  let allowed;try{allowed=await services.rate(request,url.pathname,env)}catch{return json({error:'LOGIN_DATABASE_UNAVAILABLE'},503)}if(!allowed)return json({error:'TRY_LATER'},429);
  if(url.pathname.endsWith('/request-link')){
- const response=await (services.fetch||fetch)(config.url+'/auth/v1/otp?redirect_to='+encodeURIComponent(config.origin+'/migration/callback'),{method:'POST',redirect:'error',headers:{apikey:config.key,'Content-Type':'application/json'},body:JSON.stringify({email:config.owner,create_user:true}),signal:AbortSignal.timeout(30000)});
+ const response=await (services.fetch||fetch)(config.url+'/auth/v1/otp?redirect_to='+encodeURIComponent(config.origin+'/migration/callback'),{method:'POST',redirect:'manual',headers:{apikey:config.key,'Content-Type':'application/json'},body:JSON.stringify({email:config.owner,create_user:true}),signal:AbortSignal.timeout(30000)});
  return response.ok?json({sent:true}):json({error:'EMAIL_DELIVERY_UNAVAILABLE'},503);
  }
  if(url.pathname.endsWith('/exchange')){
