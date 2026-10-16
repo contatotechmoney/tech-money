@@ -1,10 +1,10 @@
 {
-  "state": "records_restored_owner_linked_portal_preview_prepared",
+  "state": "records_restored_owner_linked_readonly_preview_published",
   "replitCancellationSafe": false,
   "domainCutoverCompleted": false,
   "existingReplitLoginChanged": false,
   "realAnalysisEnabled": false,
-  "testsPassed": 43,
+  "testsPassed": 53,
   "workerBuildPassed": true,
   "mappingSchemaApplied": true,
   "originalDataVerified": {
@@ -42,5 +42,12 @@
     "restorationIdempotentTestPassed": true,
     "conflictingDestinationRejected": true,
     "verifiedAt": "2026-10-16"
-  }
+  },
+  "portalPreviewPublished": true,
+  "portalPreviewVersion": "283fae0a-18da-4c58-b1b0-24fe4aaa227f",
+  "typeCheckPassed": true,
+  "managedProductionIdentities": 2,
+  "sourceObjectStorageBuckets": 0,
+  "authenticatedPortalLiveVerified": false,
+  "sourceManagedUserInventorySaved": true
 }

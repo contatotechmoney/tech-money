@@ -1,3 +1,4 @@
+import {publicSimulation} from '../shared/investment-simulation';
 import {verifiedSupabaseIdentity} from './supabase-auth/identity.mjs';
 import {supabaseIdentityStore,db} from './supabase-auth/store.mjs';
 import {reportPresentation,informationalReport} from '../server/report-policy';
@@ -7,7 +8,6 @@ const closed={realAnalysisEnabled:false,executable:false,costApprovalRequired:tr
 const json=(data:unknown,status=200)=>Response.json({...data as object,...closed},{status,headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 const camel=(row:any)=>Object.fromEntries(Object.entries(row).filter(([k])=>k!=='user_id').map(([k,v])=>[k.replace(/_([a-z])/g,(_,c)=>c.toUpperCase()),v instanceof Date?v.toISOString():v]));
 export function historicalReport(row:any){const r=camel(row);for(const k of ['price','changePercent','riskScore'])if(r[k]!==null)r[k]=Number(r[k]);return informationalReport(r as any,reportPresentation(r as any,{historical:true}));}
-function simulatedStock(row:any){return {id:row.id,ticker:row.ticker,createdAt:new Date(row.created_at).toISOString(),mode:'simulation',status:'completed',stage:'Estudo simulado preservado',output:`SIMULAÇÃO — DADOS FICTÍCIOS\nEstudo demonstrativo de ${row.ticker}. Roteiro fixo preservado, sem pesquisa de mercado, execução de IA ou recomendação. Tokens: 0. Créditos debitados: 0.`,tokensUsed:0,creditsDebited:0,professionalReview:'not_applicable',recommendation:'blocked'};}
 export async function migrationPortal(request:Request,env:any,services:any={verify:verifiedSupabaseIdentity,binding:supabaseIdentityStore.binding,db}){
  try{
  const identity=await services.verify(request,env);if(!identity)return json({error:'VERIFIED_OWNER_SIGN_IN_REQUIRED'},401);
@@ -36,7 +36,7 @@ export async function migrationPortal(request:Request,env:any,services:any={veri
  if(path==='/api/investments/portfolio-simulation/scenario')return json({mode:'simulation',scenario:portfolioScenario(),metrics:portfolioMetrics(),agents:PORTFOLIO_AGENTS,tokensUsed:0,creditsDebited:0});
  if(path==='/api/investments/simulation-options')return json({mode:'simulation',tickers:['BBDC3','BBAS3'],tokensUsed:0,creditsDebited:0});
  const studies=path.match(/^\/api\/investments\/(portfolio-simulations|simulations)(?:\/([0-9a-f-]{36}))?$/i);
- if(studies){const table=studies[1]==='portfolio-simulations'?'portfolio_simulation_studies':'investment_simulation_studies';const present=studies[1]==='portfolio-simulations'?presentPortfolioStudy:simulatedStock;const rows=await query(`SELECT * FROM ${table} WHERE user_id=$1${studies[2]?' AND id=$2':''} ORDER BY created_at DESC,id DESC LIMIT 30`,studies[2]?[owner,studies[2]]:[owner]);if(studies[2])return rows[0]?json(present(rows[0])):json({error:'STUDY_NOT_FOUND'},404);return json({studies:rows.map((r:any)=>present(r))});}
+ if(studies){const table=studies[1]==='portfolio-simulations'?'portfolio_simulation_studies':'investment_simulation_studies';const present=studies[1]==='portfolio-simulations'?presentPortfolioStudy:publicSimulation;const rows=await query(`SELECT * FROM ${table} WHERE user_id=$1${studies[2]?' AND id=$2':''} ORDER BY created_at DESC,id DESC LIMIT 30`,studies[2]?[owner,studies[2]]:[owner]);if(studies[2])return rows[0]?json(present(rows[0])):json({error:'STUDY_NOT_FOUND'},404);return json({studies:rows.map((r:any)=>present(r))});}
  if(path==='/api/investments/report-deliveries')return json({items:[],nextCursor:null});
  return json({error:'MIGRATION_NOT_READY'},503);
  }catch{return json({error:'MIGRATION_PORTAL_UNAVAILABLE'},503)}
