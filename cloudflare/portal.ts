@@ -1,10 +1,11 @@
+import {createDemo,DemoError} from './simulation-write';
 import {publicSimulation} from '../shared/investment-simulation';
 import {verifiedSupabaseIdentity} from './supabase-auth/identity.mjs';
 import {supabaseIdentityStore,db} from './supabase-auth/store.mjs';
 import {reportPresentation,informationalReport} from '../server/report-policy';
 import {PORTFOLIO_AGENTS,portfolioScenario,portfolioMetrics,presentPortfolioStudy} from '../shared/portfolio-simulation';
 import {QUESTOES} from '../shared/suitability-questionnaire';
-const closed={realAnalysisEnabled:false,executable:false,costApprovalRequired:true,migrationReadOnly:true};
+const closed={realAnalysisEnabled:false,executable:false,costApprovalRequired:true,migrationReadOnly:true,fictionalSimulationsEnabled:true};
 const json=(data:unknown,status=200)=>Response.json({...data as object,...closed},{status,headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 const camel=(row:any)=>Object.fromEntries(Object.entries(row).filter(([k])=>k!=='user_id').map(([k,v])=>[k.replace(/_([a-z])/g,(_,c)=>c.toUpperCase()),v instanceof Date?v.toISOString():v]));
 export function historicalReport(row:any){const r=camel(row);for(const k of ['price','changePercent','riskScore'])if(r[k]!==null)r[k]=Number(r[k]);return informationalReport(r as any,reportPresentation(r as any,{historical:true}));}
@@ -13,6 +14,7 @@ export async function migrationPortal(request:Request,env:any,services:any={veri
  const identity=await services.verify(request,env);if(!identity)return json({error:'VERIFIED_OWNER_SIGN_IN_REQUIRED'},401);
  const binding=await services.binding(identity,env);if(!binding.bound||!binding.originalOwnerPreserved)return json({error:'OWNER_LINK_REQUIRED'},403);
  const path=new URL(request.url).pathname;
+ if(request.method==='POST'&&['/api/investments/simulations','/api/investments/portfolio-simulations'].includes(path)){try{return json(await createDemo(request,env,env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,services),202)}catch(e){return e instanceof DemoError?json({error:e.code},e.status):json({error:'SIMULATION_UNAVAILABLE'},503)}}
  if(request.method!=='GET')return json({error:'MIGRATION_READ_ONLY',message:'Alterações e análises reais estão bloqueadas nesta prévia. Use o portal atual.'},423);
  if(path==='/api/migration/session')return json({ownerBound:true,user:{id:identity.subject,email:identity.email}});
  const owner=env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE;
