@@ -1,5 +1,5 @@
 {
-  "state": "authenticated_screens_verified_new_functions_await_cloudflare_reauthentication",
+  "state": "preview_update_published_authenticated_simulation_validation_pending",
   "replitCancellationSafe": false,
   "domainCutoverCompleted": false,
   "existingReplitLoginChanged": false,
@@ -26,7 +26,6 @@
   "identityLinkConfirmed": true,
   "businessApiMigrationComplete": false,
   "requiredBeforeCancellation": [
-    "Renew existing Cloudflare publisher authentication and deploy tested changes",
     "Validate a newly created fictional simulation in the authenticated Cloudflare portal",
     "Enable and validate record entry only after defining the cutover source of truth",
     "Reconcile any new Replit records immediately before cutover",
@@ -44,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "0c161d12-d21b-41b8-b6cf-d24895cf0742",
+  "portalPreviewVersion": "39dea2d7-ad4b-4257-9f37-6b59451fb51a",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -63,6 +62,6 @@
   "verifiedAt": "2026-10-18",
   "recordWritesPrepared": true,
   "recordWritesEnabled": false,
-  "fictionalSimulationCreationPublished": false,
-  "cloudflarePublisherAuthenticationRequired": true
+  "fictionalSimulationCreationPublished": true,
+  "cloudflarePublisherAuthenticationRequired": false
 }
