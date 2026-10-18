@@ -54,11 +54,55 @@ The private backup is outside Git and includes hashes and restoration verificati
 Two managed production identities were inventoried without merging them by name.
 The Replit object-storage screen showed no buckets.
 
-Before cancellation: renew the official publisher login, deploy and test new
-simulations, finish recording workflow verification, reconcile source changes,
-verify rollback, move the Invest domain and verify operation without Replit.
+The publisher login was renewed and version `39dea2d7-ad4b-4257-9f37-6b59451fb51a`
+was published on 2026-10-18. A new fictional portfolio study was created in the
+exclusive owner session, completed all six illustrative stages and remained
+available after reload with zero tokens and credits. Anonymous session requests
+still return 401. Real execution remains blocked.
+
+Before cancellation: finish recording workflow verification, reconcile source
+changes, verify rollback, move the Invest domain and verify operation without
+Replit. Also inventory other Replit apps and charges before cancelling the account.
 Replit cancellation is not yet safe. See `supabase-auth/readiness.json` for the
 most recent verified state, including what was prepared versus actually published.
 
 Never send secrets through chat, commit private exports, dump keychain values,
 copy values from unrelated services, or claim local tests as a completed cutover.
+
+
+## Prepared cutover sequence (not executed)
+
+1. Preserve the private source archive and obtain a fresh read-only export from
+   the original production database. The October 16 equality check is historical;
+   it is not proof that later source changes have already been transferred.
+2. Establish a maintenance window and stop original portal record entry before
+   enabling destination entry. Keep old data, deployment and Clerk users intact.
+   Do not overwrite the new Cloudflare demonstration during source reconciliation:
+   compare source IDs individually and insert missing records, rejecting conflicts.
+3. Reconcile original owner account, binding and audit unchanged; compare all 16
+   source tables again. Verify the four source/destination record families and
+   preserve the separate Supabase identity linkage and new simulation history.
+4. Configure the exact final HTTPS origin, Supabase callback allowlist and final
+   login redirects together. Current preview login and banner still name the
+   migration environment and must be adjusted before the public switch.
+5. Save the current DNS/route target and deployment settings for rollback, then
+   attach only the Invest hostname to the verified Worker. Do not touch Finance,
+   COOP, marketing, interested-party registration, private contacts or Telegram.
+6. Enable routine portfolio/profile writes on the destination only after a single
+   writer is established. Verify legitimate entries and subsequent reads in an
+   isolated acceptance workflow; never add invented holdings to the owner's real
+   portfolio. Leave inference, billing, provider delivery and orders blocked.
+7. Verify a fresh Supabase login on the final hostname, exclusive account binding,
+   restored reports/profile, record persistence, simulations and signed-out access
+   denial. Confirm the final client makes no Clerk/Replit runtime requests.
+8. Before enabling destination writes, rollback can restore the recorded route
+   without destination record divergence. After any destination writes, freeze
+   both portals and reconcile those writes before rollback; never send the owner
+   back to an outdated writable database.
+9. Only declare Replit cancellation safe after final-domain verification, durable
+   private backups, preserved account/audit history, successful recording checks
+   and an inventory of other apps/deployments/database charges. A successful
+   Invest preview alone does not justify cancelling the whole Replit account.
+
+No DNS change, write-switch activation, real execution or cancellation was made
+as part of this preparation.

@@ -1,5 +1,5 @@
 {
-  "state": "preview_update_published_authenticated_simulation_validation_pending",
+  "state": "authenticated_fictional_simulation_verified_cutover_preparation",
   "replitCancellationSafe": false,
   "domainCutoverCompleted": false,
   "existingReplitLoginChanged": false,
@@ -26,10 +26,10 @@
   "identityLinkConfirmed": true,
   "businessApiMigrationComplete": false,
   "requiredBeforeCancellation": [
-    "Validate a newly created fictional simulation in the authenticated Cloudflare portal",
     "Enable and validate record entry only after defining the cutover source of truth",
     "Reconcile any new Replit records immediately before cutover",
-    "Verify rollback and public domain operation without Replit dependencies"
+    "Verify rollback and public domain operation without Replit dependencies",
+    "Check every other Replit-hosted app and remaining subscription charges before cancellation"
   ],
   "sourceDatabaseReconciliationComplete": true,
   "frontendSupabaseBuildPassed": true,
@@ -54,14 +54,22 @@
     "agents",
     "portfolio",
     "reports",
-    "suitability"
-  ],
-  "remainingAuthenticatedScreens": [
+    "suitability",
     "portfolio-simulation-new-study"
   ],
+  "remainingAuthenticatedScreens": [],
   "verifiedAt": "2026-10-18",
   "recordWritesPrepared": true,
   "recordWritesEnabled": false,
   "fictionalSimulationCreationPublished": true,
-  "cloudflarePublisherAuthenticationRequired": false
+  "cloudflarePublisherAuthenticationRequired": false,
+  "fictionalSimulationLiveVerified": {
+    "verifiedAt": "2026-10-18",
+    "createdInExclusiveOwnerSession": true,
+    "completedSixIllustrativeStages": true,
+    "persistedAfterReload": true,
+    "tokensUsed": 0,
+    "creditsDebited": 0,
+    "realAnalysisEnabled": false
+  }
 }
