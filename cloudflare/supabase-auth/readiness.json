@@ -1,10 +1,10 @@
 {
-  "state": "owner_portal_validation_in_progress",
+  "state": "authenticated_screens_verified_new_functions_await_cloudflare_reauthentication",
   "replitCancellationSafe": false,
   "domainCutoverCompleted": false,
   "existingReplitLoginChanged": false,
   "realAnalysisEnabled": false,
-  "testsPassed": 53,
+  "testsPassed": 60,
   "workerBuildPassed": true,
   "mappingSchemaApplied": true,
   "originalDataVerified": {
@@ -26,9 +26,9 @@
   "identityLinkConfirmed": true,
   "businessApiMigrationComplete": false,
   "requiredBeforeCancellation": [
-    "Inventory managed login users and application storage before retiring Replit",
-    "Validate authenticated Cloudflare portal with restored owner-scoped records",
-    "Complete and validate remaining portfolio/profile writes and simulation creation without inference",
+    "Renew existing Cloudflare publisher authentication and deploy tested changes",
+    "Validate a newly created fictional simulation in the authenticated Cloudflare portal",
+    "Enable and validate record entry only after defining the cutover source of truth",
     "Reconcile any new Replit records immediately before cutover",
     "Verify rollback and public domain operation without Replit dependencies"
   ],
@@ -53,12 +53,16 @@
   "fictionalSimulationCreationPrepared": true,
   "authenticatedScreensVerified": [
     "agents",
-    "portfolio"
+    "portfolio",
+    "reports",
+    "suitability"
   ],
   "remainingAuthenticatedScreens": [
-    "reports",
-    "suitability",
-    "portfolio-simulation"
+    "portfolio-simulation-new-study"
   ],
-  "verifiedAt": "2026-10-18"
+  "verifiedAt": "2026-10-18",
+  "recordWritesPrepared": true,
+  "recordWritesEnabled": false,
+  "fictionalSimulationCreationPublished": false,
+  "cloudflarePublisherAuthenticationRequired": true
 }

@@ -1,48 +1,64 @@
 # Private migration configuration
 
-Target: techmoney-invest-migration only. Do not modify sistema, Finance,
-Replit deployment secrets, or the invest.techmoney.com.br route.
+Target: `techmoney-invest-migration`, project `igxtlcbyucshupsldijj`.
+The current Invest domain and Replit publication are still the active portal.
+Do not change sistema, Finance, DNS, old login or existing secret values as a side effect.
 
-No Nous/LLM secrets or execution flags belong in this environment.
+## Current authentication
 
-Server bindings (enter values directly into Cloudflare secret storage):
+The new portal uses Supabase Auth, not Replit-managed Clerk. The verified new
+identity maps to the original account through `invest_auth_identity_links`.
+Original user IDs, account state and audit records must remain unchanged.
+The exclusive owner has confirmed this mapping; the four main authenticated
+screens were verified on 2026-10-18. Previous Clerk proxy modules are diagnostic
+legacy code and are not the portal authentication path.
 
-| Name | Source / purpose |
-| --- | --- |
-| CLERK_SECRET_KEY | Existing Replit production Clerk instance, sk_live_ key; never create a replacement identity instance |
-| CLERK_PUBLISHABLE_KEY | Same instance's pk_live_ key |
-| PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE | Existing verified production owner's subject; no name/email guessing |
-| INVEST_DATABASE_URL (diagnostic only) | New Supabase project's private PostgreSQL connection; sslmode=verify-full; project igxtlcbyucshupsldijj |
-| INVEST_MIGRATION_ORIGIN | Exact HTTPS origin of the isolated migration environment, without path/trailing slash |
+Server-only configuration lives in Cloudflare storage:
 
-The database reader only queries binding/account/audit proof under BEGIN READ ONLY.
-It does not migrate source records, create an owner grant, or approve a budget.
-If the original binding and its audit have not been restored, it returns
-OWNER_BINDING_NOT_RESTORED. Never replace this result with a successful local fake.
+- `INVEST_SUPABASE_URL`: the exact Supabase project URL.
+- `INVEST_SUPABASE_PUBLISHABLE_KEY`: the project's public/publishable key, never a service-role key.
+- `INVEST_MIGRATION_OWNER_EMAIL`: the exact verified owner email.
+- `PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE`: original account subject, never a display-name match.
+- `INVEST_MIGRATION_RATE_KEY`: private HMAC key for bounded login delivery.
+- `INVEST_MIGRATION_ORIGIN`: exact HTTPS migration origin.
+- `INVEST_DATABASE`: Hyperdrive binding `090bdfc5d2a8489eb1ccb8ea766e8566`.
+- `INVEST_DATABASE_PROJECT`: `igxtlcbyucshupsldijj`.
 
-Cloudflare access authorization is separate from database and Clerk credentials.
-No secrets should be sent through chat, committed, embedded in frontend assets,
-or displayed in logs/screenshots. Adding a new private credential is a user handoff.
-Current public Workers/preview URLs remain disabled. Only a controlled private
-origin may be enabled after access protection is in place and verified.
+The legacy `INVEST_DATABASE_URL` is diagnostic only; the portal has no fallback to it.
+Hyperdrive validates origin TLS with the official Supabase CA, verify-full, with
+query caching disabled. Do not weaken TLS or export the database password.
+Data API remains off; anon/authenticated/public table grants remain revoked.
 
-Required before domain cutover: verify same production subject with the same
-Clerk instance, restore and reconcile source data/audit, confirm exclusive owner,
-test simulations in the new environment, keep inference blocked, verify rollback.
+## Recording and execution boundaries
 
-## Hyperdrive connection (provisioned and remote query verified)
+New fictional study creation uses only the two simulation tables and deterministic
+shared presentation functions. It does not accept real positions or models,
+contact providers, approve costs, debit credits or issue orders.
 
-Direct pg and Postgres.js origin connections failed before authentication in
-remote Workers. A public TLS-only native socket succeeded using the official
-Supabase CA; this does not prove the password or database queries work.
-Use Cloudflare Hyperdrive, with origin project igxtlcbyucshupsldijj,
-SSL verify-full and the official CA downloaded from this project's Database
-Settings. Disable query caching (identity and revocation reads must be fresh).
-Bind it as INVEST_DATABASE and set INVEST_DATABASE_PROJECT=igxtlcbyucshupsldijj.
-Enter credentials through platform storage with user handoff; never extract the
-existing secret into logs/chat. Binding INVEST_DATABASE is now configured with ID 090bdfc5d2a8489eb1ccb8ea766e8566. Remote READ ONLY query returned 18 public tables and zero owner bindings. Clerk configuration, restored owner audit and login verification remain pending.
-No destination login or owner binding has been verified yet.
+`INVEST_MIGRATION_RECORD_WRITES` is intentionally absent. Portfolio/profile
+recording functions refuse all writes unless this server setting is explicitly
+`enabled`. Do not enable it while Replit and Cloudflare are competing writers.
+A future cutover must reconcile records first and establish a single writer.
+This switch cannot enable analysis, billing, delivery, model selection or execution.
 
-Official documentation:
-https://developers.cloudflare.com/hyperdrive/configuration/tls-ssl-certificates-for-hyperdrive/
-https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/node-postgres/
+All real inference and billing paths remain blocked. Do not add Nous/LLM secrets
+or execution flags during migration. Budgets and approvals are not created by
+account linkage, data restoration or routine record entry.
+
+## Verified data and remaining work
+
+All 16 source database tables were privately archived and restored exactly on
+2026-10-16, including 86 reports, five simulations, one suitability profile,
+original account, original binding and two original audit records.
+The private backup is outside Git and includes hashes and restoration verification.
+Two managed production identities were inventoried without merging them by name.
+The Replit object-storage screen showed no buckets.
+
+Before cancellation: renew the official publisher login, deploy and test new
+simulations, finish recording workflow verification, reconcile source changes,
+verify rollback, move the Invest domain and verify operation without Replit.
+Replit cancellation is not yet safe. See `supabase-auth/readiness.json` for the
+most recent verified state, including what was prepared versus actually published.
+
+Never send secrets through chat, commit private exports, dump keychain values,
+copy values from unrelated services, or claim local tests as a completed cutover.

@@ -1,3 +1,5 @@
+import {writeRecord,RecordError,transactionRow} from './record-write';
+import {calculatePortfolioSnapshot} from '../shared/portfolio-ledger';
 import {createDemo,DemoError} from './simulation-write';
 import {publicSimulation} from '../shared/investment-simulation';
 import {verifiedSupabaseIdentity} from './supabase-auth/identity.mjs';
@@ -15,6 +17,7 @@ export async function migrationPortal(request:Request,env:any,services:any={veri
  const binding=await services.binding(identity,env);if(!binding.bound||!binding.originalOwnerPreserved)return json({error:'OWNER_LINK_REQUIRED'},403);
  const path=new URL(request.url).pathname;
  if(request.method==='POST'&&['/api/investments/simulations','/api/investments/portfolio-simulations'].includes(path)){try{return json(await createDemo(request,env,env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,services),202)}catch(e){return e instanceof DemoError?json({error:e.code},e.status):json({error:'SIMULATION_UNAVAILABLE'},503)}}
+ if(request.method!=='GET'&&(path==='/api/suitability/perfil'||/^\/api\/investments\/portfolio\/transactions(?:\/[^/]+)?$/.test(path))){try{const value=await writeRecord(request,env,env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,services);const {userId,...safeValue}=value as any;return json(path==='/api/suitability/perfil'?{perfil:safeValue}:safeValue,request.method==='POST'?201:200)}catch(e){return e instanceof RecordError?json({error:e.code},e.status):json({error:'RECORD_UNAVAILABLE'},503)}}
  if(request.method!=='GET')return json({error:'MIGRATION_READ_ONLY',message:'Alterações e análises reais estão bloqueadas nesta prévia. Use o portal atual.'},423);
  if(path==='/api/migration/session')return json({ownerBound:true,user:{id:identity.subject,email:identity.email}});
  const owner=env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE;
@@ -31,9 +34,9 @@ export async function migrationPortal(request:Request,env:any,services:any={veri
  if(path==='/api/suitability/perfil'){const rows=await query('SELECT * FROM suitability_profiles WHERE user_id=$1 ORDER BY data_avaliacao DESC,id DESC LIMIT 1');const r=rows[0];return json({perfil:r?{id:r.id,userId:identity.subject,perfil:r.perfil,pontuacaoMedia:Number(r.pontuacao_media),dataAvaliacao:r.data_avaliacao,dataProximaReavaliacao:r.data_proxima_reavaliacao}:null,avaliado:!!r});}
  if(path.startsWith('/api/suitability/conformidade/'))return json({ok:false,riscoIndisponivel:true,motivo:'Documento histórico; nenhuma recomendação individualizada está liberada na migração.'});
  if(path==='/api/investments/portfolio'){
- const holdings=await query('SELECT * FROM portfolio_holdings WHERE user_id=$1');const transactions=await query('SELECT * FROM portfolio_transactions WHERE user_id=$1 ORDER BY operation_date,id');
- // Do not invent current prices or returns. Empty source is faithfully represented.
- return json({items:holdings.map((r:any)=>({id:r.id,ticker:r.ticker,quantity:Number(r.quantity),averagePrice:Number(r.average_price),investedValue:Number(r.quantity)*Number(r.average_price),currentValue:null,returnValue:null,returnPercent:null,realizedProfit:0})),transactions:transactions.map(camel),summary:{totalInvested:holdings.reduce((s:number,r:any)=>s+Number(r.quantity)*Number(r.average_price),0),totalCurrent:null,realizedProfit:null,unrealizedReturnValue:null,returnValue:null,returnPercent:null},source:'Posições restauradas; cotações não consultadas na migração',updatedAt:new Date().toISOString()});
+ const rows=await query('SELECT * FROM portfolio_transactions WHERE user_id=$1 ORDER BY operation_date,created_at,id');const snapshot=calculatePortfolioSnapshot(rows.map(transactionRow));
+ const items=snapshot.positions.map(r=>({id:r.ticker,...r,currentValue:null,returnValue:null,returnPercent:null}));
+ return json({items,transactions:snapshot.transactions.map(({userId,...r})=>r),summary:{totalInvested:items.reduce((s,r)=>s+r.investedValue,0),totalCurrent:null,realizedProfit:snapshot.realizedProfit,unrealizedReturnValue:null,returnValue:null,returnPercent:null},source:'Movimentações restauradas; cotações não consultadas na migração',updatedAt:new Date().toISOString()});
  }
  if(path==='/api/investments/portfolio-simulation/scenario')return json({mode:'simulation',scenario:portfolioScenario(),metrics:portfolioMetrics(),agents:PORTFOLIO_AGENTS,tokensUsed:0,creditsDebited:0});
  if(path==='/api/investments/simulation-options')return json({mode:'simulation',tickers:['BBDC3','BBAS3'],tokensUsed:0,creditsDebited:0});
