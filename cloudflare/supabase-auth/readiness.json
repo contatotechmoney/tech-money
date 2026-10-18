@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "39dea2d7-ad4b-4257-9f37-6b59451fb51a",
+  "portalPreviewVersion": "295b6725-373e-4cea-835e-c8f676359632",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -71,5 +71,22 @@
     "tokensUsed": 0,
     "creditsDebited": 0,
     "realAnalysisEnabled": false
+  },
+  "b3ImportPreview": {
+    "state": "local_csv_preview_published_and_browser_verified",
+    "positionsPersisted": false,
+    "networkUpload": false,
+    "realB3StatementLayoutVerified": false,
+    "supportedFormat": "CSV UTF-8 only",
+    "samplePositions": 2,
+    "sampleTotalBRL": 325,
+    "discardVerified": true,
+    "realAnalysisEnabled": false
+  },
+  "sourceCountCheck": {
+    "verifiedAt": "2026-10-18",
+    "tablesChecked": 8,
+    "countsMatchPriorBackup": true,
+    "fullRecordEqualityRechecked": false
   }
 }

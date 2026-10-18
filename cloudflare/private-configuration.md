@@ -106,3 +106,29 @@ copy values from unrelated services, or claim local tests as a completed cutover
 
 No DNS change, write-switch activation, real execution or cancellation was made
 as part of this preparation.
+
+
+## B3 statement preparation (2026-10-18)
+
+The owner-only migration client now exposes `/investments/portfolio/import-b3`.
+CSV is parsed in the browser: no upload endpoint, provider request, localStorage,
+database write, analysis, or cost approval is introduced. Maximum 200 KB and
+2,000 rows. Required columns: Produto, Instituição, Quantidade; optional statement
+price/value columns use Brazilian numeric formatting. Unknown values stay null.
+Malformed CSV, conflicting headers, duplicate institution/product positions and
+invalid quantities are rejected. Positions never become purchases or cost basis.
+
+The authenticated browser test selected two synthetic positions, showed R$325.00,
+kept saving disabled and discarded the preview successfully. The statement date
+and explicit review step precede any future save. Saving remains unavailable even
+when review is checked. An actual anonymized B3 export must be checked before
+claiming compatibility with real B3 layouts; XLSX/PDF are not supported yet.
+The separate snapshot persistence model, versioned deduplication and transaction
+reconciliation must be designed before enabling import saving.
+
+A fresh READ ONLY Replit production query confirmed the counts of eight principal
+tables: reports 86, portfolio simulations 3, stock simulations 2, profile 1,
+transactions 0, holdings 0, original pilot account 1, original audit events 2.
+These counts match the earlier source archive. This is a count check, not renewed
+full equality proof. The additional Cloudflare demonstration is destination-only
+and must be preserved during any subsequent source refresh.
