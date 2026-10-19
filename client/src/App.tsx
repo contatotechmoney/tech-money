@@ -244,14 +244,6 @@ function Router() {
   );
 }
 
-import { LanguageModal } from "@/components/language-modal";
-
-function PortalLanguageModal() {
-  const [path] = useLocation();
-  // Keep the access card unobstructed; language selection remains available in the portal.
-  return path === "/" || /^\/sign-(in|up)(\/|$)/.test(path) ? null : <LanguageModal />;
-}
-
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -305,7 +297,6 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <WouterRouter base={basePath}>
-            <PortalLanguageModal />
             <ClerkProviderWithRoutes />
           </WouterRouter>
         </TooltipProvider>
