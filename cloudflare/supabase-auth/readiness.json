@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "295b6725-373e-4cea-835e-c8f676359632",
+  "portalPreviewVersion": "3bdcea86-0735-4022-9408-eed5447a7de7",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -58,7 +58,7 @@
     "portfolio-simulation-new-study"
   ],
   "remainingAuthenticatedScreens": [],
-  "verifiedAt": "2026-10-18",
+  "verifiedAt": "2026-10-19",
   "recordWritesPrepared": true,
   "recordWritesEnabled": false,
   "fictionalSimulationCreationPublished": true,
@@ -73,15 +73,16 @@
     "realAnalysisEnabled": false
   },
   "b3ImportPreview": {
-    "state": "local_csv_preview_published_and_browser_verified",
+    "state": "original_xlsx_preview_published_local_browser_verified",
     "positionsPersisted": false,
     "networkUpload": false,
-    "realB3StatementLayoutVerified": false,
-    "supportedFormat": "CSV UTF-8 only",
-    "samplePositions": 2,
-    "sampleTotalBRL": 325,
-    "discardVerified": true,
-    "realAnalysisEnabled": false
+    "realB3StatementLayoutVerified": true,
+    "supportedFormat": "B3 XLSX (Acoes, Empréstimos, Renda Fixa, Tesouro Direto) and CSV UTF-8",
+    "originalWorkbookAllSheetTotalsMatched": true,
+    "recordSavingEnabled": false,
+    "realAnalysisEnabled": false,
+    "parserTestsPassed": 7,
+    "authenticatedPublishedXlsxUploadRetested": false
   },
   "sourceCountCheck": {
     "verifiedAt": "2026-10-18",

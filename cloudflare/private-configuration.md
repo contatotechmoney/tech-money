@@ -132,3 +132,31 @@ transactions 0, holdings 0, original pilot account 1, original audit events 2.
 These counts match the earlier source archive. This is a count check, not renewed
 full equality proof. The additional Cloudflare demonstration is destination-only
 and must be preserved during any subsequent source refresh.
+
+
+## Original B3 XLSX layout verified (2026-10-19)
+
+This supersedes the CSV-only limitation above. The original downloaded workbook
+was inspected privately, without adding source data, account IDs or contracts to
+Git. The importer accepts the observed Acoes, Empréstimos, Renda Fixa and Tesouro
+Direto worksheets, preserves their individual rows and lending nature, and
+compares each detail sum to its declared footer. Fixed income explicitly selects
+CURVA; other valuation bases are not added to the same position. Account numbers,
+CPF and loan contract identifiers are excluded from normalized preview data.
+
+A pinned `read-excel-file` dependency loads on demand from the app's own assets.
+Files remain local to the browser; no upload, snapshot write, provider call or
+budget approval endpoint has been added. XLSX limits: 2 MB compressed, 8 MB total
+expanded ZIP content, 200 ZIP entries and 2,000 positions. Unsupported sheets,
+malformed values and encrypted/macro/external-link archives reject. CSV remains
+supported. Statement date is manually confirmed and is not inferred from the
+filename's download date. A footer mismatch disables the review checkbox.
+
+TypeScript, production client build and seven parser tests passed. The original
+workbook matched all four declared totals in both the local parser and actual
+browser component; saving remained disabled. Local preview evidence stays outside
+Git. Published preview version: `3bdcea86-0735-4022-9408-eed5447a7de7`. The file
+selection flow on the authenticated published hostname has not been repeated;
+the local browser exercised the same component and browser XLSX dependency.
+No original source records or existing login were changed. Replit cancellation
+is still unsafe until the migration and final-domain checks are completed.
