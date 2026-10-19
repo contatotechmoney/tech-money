@@ -213,3 +213,25 @@ write switch for the authorized acceptance run, save the reviewed snapshot, relo
 and re-open it from the database. Then disable statement saving again while the
 main portal cutover remains unfinished. Never enable transaction writes, inference,
 provider delivery, budgets or credit deductions as part of this acceptance run.
+
+
+## Date entry acceptance correction
+
+The owner renewed sign-in and the original workbook loaded in the authenticated
+published portal. The dedicated statement gate was temporarily enabled for the
+explicitly authorized test; inference and transaction write gates stayed off.
+The first Save attempt carried a malformed year from the native date control.
+Server date validation refused it. A subsequent read-only Supabase query showed
+zero snapshots, zero trades, one original account and two original audit events.
+
+The client date field now uses explicit dd/mm/aaaa text with full-year and calendar
+validation, rather than a native segmented date picker. TypeScript/build passed;
+five affected server tests passed, including the malformed-year regression.
+Published acceptance version: `87cbfa22-8286-4c64-9845-8022a310c380`.
+The original Chrome session remains the authenticated test surface; native input
+control was unreliable, so the owner was asked to refresh, select the same file,
+enter the already confirmed date and click Save. Do not claim a saved snapshot or
+successful reread until the server row and authenticated reopen are verified.
+The temporary statement gate is still enabled only behind the unchanged exclusive
+owner authentication; disable it again immediately after this acceptance run.
+The checked-in normal Worker configuration still omits this gate.

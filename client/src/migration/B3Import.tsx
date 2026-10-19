@@ -6,6 +6,7 @@ type Preview=ReturnType<typeof previewB3Positions>|ExcelPreview;
 const money=(n:number|null)=>n===null?'Não informado':n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 export default function B3Import(){
  const [preview,setPreview]=useState<Preview|null>(null),[error,setError]=useState(''),[date,setDate]=useState(''),[checked,setChecked]=useState(false),[loading,setLoading]=useState(false);
+ const [dateText,setDateText]=useState('');
  const [history,setHistory]=useState<{id:string;statement_date:string;position_count:number}[]>([]);
  const [savingEnabled,setSavingEnabled]=useState(false),[saving,setSaving]=useState(false),[saved,setSaved]=useState('');
  useEffect(()=>{let active=true;fetch('/api/investments/statement-imports',{credentials:'same-origin',cache:'no-store'}).then(async r=>r.ok?r.json():null).then(d=>{if(active){setSavingEnabled(d?.savingEnabled===true);setHistory(Array.isArray(d?.imports)?d.imports:[]);}}).catch(()=>{});return()=>{active=false;};},[]);
@@ -14,11 +15,11 @@ export default function B3Import(){
   try{const r=await fetch('/api/investments/statement-imports/'+encodeURIComponent(id),{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok||!d.record?.payload)throw Error('Não foi possível reabrir o extrato salvo.');
    const p=d.record.payload;const positions=p.positions as ExcelPreview['positions'];
    const sheets=p.totals.map((t:{sheet:string;declaredTotal:number})=>{const rows=positions.filter(x=>x.sheet===t.sheet);const total=rows.every(x=>x.value!==null)?rows.reduce((sum,x)=>sum+x.value!,0):null;return {sheet:t.sheet,count:rows.length,total,declaredTotal:t.declaredTotal,matches:total===null?null:Math.abs(total-t.declaredTotal)<=0.011};});
-   setPreview({positions,sheets,total:positions.every(x=>x.value!==null)?positions.reduce((sum,x)=>sum+x.value!,0):null,warnings:['Extrato reaberto da sua área privada. Empréstimos permanecem separados e Renda Fixa usa CURVA. Não há cálculo de preço médio ou análise real.']});setDate(p.statementDate);setChecked(true);setSaved('Extrato reaberto do banco. Conferência e posição preservadas; nenhuma nova gravação ou análise foi executada.');
+   setPreview({positions,sheets,total:positions.every(x=>x.value!==null)?positions.reduce((sum,x)=>sum+x.value!,0):null,warnings:['Extrato reaberto da sua área privada. Empréstimos permanecem separados e Renda Fixa usa CURVA. Não há cálculo de preço médio ou análise real.']});setDate(p.statementDate);setDateText(p.statementDate.split('-').reverse().join('/'));setChecked(true);setSaved('Extrato reaberto do banco. Conferência e posição preservadas; nenhuma nova gravação ou análise foi executada.');
   }catch(e){setError((e as Error).message);}finally{setLoading(false);}
  }
  async function open(file:File|undefined){
-  setPreview(null);setError('');setSaved('');setChecked(false);setDate('');if(!file)return;setLoading(true);
+  setPreview(null);setError('');setSaved('');setChecked(false);setDate('');setDateText('');if(!file)return;setLoading(true);
   try{
    if(file.name.toLowerCase().endsWith('.xlsx')){
     if(file.size>B3_XLSX_LIMIT)throw Error('O limite para Excel é 2 MB.');
@@ -45,7 +46,7 @@ export default function B3Import(){
   }catch(e){setError((e as Error).message);}finally{setSaving(false);}
  }
  const today=new Date();const maxDate=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
- const dateValid=/^\d{4}-\d{2}-\d{2}$/.test(date)&&date<=maxDate;
+ const dateValid=/^\d{4}-\d{2}-\d{2}$/.test(date)&&date>='1900-01-01'&&date<=maxDate&&Number.isFinite(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date;
  return <section className="space-y-5">
   <Link href="/investments/portfolio" className="underline">Voltar à carteira</Link>
   <h1 className="text-3xl font-bold">Conferir extrato de posição da B3</h1>
@@ -57,12 +58,12 @@ export default function B3Import(){
   {preview&&<>
    <div className="rounded border bg-white p-4"><p>{preview.positions.length} posições · Soma dos valores das linhas: {money(preview.total)}</p><p>Valores da data do extrato, sem consolidação automática. Posição não reconstrói compras, vendas, preço médio ou rentabilidade.</p></div>
    {excel&&<><h2 className="text-xl font-semibold">Conferência por aba</h2><div className="overflow-x-auto"><table className="w-full bg-white text-left"><thead><tr>{['Aba','Posições','Soma das linhas','Total no Excel','Conferência'].map(h=><th className="p-2 border" key={h}>{h}</th>)}</tr></thead><tbody>{excel.sheets.map(s=><tr key={s.sheet}><td className="p-2 border">{s.sheet}</td><td className="p-2 border">{s.count}</td><td className="p-2 border">{money(s.total)}</td><td className="p-2 border">{money(s.declaredTotal)}</td><td className="p-2 border">{s.matches===true?'Confere':s.matches===false?'Divergência':'Sem total comparável'}</td></tr>)}</tbody></table></div>{excel.warnings.map(w=><p className="rounded border border-amber-300 bg-amber-50 p-3" key={w}>{w}</p>)}</>}
-   <label className="block">Data da posição no extrato<input className="block border p-2" type="date" value={date} max={maxDate} disabled={saving||!!saved} onChange={e=>{setDate(e.target.value);setChecked(false);}}/></label><p>Informe a data exibida pela B3 ao gerar a posição. A data do nome do arquivo é a do download e pode ser diferente.</p>
+   <label className="block">Data da posição no extrato<input className="block border p-2" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} value={dateText} disabled={saving||!!saved} onChange={e=>{const value=e.target.value;setDateText(value);const m=value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);setDate(m?`${m[3]}-${m[2]}-${m[1]}`:'');setChecked(false);}}/></label><p>Informe dia, mês e ano completo, no formato dd/mm/aaaa, conforme a data exibida pela B3 ao gerar a posição. A data do nome do arquivo é a do download e pode ser diferente.</p>
    <div className="overflow-x-auto"><table className="w-full text-left bg-white"><thead><tr>{['Aba / linha','Produto','Instituição','Natureza / base','Quantidade','Preço do extrato','Valor do extrato'].map(t=><th className="p-2 border" key={t}>{t}</th>)}</tr></thead><tbody>{preview.positions.map((p,i)=><tr key={i}><td className="p-2 border">{'sheet' in p?`${p.sheet} / ${p.row}`:`CSV / ${i+2}`}</td><td className="p-2 border">{p.product}</td><td className="p-2 border">{p.institution}</td><td className="p-2 border">{'nature' in p?[p.nature,p.valuation].filter(Boolean).join(' / '):'Valor declarado'}</td><td className="p-2 border">{p.quantity.toLocaleString('pt-BR',{maximumFractionDigits:8})}</td><td className="p-2 border">{money(p.price)}</td><td className="p-2 border">{money(p.value)}</td></tr>)}</tbody></table></div>
    <label className="block"><input type="checkbox" checked={checked} disabled={!dateValid||totalsDiffer||saving||!!saved} onChange={e=>setChecked(e.target.checked)}/> Conferi a data, as quantidades e os valores com o extrato original.</label>
    <button disabled={!savingEnabled||!checked||!dateValid||!totalsReady||saving||!!saved} onClick={()=>{void save();}} className="rounded bg-slate-200 p-3 disabled:opacity-60">{saving?'Salvando posição…':savingEnabled?'Salvar posição conferida':'Salvar posições — bloqueado durante a migração'}</button>
    <p role="status">{saved|| (checked?'Conferência local marcada. Nenhum dado foi salvo.':totalsDiffer?'Há divergência nos totais. Confira antes de prosseguir.':'Confira todas as posições antes de qualquer futura gravação.')} Salvar registra apenas esta posição e não autoriza análises reais.</p>
-   <button disabled={saving} className="underline" onClick={()=>{setPreview(null);setDate('');setChecked(false);setSaved('');}}>Descartar prévia</button>
+   <button disabled={saving} className="underline" onClick={()=>{setPreview(null);setDate('');setDateText('');setChecked(false);setSaved('');}}>Descartar prévia</button>
   </>}
  </section>;
 }

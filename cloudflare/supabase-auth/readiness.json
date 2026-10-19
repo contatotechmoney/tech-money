@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "9c3b148f-114d-4daf-8090-0c34e483b3aa",
+  "portalPreviewVersion": "87cbfa22-8286-4c64-9845-8022a310c380",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -96,14 +96,16 @@
     "schemaRlsEnabled": true,
     "publicGrants": 0,
     "productionRecords": 0,
-    "enabled": false,
+    "enabled": true,
     "requiresExplicitReview": true,
     "serverTotalsRechecked": true,
     "ownerScopedIdempotencyTested": true,
     "realAnalysisEnabled": false,
     "acceptanceSaveOnPublishedPortalPending": true,
     "ownerReviewExplicitlyConfirmed": true,
-    "acceptanceState": "awaiting_renewed_owner_sign_in",
-    "historyReopenUiPrepared": true
+    "acceptanceState": "temporary_owner_only_gate_waiting_corrected_date_save",
+    "historyReopenUiPrepared": true,
+    "lastAttemptRejectedWithoutInsert": true,
+    "dateInputFormat": "dd/mm/aaaa"
   }
 }
