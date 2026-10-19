@@ -19,7 +19,7 @@
     "portfolioSimulations": 3,
     "supabaseAuthUsers": 1,
     "investmentSimulations": 2,
-    "suitabilityProfiles": 1
+    "suitabilityProfiles": 2
   },
   "sourceProductionReconciliationComplete": false,
   "supabaseLoginLiveVerified": true,
@@ -111,5 +111,21 @@
     "verifiedOwnerSnapshots": 1,
     "liveDatabaseVerifiedAt": "2026-10-19",
     "affectedTestsPassed": 11
+  },
+  "sourceContentCheck": {
+    "verifiedAt": "2026-10-19",
+    "tablesChecked": 16,
+    "allSourceContentHashesMatch": true,
+    "additionalSuitabilityProfilesTransferred": 1,
+    "destinationOnlySimulationPreserved": true,
+    "sourceWritesFrozen": false,
+    "finalWindowRecheckRequired": true
+  },
+  "finalOriginLoginPrepared": {
+    "origin": "https://invest.techmoney.com.br",
+    "callback": "https://invest.techmoney.com.br/migration/callback",
+    "mockedAuthTestsPassed": 11,
+    "liveDomainChanged": false,
+    "supabaseRedirectAllowlistVerified": false
   }
 }

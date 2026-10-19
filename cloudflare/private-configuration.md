@@ -251,3 +251,28 @@ statement/portal tests passed. Real analysis, billing and routine record writes
 remain disabled. The production Invest hostname and original Replit login were
 not changed. The source export equality check still needs refreshing before
 cutover; the final hostname callback and rollback checks remain pending.
+
+## Reconciliation and final-origin preparation — 2026-10-19
+
+Read-only full-row JSON content fingerprints and counts were compared for all
+16 existing Replit source tables. Fifteen matched immediately, excluding only
+the known destination-only fictional portfolio study from the destination
+comparison. Source suitability_profiles had two rows while destination had one.
+A private source backup and conflict-rejecting restore transaction were prepared
+outside Git. The transaction inserted only the missing row. The subsequent
+destination count (2) and content fingerprint matched source. No identity was
+merged, source record changed, audit replaced or destination study removed.
+This check is current evidence, not a frozen cutover snapshot: source writes
+are still available and require one final reconciliation in the cutover window.
+
+The final origin is `https://invest.techmoney.com.br`; the exact Supabase
+redirect allowlist entry required is
+`https://invest.techmoney.com.br/migration/callback`. Existing preview entries
+must remain until cutover validation finishes. The Worker origin variable must
+change together with hostname routing, never independently while the preview
+is in use. Browser cookies are host-only: the owner must sign in anew on the
+final hostname; do not copy session cookies or tokens across hosts.
+Eleven login/identity mocked tests pass, including fixed final-domain callbacks,
+server-chosen owner email, rejection of the previous origin and closed execution.
+Live allowlist, DNS/route rollback target and final-host sign-in remain pending;
+no production route, login or authentication permission was changed here.

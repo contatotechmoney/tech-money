@@ -6,3 +6,12 @@ test('cross-origin and exhausted rate limits never call provider',async()=>{cons
 test('session exchange verifies owner and returns HttpOnly cookie without exposing tokens',async()=>{const token='x'.repeat(30);const r=await loginRequest(req('exchange',{access_token:token}),env,{rate:async()=>true,fetch:async()=>Response.json({id:'12345678-1234-1234-1234-123456789012',role:'authenticated',email:env.INVEST_MIGRATION_OWNER_EMAIL,email_confirmed_at:'2026-01-01T00:00:00Z'})});assert.equal(r.status,200);assert.match(r.headers.get('Set-Cookie'),/Secure; HttpOnly; SameSite=Strict/);assert.equal((await r.text()).includes(token),false)});
 test('invalid session and provider failure fail closed',async()=>{assert.equal((await loginRequest(req('exchange',{access_token:'bad'}),env,{rate:async()=>true,fetch:()=>assert.fail()})).status,400);assert.equal((await loginRequest(req('request-link'),env,{rate:async()=>true,fetch:async()=>{throw Error('private')}})).status,503)});
 test('migration login has no external assets or cache and blocks framing',()=>{const r=migrationLoginAsset(new Request('https://migration.example.invalid/migration/login'));assert.equal(r.headers.get('Cache-Control'),'no-store');assert.match(r.headers.get('Content-Security-Policy'),/frame-ancestors 'none'/)});
+test('final Invest origin fixes callback and rejects the former preview origin',async()=>{
+ const finalEnv={...env,INVEST_MIGRATION_ORIGIN:'https://invest.techmoney.com.br'};
+ const finalRequest=origin=>new Request(finalEnv.INVEST_MIGRATION_ORIGIN+'/api/migration/auth/request-link',{method:'POST',headers:{Origin:origin},body:JSON.stringify({redirect:'https://evil.invalid',email:'other@example.invalid'})});
+ let calls=0;
+ const services={rate:async()=>true,fetch:async(url,init)=>{calls++;assert.equal(new URL(url).searchParams.get('redirect_to'),'https://invest.techmoney.com.br/migration/callback');assert.equal(JSON.parse(init.body).email,env.INVEST_MIGRATION_OWNER_EMAIL);return Response.json({})}};
+ assert.equal((await loginRequest(finalRequest(finalEnv.INVEST_MIGRATION_ORIGIN),finalEnv,services)).status,200);
+ assert.equal((await loginRequest(finalRequest(env.INVEST_MIGRATION_ORIGIN),finalEnv,services)).status,403);
+ assert.equal(calls,1);
+});
