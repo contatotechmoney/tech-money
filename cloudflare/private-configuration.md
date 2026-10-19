@@ -235,3 +235,19 @@ successful reread until the server row and authenticated reopen are verified.
 The temporary statement gate is still enabled only behind the unchanged exclusive
 owner authentication; disable it again immediately after this acceptance run.
 The checked-in normal Worker configuration still omits this gate.
+
+## Acceptance closed — 2026-10-19
+
+The owner supplied UI evidence of the saved statement reopened from the private
+area, dated 16/10/2026, with all four sheet totals matching and 14 positions.
+A subsequent live read-only Supabase query confirmed one saved statement,
+14 positions and one snapshot matching the active verified owner linkage.
+Trade records remain zero, original pilot accounts one and original audit events two.
+
+Published version `414cc8ea-0616-408f-bbe0-063a72cb6702` with the normal
+`wrangler.migration.json`: the temporary statement write switch is absent again.
+Saved history remains readable when that switch is absent. Eleven affected
+statement/portal tests passed. Real analysis, billing and routine record writes
+remain disabled. The production Invest hostname and original Replit login were
+not changed. The source export equality check still needs refreshing before
+cutover; the final hostname callback and rollback checks remain pending.

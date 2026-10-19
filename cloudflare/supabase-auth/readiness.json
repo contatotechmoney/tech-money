@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "87cbfa22-8286-4c64-9845-8022a310c380",
+  "portalPreviewVersion": "414cc8ea-0616-408f-bbe0-063a72cb6702",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -74,7 +74,7 @@
   },
   "b3ImportPreview": {
     "state": "original_xlsx_preview_published_local_browser_verified",
-    "positionsPersisted": false,
+    "positionsPersisted": true,
     "networkUpload": false,
     "realB3StatementLayoutVerified": true,
     "supportedFormat": "B3 XLSX (Acoes, Empréstimos, Renda Fixa, Tesouro Direto) and CSV UTF-8",
@@ -82,7 +82,7 @@
     "recordSavingEnabled": false,
     "realAnalysisEnabled": false,
     "parserTestsPassed": 7,
-    "authenticatedPublishedXlsxUploadRetested": false
+    "authenticatedPublishedXlsxUploadRetested": true
   },
   "sourceCountCheck": {
     "verifiedAt": "2026-10-18",
@@ -95,17 +95,21 @@
     "schemaApplied": true,
     "schemaRlsEnabled": true,
     "publicGrants": 0,
-    "productionRecords": 0,
-    "enabled": true,
+    "productionRecords": 1,
+    "enabled": false,
     "requiresExplicitReview": true,
     "serverTotalsRechecked": true,
     "ownerScopedIdempotencyTested": true,
     "realAnalysisEnabled": false,
-    "acceptanceSaveOnPublishedPortalPending": true,
+    "acceptanceSaveOnPublishedPortalPending": false,
     "ownerReviewExplicitlyConfirmed": true,
-    "acceptanceState": "temporary_owner_only_gate_waiting_corrected_date_save",
+    "acceptanceState": "saved_reopened_owner_verified_temporary_write_gate_closed",
     "historyReopenUiPrepared": true,
     "lastAttemptRejectedWithoutInsert": true,
-    "dateInputFormat": "dd/mm/aaaa"
+    "dateInputFormat": "dd/mm/aaaa",
+    "savedPositions": 14,
+    "verifiedOwnerSnapshots": 1,
+    "liveDatabaseVerifiedAt": "2026-10-19",
+    "affectedTestsPassed": 11
   }
 }
