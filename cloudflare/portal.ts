@@ -1,3 +1,4 @@
+import {statementImport,StatementError} from './statement-import';
 import {writeRecord,RecordError,transactionRow} from './record-write';
 import {calculatePortfolioSnapshot} from '../shared/portfolio-ledger';
 import {createDemo,DemoError} from './simulation-write';
@@ -16,6 +17,7 @@ export async function migrationPortal(request:Request,env:any,services:any={veri
  const identity=await services.verify(request,env);if(!identity)return json({error:'VERIFIED_OWNER_SIGN_IN_REQUIRED'},401);
  const binding=await services.binding(identity,env);if(!binding.bound||!binding.originalOwnerPreserved)return json({error:'OWNER_LINK_REQUIRED'},403);
  const path=new URL(request.url).pathname;
+ if(/^\/api\/investments\/statement-imports(?:\/[0-9a-f-]{36})?$/.test(path)){try{return json(await statementImport(request,env,env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,identity.subject,services))}catch(e){return e instanceof StatementError?json({error:e.code},e.status):json({error:'STATEMENT_UNAVAILABLE'},503)}}
  if(request.method==='POST'&&['/api/investments/simulations','/api/investments/portfolio-simulations'].includes(path)){try{return json(await createDemo(request,env,env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,services),202)}catch(e){return e instanceof DemoError?json({error:e.code},e.status):json({error:'SIMULATION_UNAVAILABLE'},503)}}
  if(request.method!=='GET'&&(path==='/api/suitability/perfil'||/^\/api\/investments\/portfolio\/transactions(?:\/[^/]+)?$/.test(path))){try{const value=await writeRecord(request,env,env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,services);const {userId,...safeValue}=value as any;return json(path==='/api/suitability/perfil'?{perfil:safeValue}:safeValue,request.method==='POST'?201:200)}catch(e){return e instanceof RecordError?json({error:e.code},e.status):json({error:'RECORD_UNAVAILABLE'},503)}}
  if(request.method!=='GET')return json({error:'MIGRATION_READ_ONLY',message:'Alterações e análises reais estão bloqueadas nesta prévia. Use o portal atual.'},423);

@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "3bdcea86-0735-4022-9408-eed5447a7de7",
+  "portalPreviewVersion": "51ca30e9-61dd-46ed-9128-5a37914e62bf",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -89,5 +89,18 @@
     "tablesChecked": 8,
     "countsMatchPriorBackup": true,
     "fullRecordEqualityRechecked": false
+  },
+  "statementSaving": {
+    "prepared": true,
+    "schemaApplied": true,
+    "schemaRlsEnabled": true,
+    "publicGrants": 0,
+    "productionRecords": 0,
+    "enabled": false,
+    "requiresExplicitReview": true,
+    "serverTotalsRechecked": true,
+    "ownerScopedIdempotencyTested": true,
+    "realAnalysisEnabled": false,
+    "acceptanceSaveOnPublishedPortalPending": true
   }
 }

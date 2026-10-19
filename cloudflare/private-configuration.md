@@ -160,3 +160,35 @@ selection flow on the authenticated published hostname has not been repeated;
 the local browser exercised the same component and browser XLSX dependency.
 No original source records or existing login were changed. Replit cancellation
 is still unsafe until the migration and final-domain checks are completed.
+
+
+## Statement snapshot recording prepared (2026-10-19)
+
+`supabase/statement-imports.sql` was applied additively on the exact Invest
+Supabase project. Live SQL returned records=0, rls_enabled=true, exposed_grants=0.
+Original account, identity mapping, trading records and audit were not rewritten.
+The table is separate from transaction and holding history. It stores reviewed,
+dated statement snapshots and the verified Supabase reviewer subject.
+
+`INVEST_STATEMENT_IMPORT_WRITES` is intentionally ABSENT. This separate switch
+controls only statement persistence, never execution, credits or budgets.
+The browser checks the authenticated capability endpoint; false/unavailable keeps
+Save disabled. Selecting a file or checking review does not send position data.
+Only an explicit Save action after date/review and matching totals may POST the
+normalized displayed positions, without the original workbook or account fields.
+
+The server independently verifies the bound owner, exact Origin, body bounds,
+strict accepted fields, explicit reviewed=true, date, row keys and per-sheet
+sums. It generates a canonical SHA-256 content fingerprint; UNIQUE(owner, hash)
+makes retries return the previous snapshot without updates or duplicate records.
+Snapshots are appended and read only through owner-scoped routes. There is no
+update/delete route, stock order, trade reconstruction, paid model or cost grant.
+
+Eleven affected route/record tests passed, including real PGlite persistence,
+repeat imports, alternate-owner reads, absent review, mismatched totals and
+cross-origin requests. The table SQL was replayed twice in the isolated test.
+Client build and TypeScript passed. Published version:
+`51ca30e9-61dd-46ed-9128-5a37914e62bf`. Import write flag remains absent.
+No unreviewed real workbook was saved; final authenticated acceptance Save and
+reread remain pending before enabling this switch. Preserve any later snapshots
+when reconciling the original 16 Replit tables.
