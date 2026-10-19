@@ -15,3 +15,9 @@ test('final Invest origin fixes callback and rejects the former preview origin',
  assert.equal((await loginRequest(finalRequest(env.INVEST_MIGRATION_ORIGIN),finalEnv,services)).status,403);
  assert.equal(calls,1);
 });
+test('owner production login removes obsolete preview links without enabling execution',async()=>{
+ const config={...env,INVEST_PORTAL_MODE:'owner-production',INVEST_MIGRATION_ORIGIN:'https://invest.techmoney.com.br'};
+ const html=await migrationLoginAsset(new Request(config.INVEST_MIGRATION_ORIGIN+'/migration/login'),config).text();
+ assert.match(html,/Entrar no Invest/);assert.doesNotMatch(html,/Abrir portal atual|Ambiente de migração/);assert.match(html,/análises reais e cobranças permanecem bloqueadas/);
+ const script=await migrationLoginAsset(new Request(config.INVEST_MIGRATION_ORIGIN+'/migration/login.js'),config).text();assert.match(script,/análises reais continuam bloqueadas/);assert.doesNotMatch(script,/O portal completo ainda está em migração/);
+});

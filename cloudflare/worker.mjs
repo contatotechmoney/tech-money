@@ -3,7 +3,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/api/migration/health' && request.method === 'GET') {
-      return Response.json({ environment: 'migration-staging', realAnalysisEnabled: false,
+      return Response.json({ environment: env.INVEST_PORTAL_MODE==='owner-production'?'owner-production':'migration-staging', realAnalysisEnabled: false,
         authenticationReady: false, databaseReady: false },
         { headers: { 'Cache-Control': 'no-store' } });
     }

@@ -276,3 +276,35 @@ Eleven login/identity mocked tests pass, including fixed final-domain callbacks,
 server-chosen owner email, rejection of the previous origin and closed execution.
 Live allowlist, DNS/route rollback target and final-host sign-in remain pending;
 no production route, login or authentication permission was changed here.
+
+## Final hostname routed — 2026-10-19, owner sign-in pending
+
+The exact `invest.techmoney.com.br/*` route now points at the existing
+`techmoney-invest-migration` Worker. Only the Invest A-record proxy changed from
+DNS-only to proxied; its origin IP was preserved in the private rollback record.
+The existing root/www routes and all unrelated services were left intact.
+Supabase Site URL is now `https://invest.techmoney.com.br/migration/login`;
+both exact preview and production callback entries are retained.
+
+Worker version `a4bd72f1-5bb0-4320-9521-ec3f2860df6f` uses the production origin
+and owner-production presentation. Root redirects to login, the final login
+returns HTTPS 200 with no-store and restrictive CSP, public portfolio access
+without a session returns 401, and health explicitly reports real analysis off.
+The browser initially retained the old DNS result, then reloading showed the
+new production login. Email request hit the pre-existing two-per-hour rate cap;
+that protection was not reduced or bypassed. Owner live sign-in, account view
+and saved statement on this hostname still require acceptance.
+
+All sixteen source content signatures were re-read after routing and match the
+last reconciled source signatures, including the transferred second suitability
+profile. The separate destination snapshot and fictional study remain preserved.
+No source writes were enabled, source deployment deleted, inference activated
+or original Clerk identities changed. Ordinary portfolio/profile writes and
+new statement saves remain disabled pending their separate acceptance.
+
+Use `wrangler.production.json` for this routed Worker. The preview configuration
+is now only for an explicit coordinated rollback: deploying it to the same
+Worker without removing/restoring the route would break the final-domain login.
+A private rollback JSON records old DNS, version, origin and the exact reverse
+sequence. Replit cancellation is still unsafe until final-host owner acceptance,
+recording acceptance and other Replit service/charge inventory are complete.

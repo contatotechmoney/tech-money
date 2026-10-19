@@ -1,0 +1,40 @@
+{
+  "name": "techmoney-invest-migration",
+  "main": "dist/cloudflare/worker.mjs",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "enable_nodejs_http_server_modules"
+  ],
+  "compatibility_date": "2026-10-13",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "dist/public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application",
+    "html_handling": "none"
+  },
+  "no_bundle": true,
+  "hyperdrive": [
+    {
+      "binding": "INVEST_DATABASE",
+      "id": "090bdfc5d2a8489eb1ccb8ea766e8566"
+    }
+  ],
+  "vars": {
+    "INVEST_DATABASE_PROJECT": "igxtlcbyucshupsldijj",
+    "INVEST_MIGRATION_ORIGIN": "https://invest.techmoney.com.br",
+    "INVEST_SUPABASE_URL": "https://igxtlcbyucshupsldijj.supabase.co",
+    "INVEST_PORTAL_MODE": "owner-production"
+  },
+  "routes": [
+    {
+      "pattern": "invest.techmoney.com.br/*",
+      "zone_id": "aefbf983d3c62b2c387d69694fc3de4c"
+    }
+  ],
+  "build": {
+    "command": "npm run build:cloudflare-client && node scripts/migration/build-worker.mjs"
+  }
+}

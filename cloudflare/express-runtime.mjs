@@ -32,9 +32,10 @@ const expressHandler = httpServerHandler(server);
 export default {
   async fetch(request, env, context) {
     const pathname = new URL(request.url).pathname;
+    if(env.INVEST_PORTAL_MODE==='owner-production'&&pathname==='/'&&['GET','HEAD'].includes(request.method))return Response.redirect(new URL('/migration/login',request.url),302);
     if (['/migration/login','/migration/callback','/migration/login.js','/migration/login.css'].includes(pathname)) {
       if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405});
-      return migrationLoginAsset(request);
+      return migrationLoginAsset(request,env);
     }
     if(pathname.startsWith('/api/migration/auth/'))return loginRequest(request,env,{rate:authMigrationRate});
     if(pathname==='/api/migration/confirm-owner')return confirmSupabaseOwner(request,env,supabaseIdentityStore);

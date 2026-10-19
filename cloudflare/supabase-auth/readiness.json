@@ -1,7 +1,7 @@
 {
-  "state": "authenticated_fictional_simulation_verified_cutover_preparation",
+  "state": "final_domain_routed_owner_login_acceptance_pending",
   "replitCancellationSafe": false,
-  "domainCutoverCompleted": false,
+  "domainCutoverCompleted": true,
   "existingReplitLoginChanged": false,
   "realAnalysisEnabled": false,
   "testsPassed": 60,
@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "414cc8ea-0616-408f-bbe0-063a72cb6702",
+  "portalPreviewVersion": "a4bd72f1-5bb0-4320-9521-ec3f2860df6f",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -119,13 +119,31 @@
     "additionalSuitabilityProfilesTransferred": 1,
     "destinationOnlySimulationPreserved": true,
     "sourceWritesFrozen": false,
-    "finalWindowRecheckRequired": true
+    "finalWindowRecheckRequired": true,
+    "recheckedAfterRouting": true
   },
   "finalOriginLoginPrepared": {
     "origin": "https://invest.techmoney.com.br",
     "callback": "https://invest.techmoney.com.br/migration/callback",
     "mockedAuthTestsPassed": 11,
-    "liveDomainChanged": false,
-    "supabaseRedirectAllowlistVerified": false
+    "liveDomainChanged": true,
+    "supabaseRedirectAllowlistVerified": true,
+    "siteUrlSaved": true,
+    "unauthenticatedPrivateReadStatus": 401,
+    "httpsVerified": true,
+    "ownerSignInLiveVerified": false
+  },
+  "finalDomain": {
+    "hostname": "invest.techmoney.com.br",
+    "worker": "techmoney-invest-migration",
+    "route": "invest.techmoney.com.br/*",
+    "recordType": "A",
+    "priorOriginIpRetainedForRollback": true,
+    "proxyEnabled": true,
+    "legacyDeploymentDeleted": false,
+    "ownerLoginAcceptancePending": true,
+    "realAnalysisEnabled": false,
+    "recordWritesEnabled": false,
+    "statementWritesEnabled": false
   }
 }
