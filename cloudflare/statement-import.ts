@@ -32,7 +32,7 @@ export async function statementImport(request:Request,env:any,owner:string,revie
  const id=new URL(request.url).pathname.match(/\/statement-imports\/([0-9a-f-]{36})$/)?.[1];
  if(request.method==='GET'&&id){const row=await services.db(env,async(c:any)=>(await c.query('SELECT id,statement_date,position_count,reviewed_at,payload FROM invest_statement_imports WHERE user_id=$1 AND id=$2',[owner,id])).rows[0]);if(!row)throw new StatementError('STATEMENT_NOT_FOUND',404);return {savingEnabled:enabled,record:row};}
  if(id)throw new StatementError('METHOD_NOT_ALLOWED',405);
- if(request.method==='GET')return {savingEnabled:enabled,imports:enabled?await services.db(env,async(c:any)=>(await c.query('SELECT id,statement_date,position_count,reviewed_at FROM invest_statement_imports WHERE user_id=$1 ORDER BY reviewed_at DESC,id DESC LIMIT 50',[owner])).rows):[]};
+ if(request.method==='GET')return {savingEnabled:enabled,imports:await services.db(env,async(c:any)=>(await c.query('SELECT id,statement_date,position_count,reviewed_at FROM invest_statement_imports WHERE user_id=$1 ORDER BY reviewed_at DESC,id DESC LIMIT 50',[owner])).rows)};
  if(!enabled)throw new StatementError('STATEMENT_SAVING_BLOCKED',423);
  if(request.method!=='POST')throw new StatementError('METHOD_NOT_ALLOWED',405);
  if(new URL(request.url).origin!==env.INVEST_MIGRATION_ORIGIN||request.headers.get('Origin')!==env.INVEST_MIGRATION_ORIGIN)throw new StatementError('ORIGIN_NOT_ALLOWED',403);

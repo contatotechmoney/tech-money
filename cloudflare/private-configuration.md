@@ -192,3 +192,24 @@ Client build and TypeScript passed. Published version:
 No unreviewed real workbook was saved; final authenticated acceptance Save and
 reread remain pending before enabling this switch. Preserve any later snapshots
 when reconciling the original 16 Replit tables.
+
+
+## Statement acceptance checkpoint
+
+The owner explicitly confirmed review and authorized saving the source statement
+for the acceptance test. The source date was confirmed separately from download
+date. No save has occurred: the previous authenticated session expired and a
+fresh owner sign-in link was requested through the existing bounded login UI.
+Do not treat this checkpoint as a completed acceptance save.
+
+The latest prepared client includes a private saved-statement list and Reopen
+button. Collection reads now remain available when statement writes are disabled,
+so shutting off saving does not hide a previously saved statement. Eleven affected
+tests passed again, including disabled-write history reads and cross-owner denial.
+Current preview: `9c3b148f-114d-4daf-8090-0c34e483b3aa`, write switch absent.
+
+After a verified renewed owner session, enable only the dedicated statement
+write switch for the authorized acceptance run, save the reviewed snapshot, reload
+and re-open it from the database. Then disable statement saving again while the
+main portal cutover remains unfinished. Never enable transaction writes, inference,
+provider delivery, budgets or credit deductions as part of this acceptance run.

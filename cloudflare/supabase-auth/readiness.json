@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "51ca30e9-61dd-46ed-9128-5a37914e62bf",
+  "portalPreviewVersion": "9c3b148f-114d-4daf-8090-0c34e483b3aa",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -101,6 +101,9 @@
     "serverTotalsRechecked": true,
     "ownerScopedIdempotencyTested": true,
     "realAnalysisEnabled": false,
-    "acceptanceSaveOnPublishedPortalPending": true
+    "acceptanceSaveOnPublishedPortalPending": true,
+    "ownerReviewExplicitlyConfirmed": true,
+    "acceptanceState": "awaiting_renewed_owner_sign_in",
+    "historyReopenUiPrepared": true
   }
 }
