@@ -351,3 +351,30 @@ verified before the window switch. Evidence screenshot is stored outside Git.
 Real analysis, credits, billing and record writes remain blocked. Remaining
 cancellation gates include recording acceptance and the inventory of other
 Replit apps/deployments/charges; no subscription cancellation was performed.
+
+### Final-domain statement recording acceptance and Replit service review
+
+Version `597518a1-a13c-4546-a4b6-a0213db7d9e9` enables only
+INVEST_STATEMENT_IMPORT_WRITES for the verified exclusive owner. Routine
+transaction/profile writes, inference, billing and model calls remain closed.
+The same original owner-reviewed B3 workbook was loaded on the final hostname,
+16/10/2026 and all four sheet totals checked, and Save explicitly clicked.
+The server response displayed that the statement was already saved and no
+additional copy was created. A subsequent live read-only Supabase query
+confirmed 1 statement, 14 positions, 1 verified-owner snapshot, 0 trades,
+1 original account and 2 original audit events. Reload preserved the session;
+reopening the saved snapshot again returned the matching four sheets.
+No fictional transaction, new risk answer or duplicate statement was inserted.
+Statement writes remain enabled as a reviewed production feature; the preview
+config still leaves its switch absent.
+
+The account service review found seven editable apps, two with publications.
+The second published app is Intelligent Finance AI, with a configured leads
+hostname and hosting usage; that hostname did not resolve in the public DNS
+check, which does not prove that its provider URL or stored data is disposable.
+The owner was asked whether it is obsolete. Subscription, usage, automatic
+credit recharge and hosting/database consumption were reviewed read-only.
+Private amounts and account details are stored outside Git in the protected
+backup directory. No subscription, payment setting, deployment or database
+was stopped or deleted. Replit cancellation is not yet cleared: preserve any
+needed data from the other publication and finish the source-retirement plan.

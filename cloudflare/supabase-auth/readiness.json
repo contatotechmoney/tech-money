@@ -1,5 +1,5 @@
 {
-  "state": "final_domain_owner_login_and_private_reads_verified",
+  "state": "final_domain_owner_statement_writes_and_rereads_verified",
   "replitCancellationSafe": false,
   "domainCutoverCompleted": true,
   "existingReplitLoginChanged": false,
@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "3f52aa77-78be-478a-975b-0b8988b38c67",
+  "portalPreviewVersion": "597518a1-a13c-4546-a4b6-a0213db7d9e9",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -79,7 +79,7 @@
     "realB3StatementLayoutVerified": true,
     "supportedFormat": "B3 XLSX (Acoes, Empréstimos, Renda Fixa, Tesouro Direto) and CSV UTF-8",
     "originalWorkbookAllSheetTotalsMatched": true,
-    "recordSavingEnabled": false,
+    "recordSavingEnabled": true,
     "realAnalysisEnabled": false,
     "parserTestsPassed": 7,
     "authenticatedPublishedXlsxUploadRetested": true
@@ -96,14 +96,14 @@
     "schemaRlsEnabled": true,
     "publicGrants": 0,
     "productionRecords": 1,
-    "enabled": false,
+    "enabled": true,
     "requiresExplicitReview": true,
     "serverTotalsRechecked": true,
     "ownerScopedIdempotencyTested": true,
     "realAnalysisEnabled": false,
     "acceptanceSaveOnPublishedPortalPending": false,
     "ownerReviewExplicitlyConfirmed": true,
-    "acceptanceState": "saved_reopened_owner_verified_temporary_write_gate_closed",
+    "acceptanceState": "final_domain_duplicate_save_and_reload_reopen_verified",
     "historyReopenUiPrepared": true,
     "lastAttemptRejectedWithoutInsert": true,
     "dateInputFormat": "dd/mm/aaaa",
@@ -144,7 +144,7 @@
     "ownerLoginAcceptancePending": false,
     "realAnalysisEnabled": false,
     "recordWritesEnabled": false,
-    "statementWritesEnabled": false,
+    "statementWritesEnabled": true,
     "emailDeliveryAcceptance": {
       "state": "owner_signed_in_on_final_domain",
       "providerStatus": 429,
@@ -167,6 +167,19 @@
     "statementDateVerified": "2026-10-16",
     "statementPositionsVerified": 14,
     "statementSheetTotalsMatched": true,
-    "sessionAfterReloadVerified": false
+    "sessionAfterReloadVerified": true,
+    "statementDuplicateWriteVerified": true,
+    "statementAfterReloadVerified": true
+  },
+  "replitServiceInventory": {
+    "checked": true,
+    "editableApps": 7,
+    "publishedApps": 2,
+    "otherPublishedAppRelevancePending": true,
+    "hostingAndDatabaseUsageObserved": true,
+    "subscriptionAndAutoRechargeReviewed": true,
+    "subscriptionChanged": false,
+    "deploymentsStopped": false,
+    "privateInventorySaved": true
   }
 }

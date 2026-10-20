@@ -26,7 +26,8 @@
     "INVEST_DATABASE_PROJECT": "igxtlcbyucshupsldijj",
     "INVEST_MIGRATION_ORIGIN": "https://invest.techmoney.com.br",
     "INVEST_SUPABASE_URL": "https://igxtlcbyucshupsldijj.supabase.co",
-    "INVEST_PORTAL_MODE": "owner-production"
+    "INVEST_PORTAL_MODE": "owner-production",
+    "INVEST_STATEMENT_IMPORT_WRITES": "enabled"
   },
   "routes": [
     {
