@@ -146,11 +146,15 @@
     "recordWritesEnabled": false,
     "statementWritesEnabled": false,
     "emailDeliveryAcceptance": {
-      "state": "provider_email_quota_temporarily_exceeded",
+      "state": "provider_accepted_owner_link_request",
       "providerStatus": 429,
       "providerReasonVerifiedFromAuthLogs": true,
       "limitsWeakened": false,
-      "emailSentConfirmed": false
+      "emailSentConfirmed": true,
+      "providerQuotaPreviouslyExceeded": true,
+      "acceptedAt": "2026-10-20T00:40:00Z",
+      "timestampPrecision": "minute_approximate",
+      "ownerInboxReceiptVerified": false
     },
     "authAndGatewayTestsPassed": 17
   }

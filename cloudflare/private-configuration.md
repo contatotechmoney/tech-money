@@ -323,3 +323,12 @@ consume retries blindly, migrate browser cookies or reuse consumed links.
 The final-domain owner session and private screens remain unverified until
 that login is completed. DNS routing is active, which is not evidence that
 the authenticated product acceptance or Replit cancellation is complete.
+
+### Final-host email request accepted — 2026-10-19 evening
+
+A single new request from the final-domain login was accepted after the provider
+quota renewed. The browser displayed the successful instruction to check email.
+Inbox receipt and owner sign-in have not yet been confirmed. The owner was asked
+to open the newest email and enter the Invest portal without sharing any token
+or code. A fresh read-only check still reports realAnalysisEnabled false and
+unauthenticated session access 401. No limits or identity mappings changed.
