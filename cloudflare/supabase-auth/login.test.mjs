@@ -21,3 +21,8 @@ test('owner production login removes obsolete preview links without enabling exe
  assert.match(html,/Entrar no Invest/);assert.doesNotMatch(html,/Abrir portal atual|Ambiente de migração/);assert.match(html,/análises reais e cobranças permanecem bloqueadas/);
  const script=await migrationLoginAsset(new Request(config.INVEST_MIGRATION_ORIGIN+'/migration/login.js'),config).text();assert.match(script,/análises reais continuam bloqueadas/);assert.doesNotMatch(script,/O portal completo ainda está em migração/);
 });
+test('email provider quota is explicit and never exposes provider response or weakens limits',async()=>{
+ const r=await loginRequest(req('request-link'),env,{rate:async()=>true,fetch:async()=>Response.json({private:'provider-detail'},{status:429})});
+ assert.equal(r.status,429);const body=await r.json();assert.equal(body.error,'EMAIL_RATE_LIMITED');assert.equal(body.executable,false);assert.equal(JSON.stringify(body).includes('provider-detail'),false);
+ const script=await migrationLoginAsset(new Request('https://migration.example.invalid/migration/login.js')).text();assert.match(script,/EMAIL_RATE_LIMITED/);assert.match(script,/limite temporário/);
+});

@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "a4bd72f1-5bb0-4320-9521-ec3f2860df6f",
+  "portalPreviewVersion": "3f52aa77-78be-478a-975b-0b8988b38c67",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -144,6 +144,14 @@
     "ownerLoginAcceptancePending": true,
     "realAnalysisEnabled": false,
     "recordWritesEnabled": false,
-    "statementWritesEnabled": false
+    "statementWritesEnabled": false,
+    "emailDeliveryAcceptance": {
+      "state": "provider_email_quota_temporarily_exceeded",
+      "providerStatus": 429,
+      "providerReasonVerifiedFromAuthLogs": true,
+      "limitsWeakened": false,
+      "emailSentConfirmed": false
+    },
+    "authAndGatewayTestsPassed": 17
   }
 }

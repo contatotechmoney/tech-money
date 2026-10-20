@@ -308,3 +308,18 @@ Worker without removing/restoring the route would break the final-domain login.
 A private rollback JSON records old DNS, version, origin and the exact reverse
 sequence. Replit cancellation is still unsafe until final-host owner acceptance,
 recording acceptance and other Replit service/charge inventory are complete.
+
+### Email delivery acceptance blocker
+
+After the local hourly cap renewed, the provider rejected `/otp` with
+`429: email rate limit exceeded`, confirmed in Supabase auth service logs.
+No new production-host email was confirmed sent. Existing protections were
+not bypassed, cleared or weakened. Version
+`3f52aa77-78be-478a-975b-0b8988b38c67` returns a safe `EMAIL_RATE_LIMITED`
+response for provider 429 and explains the temporary email quota in the UI;
+other provider details are never exposed. Seventeen auth/gateway tests pass.
+Wait for provider allowance before requesting the next owner link; do not
+consume retries blindly, migrate browser cookies or reuse consumed links.
+The final-domain owner session and private screens remain unverified until
+that login is completed. DNS routing is active, which is not evidence that
+the authenticated product acceptance or Replit cancellation is complete.
