@@ -1,3 +1,4 @@
+import {consultantAsset} from './consultant-asset.mjs';
 import {deliverPending,testNotice} from './notifications.mjs';
 import {notificationQueue} from './notification-store.mjs';
 import {ownerIdentity,adminRequest} from './admin.mjs';
@@ -20,7 +21,9 @@ export const store={async capture(data,request,env){
  await client.query('COMMIT');transaction=false;
  }catch(error){console.error(JSON.stringify({component:'interest',stage,code:/^[A-Z0-9_]{3,40}$/.test(error.code||'')?error.code:'unavailable',timeout:/timeout|terminated/i.test(error.message||'')}));throw error;}finally{if(transaction)await client.query('ROLLBACK').catch(()=>{});if(connected)client.end().catch(()=>{});else client.connection?.stream?.destroy();}
 }};
-export default {async scheduled(event,env,ctx){ctx.waitUntil(deliverPending(env,notificationQueue));},async fetch(request,env,ctx){const url=new URL(request.url);
+export default {async scheduled(event,env,ctx){ctx.waitUntil(deliverPending(env,notificationQueue));},async fetch(request,env,ctx){
+ const sharedProfile=await consultantAsset(request);if(sharedProfile)return sharedProfile;
+const url=new URL(request.url);
  if(url.pathname==='/'){url.pathname='/index.html';request=new Request(url,request);}
  if(url.pathname==='/api/admin/telegram-test')return testNotice(request,env,await ownerIdentity(request,env));
  if(url.pathname==='/api/admin/interessados')return adminRequest(request,env,adminStore,await ownerIdentity(request,env));
@@ -34,3 +37,4 @@ export default {async scheduled(event,env,ctx){ctx.waitUntil(deliverPending(env,
  h.set('Referrer-Policy','strict-origin-when-cross-origin');h.set('X-Content-Type-Options','nosniff');
  let body=response.body;if(request.method!=='HEAD'&&h.get('Content-Type')?.includes('text/html')){h.set('Cache-Control','no-store');if(env.INTEREST_TEST_MODE==='true')body=(await response.text()).replace('<body>','<body><div class="preview-banner">Prévia de validação · cadastros de teste · sem análises reais</div>');}return new Response(body,{status:response.status,headers:h});
 }};
+
