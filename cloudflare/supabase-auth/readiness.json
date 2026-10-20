@@ -182,8 +182,15 @@
     "deploymentsStopped": false,
     "privateInventorySaved": true,
     "otherPublishedAppConfirmedObsolete": true,
-    "sourceArchiveRequestedForAllApps": false,
-    "sourceArchiveScopeApprovalPending": true,
-    "ownerStatementSaveAcknowledged": true
+    "sourceArchiveRequestedForAllApps": true,
+    "sourceArchiveScopeApprovalPending": false,
+    "ownerStatementSaveAcknowledged": true,
+    "sourceArchiveCompletionVerified": false,
+    "obsoleteAppDatabasePrivatelyBackedUp": true,
+    "obsoleteAppDatabaseRestoreTestPassed": true,
+    "obsoleteAppLeadRecords": 4,
+    "obsoleteAppUsers": 0,
+    "obsoleteAppContractFileReferences": 0,
+    "obsoleteAppStorageBucketsObserved": 0
   }
 }

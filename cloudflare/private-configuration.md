@@ -393,3 +393,25 @@ obsolete one, scope approval was requested before its final Start action.
 The export has not started yet. Source-code export does not establish a
 backup of PostgreSQL rows, uploads or externally processed documents; those
 remain a separate preservation check before destructive retirement.
+
+### Official project export started and obsolete database preserved — 2026-10-20
+
+The owner explicitly approved the seven-project official export. The final
+Start action was submitted; Replit displayed that an export was in progress
+and a notification would arrive on completion. A later settings refresh no
+longer displayed that status, but neither notification view nor the focused
+connected-email search confirmed a completed archive. Do not equate this
+request with a downloaded/verified source backup. Do not restart duplicate
+exports while completion remains uncertain.
+
+The obsolete Intelligent Finance AI app showed one development database with
+public tables leads (4 records) and users (0). A read-only SQL export preserved
+all rows, 24 column definitions, three index definitions and three constraints
+in a private archive outside Git. No row was printed to chat or copied into
+the Invest database. The four contract attachment fields were all empty, and
+the app storage panel showed the empty Create bucket state.
+A fresh local PGlite restoration verified the actual four lead records and
+zero users exactly with SQL EXCEPT checks. The protected archive includes
+a fresh-database restore SQL and SHA-256 manifest. No remote writes, identity
+changes, deletion, publication stop or billing changes were performed.
+Code archive completion/download remains a retirement prerequisite.
