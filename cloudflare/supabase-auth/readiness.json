@@ -1,5 +1,5 @@
 {
-  "state": "final_domain_routed_owner_login_acceptance_pending",
+  "state": "final_domain_owner_login_and_private_reads_verified",
   "replitCancellationSafe": false,
   "domainCutoverCompleted": true,
   "existingReplitLoginChanged": false,
@@ -131,7 +131,7 @@
     "siteUrlSaved": true,
     "unauthenticatedPrivateReadStatus": 401,
     "httpsVerified": true,
-    "ownerSignInLiveVerified": false
+    "ownerSignInLiveVerified": true
   },
   "finalDomain": {
     "hostname": "invest.techmoney.com.br",
@@ -141,12 +141,12 @@
     "priorOriginIpRetainedForRollback": true,
     "proxyEnabled": true,
     "legacyDeploymentDeleted": false,
-    "ownerLoginAcceptancePending": true,
+    "ownerLoginAcceptancePending": false,
     "realAnalysisEnabled": false,
     "recordWritesEnabled": false,
     "statementWritesEnabled": false,
     "emailDeliveryAcceptance": {
-      "state": "provider_accepted_owner_link_request",
+      "state": "owner_signed_in_on_final_domain",
       "providerStatus": 429,
       "providerReasonVerifiedFromAuthLogs": true,
       "limitsWeakened": false,
@@ -154,8 +154,19 @@
       "providerQuotaPreviouslyExceeded": true,
       "acceptedAt": "2026-10-20T00:40:00Z",
       "timestampPrecision": "minute_approximate",
-      "ownerInboxReceiptVerified": false
+      "ownerInboxReceiptVerified": true
     },
-    "authAndGatewayTestsPassed": 17
+    "authAndGatewayTestsPassed": 17,
+    "ownerSignInLiveVerified": true,
+    "verifiedPrivateScreens": [
+      "agents",
+      "statement-import-history-and-reopen",
+      "suitability",
+      "reports"
+    ],
+    "statementDateVerified": "2026-10-16",
+    "statementPositionsVerified": 14,
+    "statementSheetTotalsMatched": true,
+    "sessionAfterReloadVerified": false
   }
 }

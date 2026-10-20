@@ -332,3 +332,22 @@ Inbox receipt and owner sign-in have not yet been confirmed. The owner was asked
 to open the newest email and enter the Invest portal without sharing any token
 or code. A fresh read-only check still reports realAnalysisEnabled false and
 unauthenticated session access 401. No limits or identity mappings changed.
+
+### Final-domain owner sign-in and private reads verified — 2026-10-19
+
+The owner opened the newest email and entered Invest. Native Chrome UI confirmed
+`invest.techmoney.com.br/investments/agents`, the authorized owner email, the
+production-mode closed-execution banner and restored historical reports.
+On the same authenticated final hostname, saved statement history was visible
+and reopening the existing 16/10/2026 snapshot returned 14 positions, all four
+sheet comparisons matching and the preserved total. Save remained disabled;
+no new statement or trade record was created. The investor profile and report
+history also loaded from the restored account.
+
+A page reload was initiated, but the user switched Chrome windows before its
+result could be observed. Do not claim session-after-reload acceptance from
+that action. Owner sign-in and the four private screen reads themselves were
+verified before the window switch. Evidence screenshot is stored outside Git.
+Real analysis, credits, billing and record writes remain blocked. Remaining
+cancellation gates include recording acceptance and the inventory of other
+Replit apps/deployments/charges; no subscription cancellation was performed.
