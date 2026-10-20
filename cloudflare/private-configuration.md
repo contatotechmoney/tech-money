@@ -378,3 +378,18 @@ Private amounts and account details are stored outside Git in the protected
 backup directory. No subscription, payment setting, deployment or database
 was stopped or deleted. Replit cancellation is not yet cleared: preserve any
 needed data from the other publication and finish the source-retirement plan.
+
+### Owner confirmation — 2026-10-20
+
+The owner confirmed Intelligent Finance AI is obsolete and no longer used,
+and acknowledged the statement save/reuse result. This authorizes retirement
+preparation, not a service shutdown: the preceding question explicitly said
+no shutdown would occur during that review. No billing setting was changed.
+
+The official Replit export dialog offers an archive of all personal apps and
+sends a download link to the account email and notification center, available
+for seven days. Because this spans all seven projects rather than only the
+obsolete one, scope approval was requested before its final Start action.
+The export has not started yet. Source-code export does not establish a
+backup of PostgreSQL rows, uploads or externally processed documents; those
+remain a separate preservation check before destructive retirement.
