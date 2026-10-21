@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "597518a1-a13c-4546-a4b6-a0213db7d9e9",
+  "portalPreviewVersion": "31725693-42b6-4064-95be-5d10dec25998",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -77,7 +77,7 @@
     "positionsPersisted": true,
     "networkUpload": false,
     "realB3StatementLayoutVerified": true,
-    "supportedFormat": "B3 XLSX (Acoes, Empréstimos, Renda Fixa, Tesouro Direto) and CSV UTF-8",
+    "supportedFormat": "B3 XLSX (Acoes, Empr\u00e9stimos, Renda Fixa, Tesouro Direto) and CSV UTF-8",
     "originalWorkbookAllSheetTotalsMatched": true,
     "recordSavingEnabled": true,
     "realAnalysisEnabled": false,
@@ -192,5 +192,24 @@
     "obsoleteAppUsers": 0,
     "obsoleteAppContractFileReferences": 0,
     "obsoleteAppStorageBucketsObserved": 0
+  },
+  "portfolioDiagnosis": {
+    "prepared": true,
+    "arithmeticOnly": true,
+    "tokensUsed": 0,
+    "creditsDebited": 0,
+    "realAnalysisEnabled": false,
+    "usesSavedOwnerStatements": true,
+    "loansExcludedFromAllocation": true,
+    "approvalFlow": "informational_only_no_executable_quote",
+    "modelPricingConfigured": false,
+    "calculationTestsPassed": 4,
+    "visualPreviewVerifiedWithFictionalData": true,
+    "authenticatedOwnerBrowserAcceptancePending": true,
+    "published": true,
+    "publishedAt": "2026-10-21",
+    "liveAssetHashVerified": true,
+    "unauthenticatedStatementReadStatus": 401,
+    "liveRealAnalysisEnabled": false
   }
 }

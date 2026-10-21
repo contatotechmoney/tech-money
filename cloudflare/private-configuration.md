@@ -415,3 +415,32 @@ zero users exactly with SQL EXCEPT checks. The protected archive includes
 a fresh-database restore SQL and SHA-256 manifest. No remote writes, identity
 changes, deletion, publication stop or billing changes were performed.
 Code archive completion/download remains a retirement prerequisite.
+
+### Descriptive portfolio diagnosis — 2026-10-21
+
+The owner requested the next Invest evolution for morning review. A private
+`/investments/portfolio/diagnosis` client view reads the existing owner-scoped
+statement list and detail endpoints. It introduces no API, write, provider call,
+model selection, credit approval or executable quote. It selects the most recent
+statement date and permits choosing another saved snapshot without reimporting.
+
+The arithmetic excludes all loan-sheet rows from the allocation denominator,
+reports missing values, groups product descriptions within each sheet and
+separates institution distribution from issuer/credit exposure. Its value base
+is explicitly not net wealth, returns, cost basis, current market valuation or
+suitability assessment. Renda Fixa remains CURVA. The six committee identities
+are shown only as the planned future scope; no generated agent opinion is shown.
+
+Four arithmetic tests cover loan overlap, grouping across institutions, missing
+and unsupported values, zero denominators and top-three weights. Five existing
+statement tests and six existing portal tests passed; TypeScript and production
+client/Worker builds passed. A fictional-data browser preview verified the
+layout and expandable scope. Authenticated owner acceptance on the final domain
+is pending; public asset publication and closed real-execution health are
+checked separately after deployment. No customer snapshot or account changed.
+
+Published Worker version `31725693-42b6-4064-95be-5d10dec25998` on the existing
+final-domain worker with the same Hyperdrive, origin and statement-write gate.
+The downloaded production client bundle matches the built bundle SHA-256.
+The final-domain health returns realAnalysisEnabled false; unauthenticated
+statement history returns 401. No real analysis endpoint was invoked.
