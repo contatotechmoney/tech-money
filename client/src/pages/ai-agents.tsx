@@ -55,7 +55,7 @@ export default function AIAgents() {
             <div>
               <h2 className="text-lg font-bold text-white">Central dos Comitês</h2>
               <p className="mt-0.5 max-w-xl text-sm text-white/75">
-                Conheça os analistas que debatem e votam: comitê de renda variável (ações) e renda fixa (Selic · Tesouro). Veja o currículo de cada especialista.
+                Conheça as funções dos agentes de IA nos comitês de ações, renda fixa e carteira completa. Resultados destinados ao cliente exigem checagem e revisão do consultor.
               </p>
             </div>
           </div>

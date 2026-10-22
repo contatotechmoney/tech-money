@@ -1,3 +1,8 @@
+import {migrationPortal} from './portal.ts';
+import {supabaseMigrationStatus} from './supabase-auth/identity.mjs';
+import {supabaseIdentityStore,authMigrationRate} from './supabase-auth/store.mjs';
+import {confirmSupabaseOwner} from './supabase-auth/identity.mjs';
+import {loginRequest,migrationLoginAsset} from './supabase-auth/login.mjs';
 import express from 'express';
 import { createServer } from 'node:http';
 import { httpServerHandler } from 'cloudflare:node';
@@ -27,8 +32,18 @@ const expressHandler = httpServerHandler(server);
 export default {
   async fetch(request, env, context) {
     const pathname = new URL(request.url).pathname;
+    if(env.INVEST_PORTAL_MODE==='owner-production'&&pathname==='/'&&['GET','HEAD'].includes(request.method))return Response.redirect(new URL('/migration/login',request.url),302);
+    if (['/migration/login','/migration/callback','/migration/login.js','/migration/login.css'].includes(pathname)) {
+      if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405});
+      return migrationLoginAsset(request,env);
+    }
+    if(pathname.startsWith('/api/migration/auth/'))return loginRequest(request,env,{rate:authMigrationRate});
+    if(pathname==='/api/migration/confirm-owner')return confirmSupabaseOwner(request,env,supabaseIdentityStore);
     if (pathname === '/api/__clerk' || pathname.startsWith('/api/__clerk/')) {
       return migrationClerkProxy(request, env);
+    }
+    if (pathname === '/api/migration/supabase-status') {
+      return supabaseMigrationStatus(request, env, supabaseIdentityStore);
     }
     if (pathname === '/api/migration/pilot-status') {
       return pilotMigrationStatus(request, env, privateServices);
@@ -36,6 +51,7 @@ export default {
     if (pathname === '/api/migration/runtime' && request.method === 'GET') {
       return expressHandler.fetch(request, env, context);
     }
+    if(pathname==='/api/migration/session'||pathname.startsWith('/api/investments/')||pathname.startsWith('/api/suitability/'))return migrationPortal(request,env);
     return stagingGateway.fetch(request, env, context);
   },
 };

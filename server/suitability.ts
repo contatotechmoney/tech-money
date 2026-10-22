@@ -2,38 +2,8 @@ import { Pool } from "pg";
 
 export type Perfil = "CONSERVADOR" | "MODERADO" | "AGRESSIVO";
 
-export const QUESTOES = [
-  {
-    id: "horizonte",
-    pergunta: "Por quanto tempo pretende manter este investimento?",
-    opcoes: ["Até 1 ano", "1 a 3 anos", "3 a 5 anos", "5 a 10 anos", "Mais de 10 anos"],
-  },
-  {
-    id: "tolerancia_perda",
-    pergunta: "Se sua carteira caísse 20% em um mês, o que faria?",
-    opcoes: ["Venderia tudo", "Venderia parte", "Manteria", "Compraria mais", "Não me preocupo"],
-  },
-  {
-    id: "objetivo",
-    pergunta: "Qual o principal objetivo?",
-    opcoes: ["Preservar capital", "Renda", "Crescimento moderado", "Crescimento expressivo", "Máximo retorno"],
-  },
-  {
-    id: "comprometimento",
-    pergunta: "Quanto do patrimônio em renda variável?",
-    opcoes: ["Menos de 10%", "10% a 25%", "25% a 50%", "50% a 75%", "Mais de 75%"],
-  },
-  {
-    id: "experiencia",
-    pergunta: "Seu conhecimento em mercado de capitais?",
-    opcoes: ["Nenhum", "Básico", "Intermediário", "Avançado", "Profissional"],
-  },
-  {
-    id: "renda_estabilidade",
-    pergunta: "Sua renda depende deste investimento?",
-    opcoes: ["Totalmente", "Em grande parte", "Parcialmente", "Pouco", "Não"],
-  },
-] as const;
+import { QUESTOES } from '../shared/suitability-questionnaire';
+export { QUESTOES };
 
 export const NIVEL_PERFIL: Record<Perfil, number> = {
   CONSERVADOR: 1,
@@ -66,24 +36,8 @@ export interface ConformidadeResult {
 const REAVALIACAO_MESES = 24;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-export function respostasSaoValidas(respostas: Record<string, unknown>): respostas is Record<string, number> {
-  const questionIds = new Set<string>(QUESTOES.map((questao) => questao.id));
-  const keys = Object.keys(respostas);
-
-  return keys.length === QUESTOES.length
-    && keys.every((key) => questionIds.has(key))
-    && QUESTOES.every((questao) => {
-      const value = respostas[questao.id];
-      return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 4;
-    });
-}
-
-export function classificarPerfil(respostas: Record<string, number>): Perfil {
-  const media = pontuacaoMedia(respostas);
-  if (media < 2.5) return "CONSERVADOR";
-  if (media < 3.8) return "MODERADO";
-  return "AGRESSIVO";
-}
+import {respostasSaoValidas,classificarPerfil,pontuacaoMedia} from '../shared/suitability-scoring';
+export {respostasSaoValidas,classificarPerfil};
 
 export function perfilExigidoPara(risco: number): Perfil {
   if (risco <= 6) return "CONSERVADOR";
@@ -216,10 +170,6 @@ type SuitabilityProfileRow = Omit<SuitabilityProfile, "pontuacaoMedia" | "dataAv
   dataAvaliacao: Date | string;
   dataProximaReavaliacao: Date | string;
 };
-
-function pontuacaoMedia(respostas: Record<string, number>): number {
-  return QUESTOES.reduce((total, questao) => total + respostas[questao.id] + 1, 0) / QUESTOES.length;
-}
 
 function toProfile(row: SuitabilityProfileRow): SuitabilityProfile {
   return {
