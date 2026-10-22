@@ -9,3 +9,10 @@ test('browser owner parameter cannot change server-scoped query',async()=>{let p
 test('historical presentation never restores an approval or exposes legacy owner',()=>{const r=historicalReport({id:'x',user_id:'legacy',ticker:'BBAS3',generated_at:'2026-01-01T00:00:00Z',risk_score:'2',price:'10',change_percent:'1',signal:'buy',summary:'Unverified advice',strengths:[],risks:[],outlook:'Buy now',source:'archive'});assert.equal(r.recommendation.status,'pending');assert.equal(r.historical,true);assert.equal(r.riskScore,null);assert.equal('userId' in r,false);assert.notEqual(r.outlook,'Buy now')});
 test('session returns only verified new identity and closed execution flags',async()=>{const r=await migrationPortal(request('/api/migration/session'),env,services(()=>{}));const d=await r.json();assert.equal(d.user.id,identity.subject);assert.equal(d.executable,false);assert.equal(JSON.stringify(d).includes(env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE),false)});
 test('missing database or failed query returns unavailable, never fabricated empty history',async()=>{const r=await migrationPortal(request('/api/investments/reports'),env,services(async()=>{throw Error('db unavailable')}));assert.equal(r.status,503)});
+test('B3 preparation reports disconnected and cannot accept consent or trigger sync',async()=>{
+ const noDb=services(()=>{throw Error('must not query or persist')});
+ const status=await migrationPortal(request('/api/investments/b3/connection'),env,noDb);
+ assert.equal(status.status,200);const body=await status.json();assert.equal(body.connected,false);assert.equal(body.automaticImportEnabled,false);assert.equal(body.consentGranted,false);assert.equal(body.lastSyncAt,null);assert.equal(body.realAnalysisEnabled,false);
+ for(const method of ['POST','DELETE','PUT'])assert.equal((await migrationPortal(request('/api/investments/b3/connection',method),env,noDb)).status,423);
+ const denied=await migrationPortal(request('/api/investments/b3/connection'),env,{...noDb,verify:async()=>null});assert.equal(denied.status,401);
+});

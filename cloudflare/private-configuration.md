@@ -444,3 +444,47 @@ final-domain worker with the same Hyperdrive, origin and statement-write gate.
 The downloaded production client bundle matches the built bundle SHA-256.
 The final-domain health returns realAnalysisEnabled false; unauthenticated
 statement history returns 401. No real analysis endpoint was invoked.
+
+### Responsive diagnosis and B3 connection preparation — 2026-10-21
+
+The owner requested improved screen organization and an official B3 connection.
+The diagnosis now uses a bounded responsive workspace, a compact safety banner,
+a grouped action toolbar, aligned metrics, two-column charts and supporting
+panels, with expanded methodology on demand. Essential value/date/loan caveats
+remain visible beside the metrics. A 390px browser check found document width
+390px, with table overflow contained within its panel. Fictional-only visual
+fixtures were removed before building and are not part of the Git or deploy.
+
+The official B3 catalog states that investor APIs are for B2B clients and the
+integration page requires an API license and investor authorization:
+https://b3.com.br/pt_br/produtos-e-servicos/central-depositaria/canal-com-investidores/integracoes-da-area-do-investidor-apis/
+https://developers.b3.com.br/apis/api-area-do-investidor?taggroup=Tipo
+The Position catalog entry describes data through D-1. Position and Fintech
+Authorization technical details require a logged-in account with package access:
+https://developers.b3.com.br/api-details?Itemid=223&apiId=691d82de-4e9c-4be8-be31-b66fa9bbaa62&managerId=1&swaggerVersion=2.0&type=rest&usage=api
+https://developers.b3.com.br/api-details?Itemid=223&apiId=4aa48acb-72dd-447f-b4e1-78337eb5104a&managerId=1&swaggerVersion=2.0&type=rest&usage=api
+
+A new private /investments/portfolio/b3 page explains the planned authorization,
+position preview and explicit save steps, with Excel remaining usable today.
+GET /api/investments/b3/connection is behind the existing verified-owner binding
+and always reports disconnected, unapproved and not configured. Mutations fail
+closed. No provider transport, credential collection, consent persistence or
+sync is implemented or claimed; no B3 account or contract has been created.
+
+Activation prerequisites: obtain the licensed technical package and certification
+access; review actual endpoint, authentication, certificate and consent contracts;
+implement owner-scoped authorization, revocation and expiry; import all pages to
+an isolated candidate snapshot with reference date; reconcile pagination, retries,
+loans and valuation bases; present preview and require reviewed save through the
+existing validated snapshot path. Never fabricate API paths or reuse browser
+sessions/passwords. API costs and model credit costs are separate; neither is
+authorized by importing or authorizing a B3 position. No new client access was
+enabled, and all real model/charge execution remains blocked.
+
+TypeScript, production client and Worker build passed. Eleven targeted tests
+passed, including new B3 unavailable-state and unauthorized/mutation checks.
+
+Published version `6649f781-f602-471d-84e0-0ab80834532e`. Production bundle
+matches the local build SHA-256. The B3 status endpoint returns 401 without a
+session and health still reports realAnalysisEnabled false. Same final origin,
+owner binding, Hyperdrive and statement save gate retained. No B3 API was called.
