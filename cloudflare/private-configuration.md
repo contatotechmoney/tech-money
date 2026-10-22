@@ -488,3 +488,34 @@ Published version `6649f781-f602-471d-84e0-0ab80834532e`. Production bundle
 matches the local build SHA-256. The B3 status endpoint returns 401 without a
 session and health still reports realAnalysisEnabled false. Same final origin,
 owner binding, Hyperdrive and statement save gate retained. No B3 API was called.
+
+### Six-agent model and preliminary budget — 2026-10-22
+
+A new section in the saved-statement diagnosis lets the verified owner explicitly
+request the existing Nous public catalogue and select either preapproved model
+identifier. This is metadata GET only; it sends no position, identifier or key.
+Account-effective rates remain unverified. Metadata errors fail unavailable;
+there is no fabricated fallback price. The existing parser supplies source,
+rate version and one-minute validity; expired references require refresh.
+
+The reference uses explicit planning assumptions: five specialist calls at
+8,000 input / 2,000 output tokens each, plus one synthesis at 24,000 / 3,000.
+These are neither measured prompts nor an execution ceiling. Separate published
+input/output USD rates are rounded upward to integer micros per agent; a 30%
+illustrative reserve is shown separately. No retries, tools, FX, tax or service
+margin are included. Real tokenization and account pricing must be verified
+before an executable quote exists. No durable budget or approval is created.
+
+The credit-to-currency policy is not configured. The owner was asked whether to
+retain USD references pending policy definition or prepare a proposed BRL 1 per
+credit rule. Without an answer, credit amounts remain null rather than inventing
+a conversion. Both the API and UI retain non-executable and unapproved status;
+there is no approve/run control and no reservation/debit. Existing owner scoping,
+statement data and real-execution gates remain unchanged. Ten targeted tests
+verify cost arithmetic, invalid rates, owner access and GET-only provider calls.
+
+Published version `8a7fdc9a-d559-4582-8c4f-b8fd05b8ac18`. Live client bundle
+matches the built SHA-256, unauthenticated budget catalogue returns 401 and
+health reports realAnalysisEnabled false. A fixture-only browser test verified
+model choice and the six-line calculation with no approve/run action. Production
+owner catalogue interaction remains for owner acceptance. No approval is stored.

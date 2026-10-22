@@ -43,7 +43,7 @@
     "verifiedAt": "2026-10-16"
   },
   "portalPreviewPublished": true,
-  "portalPreviewVersion": "6649f781-f602-471d-84e0-0ab80834532e",
+  "portalPreviewVersion": "8a7fdc9a-d559-4582-8c4f-b8fd05b8ac18",
   "typeCheckPassed": true,
   "managedProductionIdentities": 2,
   "sourceObjectStorageBuckets": 0,
@@ -229,5 +229,24 @@
     "preparationPublished": true,
     "unauthenticatedStatus": 401,
     "liveAssetHashVerified": true
+  },
+  "portfolioBudget": {
+    "state": "preliminary_usd_reference_credit_policy_pending",
+    "sixAgents": true,
+    "publicNousCatalogueOnly": true,
+    "accountPricingVerified": false,
+    "tokenizerVerified": false,
+    "creditPolicyConfigured": false,
+    "approvalAvailable": false,
+    "executable": false,
+    "realAnalysisEnabled": false,
+    "tokensUsed": 0,
+    "creditsDebited": 0,
+    "testsPassed": 10,
+    "ownerAcceptancePending": true,
+    "published": true,
+    "publishedAt": "2026-10-22",
+    "liveAssetHashVerified": true,
+    "unauthenticatedModelsStatus": 401
   }
 }

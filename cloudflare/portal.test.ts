@@ -16,3 +16,10 @@ test('B3 preparation reports disconnected and cannot accept consent or trigger s
  for(const method of ['POST','DELETE','PUT'])assert.equal((await migrationPortal(request('/api/investments/b3/connection',method),env,noDb)).status,423);
  const denied=await migrationPortal(request('/api/investments/b3/connection'),env,{...noDb,verify:async()=>null});assert.equal(denied.status,401);
 });
+test('budget catalogue sends only a public GET and never sends positions or enables approval',async()=>{
+ const original=globalThis.fetch;let calls=0;globalThis.fetch=async(url,options)=>{calls++;assert.equal(String(url),'https://inference-api.nousresearch.com/v1/models');assert.equal(options?.method,'GET');assert.equal(options?.body,undefined);assert.equal(new Headers(options?.headers).has('Authorization'),false);return Response.json({data:[{id:'deepseek/deepseek-v4.1-flash',name:'Fixture',canonical_slug:'fixture',supported_parameters:['max_tokens'],pricing:{prompt:'0.0000001060',completion:'0.0000005130'}}]});};
+ try{const noDb=services(()=>{throw Error('must not query')});const response=await migrationPortal(request('/api/investments/portfolio-budget/models'),env,noDb);const d=await response.json();assert.equal(response.status,200);assert.equal(d.models.length,1);assert.equal(d.accountPricingVerified,false);assert.equal(d.creditPolicyConfigured,false);assert.equal(d.realAnalysisEnabled,false);assert.equal(d.executable,false);assert.equal(calls,1);
+ assert.equal((await migrationPortal(request('/api/investments/portfolio-budget/models','POST'),env,noDb)).status,423);assert.equal(calls,1);
+ assert.equal((await migrationPortal(request('/api/investments/portfolio-budget/models'),env,{...noDb,verify:async()=>null})).status,401);assert.equal(calls,1);
+ }finally{globalThis.fetch=original;}
+});
