@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useReducer, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, Route, Switch, Redirect, useLocation, useSearch } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -29,7 +29,8 @@ import { investorProfiles } from "./invest-report-votes";
 import { reportExampleFor } from "./invest-report-example";
 import { internalEquityBudgetPath, previewCompanies, previewCompanyWatchPath, previewReportPath, previewResearchPhases, previewSpecialists, type PreviewCompany, type PreviewRun } from "./invest-research-preview";
 import { MigrationAuthProvider, useAuth } from "./auth";
-import { initialPreviewCreditWallet, previewCreditBalance, reducePreviewCreditWallet, type PreviewCreditEvent } from "./invest-preview-credits";
+import { previewCreditBalance, type ConfirmPreviewCredit } from "./invest-preview-credits";
+import { usePreviewCreditWallet } from "./use-preview-credit-wallet";
 
 const finalPortal = window.location.hostname === "invest.techmoney.com.br";
 const overviewPath = "/investments/inicio";
@@ -38,7 +39,7 @@ const EquityBudgetPage = lazy(() => import("./EquityBudget"));
 function ConsultationRoute({ start, balance, onConfirm }: {
   start: (company: PreviewCompany) => void;
   balance: number;
-  onConfirm: (event: PreviewCreditEvent) => void;
+  onConfirm: ConfirmPreviewCredit;
 }) {
   const search = new URLSearchParams(useSearch());
   const ticker = search.get("ticker")?.toUpperCase() ?? "";
@@ -70,14 +71,13 @@ function SignedPortal() {
 }
 
 function Portal() {
-  const { isLoaded, isSignedIn, canViewInternalCosts, customerPilot } = useAuth();
+  const { isLoaded, isSignedIn, canViewInternalCosts, customerPilot, persistentCredits, userId } = useAuth();
   const previewWorkspace = localInvestPreview || customerPilot;
   const [pilotProfile, setPilotProfile] = useState<(typeof investorProfiles)[number]>();
   const [location, navigate] = useLocation();
   const [run, setRun] = useState<PreviewRun>();
-  const [creditWallet, confirmCreditEvent] = useReducer(reducePreviewCreditWallet, initialPreviewCreditWallet);
+  const credits = usePreviewCreditWallet(persistentCredits, userId);
   const [watchingCompany, setWatchingCompany] = useState(false);
-  const balance = previewCreditBalance(creditWallet);
   const [archive, setArchive] = useState(() => customerPilot ? [] : readPreviewArchive());
   const archiveTicker = new URLSearchParams(useSearch()).get("empresa");
   const archived = archiveTicker ? archive.find(item => item.company.ticker === archiveTicker) : undefined;
@@ -122,6 +122,12 @@ function Portal() {
     <p className="my-4">Entre pelo link enviado ao seu e-mail autorizado. Seu histórico e vínculo exclusivo estão preservados.</p>
     <a className="underline" href="/migration/login">Receber link de acesso</a>
   </main>;
+  const { wallet: creditWallet, confirm: confirmCreditEvent } = credits;
+  if (!creditWallet) return <main className="mx-auto max-w-xl p-8">
+    <p role="status">{credits.failed ? "Não foi possível consultar o saldo de teste." : "Consultando seu saldo de teste…"}</p>
+    {credits.failed && <button className="mt-3 underline" onClick={() => void credits.reload()}>Tentar novamente</button>}
+  </main>;
+  const balance = previewCreditBalance(creditWallet);
 
   if (!finalPortal && location === previewReportPath) {
     const selectedRun = previewWorkspace && archiveTicker ? archived : run;
@@ -152,7 +158,7 @@ function Portal() {
         balance={balance} onConfirm={confirmCreditEvent} />}</Route>
       {!finalPortal && <Route path={previewCompanyWatchPath}>{() => <InvestCompanyWatch
         following={watchingCompany} setFollowing={setWatchingCompany} balance={balance} onConfirm={confirmCreditEvent} />}</Route>}
-      <Route path="/investments/credits">{() => <ConsultationPackPreview customerPilot={customerPilot} wallet={creditWallet} onConfirm={confirmCreditEvent} />}</Route>
+      <Route path="/investments/credits">{() => <ConsultationPackPreview customerPilot={customerPilot} persistentCredits={persistentCredits} wallet={creditWallet} onConfirm={confirmCreditEvent} />}</Route>
       <Route path={internalEquityBudgetPath}>{() => <ManagementBudgetRoute />}</Route>
       <Route path="/investments/agents/equity-budget">{() => <ManagementBudgetRoute legacy />}</Route>
       {!finalPortal && <Route path="/investments/agents/estudos">{() => previewWorkspace ? <InvestReportLibrary run={run} archive={archive} studies /> : <Agents />}</Route>}

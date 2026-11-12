@@ -4,7 +4,8 @@ import { BarChart3, Building2, CreditCard, Mail, Plus, ShieldCheck, Wallet } fro
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { ConsultationOffer } from "@shared/invest-consultation-offers";
 import { consultationCurrency as brl, consultationOffers as offers } from "@shared/invest-consultation-offers";
-import { previewCreditBalance, previewCreditRates, type PreviewCreditEvent, type PreviewCreditWallet } from "./invest-preview-credits";
+import { previewCreditBalance, previewCreditRates, type ConfirmPreviewCredit, type PreviewCreditEvent, type PreviewCreditWallet } from "./invest-preview-credits";
+import { usePreviewCreditConfirmation } from "./use-preview-credit-wallet";
 
 const resources = [
   { id: "analysis", label: "Relatórios de análise", basis: "por relatório de uma empresa" },
@@ -12,8 +13,10 @@ const resources = [
   { id: "monitorCompanyMonth", label: "Empresas monitoradas por 30 dias", basis: "por empresa a cada 30 dias" },
 ] as const;
 
-function UsagePreview({ wallet, onConfirm }: { wallet: PreviewCreditWallet; onConfirm: (event: PreviewCreditEvent) => void }) {
+function UsagePreview({ wallet, onConfirm }: { wallet: PreviewCreditWallet; onConfirm: ConfirmPreviewCredit }) {
   const [units, setUnits] = useState({ analysis: 1, voiceMinute: 5, monitorCompanyMonth: 1 });
+  const [orderId, setOrderId] = useState(() => crypto.randomUUID());
+  const { confirm, pending, error } = usePreviewCreditConfirmation(onConfirm);
   const total = resources.reduce((sum, { id }) => sum + units[id] * previewCreditRates[id], 0);
   const remaining = previewCreditBalance(wallet) - total;
 
@@ -25,9 +28,10 @@ function UsagePreview({ wallet, onConfirm }: { wallet: PreviewCreditWallet; onCo
     <div className="grid gap-3 sm:grid-cols-3">
       {resources.map(({ id, label, basis }) => <div key={id} className="rounded-lg border border-border bg-background p-3">
         <label className="block text-sm font-semibold">{label}
-          <input type="number" min={0} max={1000} step={1} value={units[id]} onChange={event => {
+          <input type="number" min={0} max={1000} step={1} value={units[id]} disabled={pending} onChange={event => {
             const value = event.currentTarget.valueAsNumber;
             setUnits(current => ({ ...current, [id]: Number.isSafeInteger(value) && value >= 0 ? Math.min(value, 1000) : 0 }));
+            setOrderId(crypto.randomUUID());
           }} className="mt-2 block min-h-11 w-full rounded-lg border border-input bg-background px-3 tabular-nums" />
         </label>
         <p className="mt-2 text-xs text-muted-foreground">{previewCreditRates[id]} créditos de teste {basis}</p>
@@ -37,26 +41,33 @@ function UsagePreview({ wallet, onConfirm }: { wallet: PreviewCreditWallet; onCo
     <p className="text-xs text-muted-foreground">No acompanhamento, a confirmação indicará as empresas, o período e os canais de alerta, como e-mail ou WhatsApp, conforme disponibilidade.</p>
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-teal-50 p-3 text-sm text-teal-950">
       <p role="status"><strong>{total} créditos de teste</strong> para este uso. {remaining < 0 ? `Faltariam ${-remaining} créditos.` : `Saldo após confirmar: ${remaining} créditos.`}</p>
-      <button type="button" disabled={total === 0 || remaining < 0}
-        onClick={() => onConfirm({ type: "spend", id: crypto.randomUUID(), credits: total, label: "Uso combinado de recursos" })}
+      <button type="button" disabled={total === 0 || remaining < 0 || pending}
+        onClick={async () => {
+          const updated = await confirm({ type: "spend", id: orderId, credits: total, label: "Uso combinado de recursos",
+            usage: { kind: "combined", units } });
+          if (updated) setOrderId(crypto.randomUUID());
+        }}
         className="min-h-11 rounded-lg bg-[#245e46] px-4 text-sm font-semibold text-white hover:bg-[#184a36] disabled:opacity-50">
-        Confirmar uso de teste
+        {pending ? "Registrando créditos…" : "Confirmar uso de teste"}
       </button>
     </div>
+    {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
   </section>;
 }
 
-export default function ConsultationPackPreview({ wallet, onConfirm, customerPilot = false }: {
+export default function ConsultationPackPreview({ wallet, onConfirm, customerPilot = false, persistentCredits = false }: {
   customerPilot?: boolean;
+  persistentCredits?: boolean;
   wallet: PreviewCreditWallet;
-  onConfirm: (event: PreviewCreditEvent) => void;
+  onConfirm: ConfirmPreviewCredit;
 }) {
   const billing = useInvestSandboxBilling(!customerPilot);
   const sandboxEnabled = billing.state.data?.enabled === true;
   const [order, setOrder] = useState<Extract<PreviewCreditEvent, { type: "load" }>>();
+  const topUp = usePreviewCreditConfirmation(onConfirm);
 
   function reviewPayment(offer: ConsultationOffer) {
-    if (billing.processing) return;
+    if (billing.processing || topUp.pending) return;
     billing.resetPayment();
     setOrder({ id: crypto.randomUUID(), type: "load", offer });
   }
@@ -121,18 +132,23 @@ export default function ConsultationPackPreview({ wallet, onConfirm, customerPil
     <UsagePreview wallet={wallet} onConfirm={onConfirm} />
     <InvestSandboxBilling billing={billing} />
     {wallet.entries.length > 0 && <details className="rounded-lg border bg-white p-4 text-sm">
-      <summary className="cursor-pointer font-semibold">Histórico da simulação</summary>
+      <summary className="cursor-pointer font-semibold">{persistentCredits ? "Histórico de créditos de teste" : "Histórico da simulação"}</summary>
       <ul className="mt-3 space-y-2">{wallet.entries.slice().reverse().map(entry =>
         <li key={entry.id} className="border-b pb-2">{entry.type === "load"
           ? `${entry.offer.name} · ${entry.offer.sampleCredits} créditos adicionados`
-          : `${entry.label} · ${entry.credits} créditos usados`}</li>
+          : `${entry.label} · ${entry.credits} créditos usados`}
+          {entry.recordedAt && <time dateTime={entry.recordedAt} className="ml-2 text-xs text-muted-foreground">
+            {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(entry.recordedAt))}
+          </time>}
+        </li>
       )}</ul>
     </details>}
     <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
       <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-      O saldo de teste reinicia ao recarregar. Valores, franquias e consumo comerciais estão em validação.
+      {persistentCredits ? "O saldo e as últimas 50 operações de teste ficam disponíveis na sua conta. Valores e franquias são fictícios."
+        : "O saldo de teste reinicia ao recarregar. Valores, franquias e consumo comerciais estão em validação."}
     </p>
-    <Dialog open={!!order} onOpenChange={open => { if (!open) setOrder(undefined); }}>
+    <Dialog open={!!order} onOpenChange={open => { if (!open && !topUp.pending) setOrder(undefined); }}>
       <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-xl">
         <DialogTitle className="flex items-center gap-2"><CreditCard aria-hidden="true" className="h-5 w-5 text-teal-800" /> Revisar pagamento de teste</DialogTitle>
         <DialogDescription>{sandboxEnabled ? "Você pode testar a fatura do Asaas com um cartão de teste ou conferir o fluxo na simulação local." : "Exemplo de checkout com cartão. A cobrança é fictícia."}</DialogDescription>
@@ -143,18 +159,20 @@ export default function ConsultationPackPreview({ wallet, onConfirm, customerPil
             <div className="flex flex-wrap justify-between gap-2"><dt>Preço em estudo</dt><dd className="font-semibold">{brl(order.offer.price)} · {order.offer.period}</dd></div>
           </dl>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => {
-              onConfirm(order);
-              setOrder(undefined);
-            }} className="min-h-11 rounded-lg bg-[#245e46] px-4 text-sm font-semibold text-white">Simular pagamento com cartão</button>
+            <button type="button" disabled={topUp.pending} onClick={async () => {
+              if (await topUp.confirm(order)) setOrder(undefined);
+            }} className="min-h-11 rounded-lg bg-[#245e46] px-4 text-sm font-semibold text-white disabled:opacity-50">
+              {topUp.pending ? "Registrando créditos…" : "Simular pagamento com cartão"}
+            </button>
             {sandboxEnabled && <button type="button" disabled={billing.processing}
               onClick={() => void billing.startOrder({ id: order.id, offer: order.offer.id })}
               className="min-h-11 rounded-lg border border-teal-700 px-4 text-sm font-semibold disabled:opacity-50">
               {billing.processing ? "Consultando…" : "Gerar fatura de teste do Asaas"}
             </button>}
-            <button type="button" onClick={() => setOrder(undefined)} className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold">Voltar</button>
+            <button type="button" disabled={topUp.pending} onClick={() => setOrder(undefined)} className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold">Voltar</button>
           </div>
           {sandboxEnabled && billing.feedback && <p role="status" className="text-sm">{billing.feedback}</p>}
+          {topUp.error && <p role="alert" className="text-sm text-red-700">{topUp.error}</p>}
           {sandboxEnabled && <SandboxInvoiceLink href={billing.invoice} />}
         </>}
       </DialogContent>

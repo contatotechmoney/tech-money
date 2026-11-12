@@ -14,7 +14,7 @@ import type { ReportAgent, ReportExample } from "./invest-report-example";
 import { reportVotingFor, type investorProfiles } from "./invest-report-votes";
 import type { PreviewCompany } from "./invest-research-preview";
 
-import type { PreviewCreditEvent } from "./invest-preview-credits";
+import type { ConfirmPreviewCredit } from "./invest-preview-credits";
 
 const PriceHistory = lazy(() => import("./InvestReportPriceHistory"));
 const sections = [
@@ -103,7 +103,7 @@ function ReportOverview({ company, example, openConversation }: {
 export default function InvestReportContent({ company, example, theme, demoProfile, balance, onConfirm }: {
   company: PreviewCompany; example: ReportExample; theme: "light" | "dark";
   demoProfile?: (typeof investorProfiles)[number];
-  balance: number; onConfirm: (event: PreviewCreditEvent) => void;
+  balance: number; onConfirm: ConfirmPreviewCredit;
 }) {
   const [anchor, setAnchor] = useState(currentAnchor);
   const [conversation, setConversation] = useState(() => currentAnchor() === conversationAnchor);

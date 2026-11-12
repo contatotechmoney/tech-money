@@ -2,24 +2,28 @@ import { useState } from "react";
 import { ArrowLeft, Check, FileText } from "lucide-react";
 import { Link } from "wouter";
 import { b3EquityPath, type ListedEquity } from "./b3-equity-selection";
-import { previewCreditRates, type PreviewCreditEvent } from "./invest-preview-credits";
+import { previewCreditBalance, previewCreditRates, type ConfirmPreviewCredit } from "./invest-preview-credits";
+import { usePreviewCreditConfirmation } from "./use-preview-credit-wallet";
 
 export default function InvestConsultationConfirmation({ company, balance, onConfirm, onStartDemo }: {
   company: ListedEquity;
   balance: number;
-  onConfirm: (event: PreviewCreditEvent) => void;
+  onConfirm: ConfirmPreviewCredit;
   onStartDemo?: () => void;
 }) {
   const [id] = useState(() => crypto.randomUUID());
   const [confirmedBalance, setConfirmedBalance] = useState<number>();
+  const { confirm, pending, error } = usePreviewCreditConfirmation(onConfirm);
   const cost = previewCreditRates.analysis;
   const projectedBalance = confirmedBalance ?? balance - cost;
   const back = onStartDemo ? "/investments/inicio" : b3EquityPath;
 
-  function confirm() {
+  async function confirmAnalysis() {
     if (balance < cost || confirmedBalance !== undefined) return;
-    onConfirm({ id, type: "spend", credits: cost, label: `Análise de ${company.ticker}` });
-    setConfirmedBalance(balance - cost);
+    const wallet = await confirm({ id, type: "spend", credits: cost, label: `Análise de ${company.ticker}`,
+      usage: { kind: "analysis", ticker: company.ticker } });
+    if (!wallet) return;
+    setConfirmedBalance(previewCreditBalance(wallet));
     onStartDemo?.();
   }
 
@@ -51,9 +55,10 @@ export default function InvestConsultationConfirmation({ company, balance, onCon
         {confirmedBalance !== undefined ? <p role="status" className="flex items-start gap-2 rounded-lg bg-emerald-50 p-3 text-sm font-medium text-emerald-950">
           <Check aria-hidden="true" className="h-4 w-4 shrink-0" /> Confirmação simulada. Saldo de teste: {confirmedBalance} créditos.
         </p> : projectedBalance < 0 ? <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">Faltam {-projectedBalance} créditos no saldo de teste.</p>
-          : <button type="button" onClick={confirm} className="min-h-11 rounded-lg bg-[#245e46] px-4 text-sm font-semibold text-white hover:bg-[#184a36]">
-            {onStartDemo ? "Confirmar créditos e simular pesquisa" : "Simular confirmação"}
+          : <button type="button" disabled={pending} onClick={() => void confirmAnalysis()} className="min-h-11 rounded-lg bg-[#245e46] px-4 text-sm font-semibold text-white hover:bg-[#184a36] disabled:opacity-50">
+            {pending ? "Registrando créditos…" : onStartDemo ? "Confirmar créditos e simular pesquisa" : "Simular confirmação"}
           </button>}
+        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <Link href="/investments/credits" className="inline-flex min-h-11 items-center text-sm font-semibold text-teal-900 underline">Ver planos e recarregar créditos</Link>
       </div>
     </div>

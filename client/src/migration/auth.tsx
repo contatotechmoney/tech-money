@@ -3,12 +3,13 @@ import { queryClient } from "@/lib/queryClient";
 import { localInvestPreview } from "./invest-preview-session";
 
 type Session = { id: string; email: string; canViewInternalCosts: boolean };
-type AuthState = { loaded: boolean; session: Session | null; customerPilot: boolean };
-const Context = createContext<AuthState>({ loaded: false, session: null, customerPilot: false });
+type AuthState = { loaded: boolean; session: Session | null; customerPilot: boolean; persistentCredits: boolean };
+const initialAuth: AuthState = { loaded: false, session: null, customerPilot: false, persistentCredits: false };
+const Context = createContext<AuthState>(initialAuth);
 
 export function MigrationAuthProvider({ children }: { children: ReactNode }) {
   const lastIdentity = useRef<string | null>(null);
-  const [state, setState] = useState<AuthState>({ loaded: false, session: null, customerPilot: false });
+  const [state, setState] = useState(initialAuth);
 
   useEffect(() => {
     let active = true;
@@ -32,7 +33,7 @@ export function MigrationAuthProvider({ children }: { children: ReactNode }) {
           queryClient.clear();
           lastIdentity.current = identity;
         }
-        setState({ loaded: true, session, customerPilot });
+        setState({ loaded: true, session, customerPilot, persistentCredits: customerPilot && result?.persistentCredits === true });
       } catch {
         if (!active || checkId !== sequence) return;
         queryClient.clear();
@@ -55,9 +56,9 @@ export function MigrationAuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
-  const { loaded, session, customerPilot } = useContext(Context);
+  const { loaded, session, customerPilot, persistentCredits } = useContext(Context);
   return { isLoaded: loaded, isSignedIn: !!session, userId: session?.id ?? null, sessionId: null,
-    canViewInternalCosts: session?.canViewInternalCosts === true, customerPilot };
+    canViewInternalCosts: session?.canViewInternalCosts === true, customerPilot, persistentCredits };
 }
 
 export function useUser() {
@@ -73,10 +74,8 @@ export function useClerk() {
       const path = customerPilot ? "/api/migration/customer-pilot/logout" : "/api/migration/auth/logout";
       const response = await fetch(path, { method: "POST", credentials: "same-origin" });
       if (!response.ok) throw Error("Não foi possível encerrar sua sessão.");
-      const pilotResult = customerPilot ? await response.json() : null;
       queryClient.clear();
-      const pilotSignOut = pilotResult?.signOutPath === "/cdn-cgi/access/logout" ? pilotResult.signOutPath : "/piloto/entrar";
-      window.location.replace(customerPilot ? pilotSignOut : "/migration/login");
+      window.location.replace(customerPilot ? "/piloto/entrar" : "/migration/login");
     },
   };
 }

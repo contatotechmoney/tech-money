@@ -9,7 +9,7 @@ import { readReportTheme, reportThemeKey, writePreference } from "./invest-previ
 import { reportExampleFor, type ReportExample } from "./invest-report-example";
 import { previewResearchPhases, previewSpecialists, type PreviewRun } from "./invest-research-preview";
 
-import type { PreviewCreditEvent } from "./invest-preview-credits";
+import type { ConfirmPreviewCredit } from "./invest-preview-credits";
 
 import type { investorProfiles } from "./invest-report-votes";
 
@@ -68,7 +68,7 @@ function ResearchProgress({ run, example }: { run: PreviewRun; example: ReportEx
 export default function InvestReportPreview({ run, onReset, archived = false, previewWorkspace, customerPilot, demoProfile, balance, onConfirm }: {
   run?: PreviewRun; onReset: () => void; archived?: boolean;
   previewWorkspace: boolean; customerPilot: boolean; demoProfile?: (typeof investorProfiles)[number];
-  balance: number; onConfirm: (event: PreviewCreditEvent) => void;
+  balance: number; onConfirm: ConfirmPreviewCredit;
 }) {
   const [theme, setTheme] = useState<ReportTheme>(readReportTheme);
   const [opened, setOpened] = useState(archived);

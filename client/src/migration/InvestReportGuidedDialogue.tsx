@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AudioLines, Pause, Play, UserRound } from "lucide-react";
 import { Link } from "wouter";
-import { previewCreditRates, type PreviewCreditEvent } from "./invest-preview-credits";
+import { previewCreditRates, type ConfirmPreviewCredit } from "./invest-preview-credits";
+import { usePreviewCreditConfirmation } from "./use-preview-credit-wallet";
 import { CVS } from "@shared/personas";
 import { CommitteePortrait } from "./InvestReportCommittee";
 import { SourceLinks } from "./InvestReportConversation";
@@ -124,12 +125,13 @@ export default function InvestReportGuidedDialogue({ ticker, sources, balance, o
   ticker: DialogueTicker;
   sources: ReportSources;
   balance: number;
-  onConfirm: (event: PreviewCreditEvent) => void;
+  onConfirm: ConfirmPreviewCredit;
 }) {
   const [selection, setSelection] = useState(0);
   const [minutes, setMinutes] = useState(5);
   const [confirmed, setConfirmed] = useState(false);
   const [creditOrderId, setCreditOrderId] = useState(() => crypto.randomUUID());
+  const { confirm, pending, error } = usePreviewCreditConfirmation(onConfirm);
   const cost = minutes * previewCreditRates.voiceMinute;
   const remaining = balance - cost;
   const scenes = reportGuidedDialogues[ticker];
@@ -155,16 +157,23 @@ export default function InvestReportGuidedDialogue({ ticker, sources, balance, o
       </div> : <>
         <label className="flex flex-wrap items-center gap-2 text-sm font-semibold">
           Limite da conversa em minutos
-          <select value={minutes} onChange={event => setMinutes(Number(event.target.value))}
+          <select value={minutes} disabled={pending} onChange={event => {
+            setMinutes(Number(event.target.value));
+            setCreditOrderId(crypto.randomUUID());
+          }}
             className="min-h-11 rounded-md border border-input bg-background px-2">
             {[5, 10, 15, 30].map(value => <option key={value} value={value}>{value} min</option>)}
           </select>
         </label>
         <p className="my-2 text-sm" role="status">{cost} créditos de teste · {remaining < 0 ? `Faltam ${-remaining} créditos.` : `Saldo após confirmar: ${remaining} créditos.`}</p>
-        <button type="button" disabled={remaining < 0} onClick={() => {
-          onConfirm({ id: creditOrderId, type: "spend", credits: cost, label: `Conversa de ${minutes} min · ${ticker}` });
-          setConfirmed(true);
-        }} className="min-h-11 rounded-lg bg-[#245e46] px-3 text-sm font-semibold text-white disabled:opacity-50">Confirmar consumo de teste</button>
+        <button type="button" disabled={remaining < 0 || pending} onClick={async () => {
+          const wallet = await confirm({ id: creditOrderId, type: "spend", credits: cost,
+            label: `Conversa de ${minutes} min · ${ticker}`, usage: { kind: "voice", minutes, ticker } });
+          if (wallet) setConfirmed(true);
+        }} className="min-h-11 rounded-lg bg-[#245e46] px-3 text-sm font-semibold text-white disabled:opacity-50">
+          {pending ? "Registrando créditos…" : "Confirmar consumo de teste"}
+        </button>
+        {error && <p role="alert" className="my-2 text-sm text-red-700">{error}</p>}
         {remaining < 0 && <Link href="/investments/credits" className="ml-2 text-sm underline">Adicionar créditos de teste</Link>}
       </>}
     </details>

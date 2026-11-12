@@ -46,6 +46,7 @@ test("only the invited signed identity can open the demonstration, and operation
   assert.equal((await run("/", valid)).headers.get("Location"), "/investments/inicio");
   const session = await (await run("/api/migration/session", valid)).json();
   assert.equal(session.authenticated, true);
+  assert.equal(session.persistentCredits, true);
   assert.equal(session.accessMode, "customer-pilot");
   assert.equal(session.canViewInternalCosts, false);
   const page = await run("/investments/inicio", valid);
@@ -63,5 +64,12 @@ test("only the invited signed identity can open the demonstration, and operation
   const logout = "/api/migration/customer-pilot/logout";
   assert.equal((await run(logout, valid, { method: "POST" })).status, 403);
   const signedOut = await run(logout, valid, { method: "POST", headers: { Origin: origin } });
-  assert.equal((await signedOut.json()).signOutPath, "/cdn-cgi/access/logout");
+  assert.equal((await signedOut.json()).signedOut, true);
+  const cookie = signedOut.headers.get("Set-Cookie").split(";")[0];
+  assert.equal((await (await run("/api/migration/session", valid, { headers: { Cookie: cookie } })).json()).authenticated, false);
+  assert.equal((await run("/api/migration/customer-pilot/credits", valid, { headers: { Cookie: cookie } })).status, 401);
+  assert.equal((await run("/investments/inicio", valid, { headers: { Cookie: cookie } })).headers.get("Location"), "/piloto/entrar");
+  const signIn = await run("/piloto/entrar", valid, { method: "POST", headers: { Cookie: cookie, Origin: origin } });
+  assert.equal(signIn.headers.get("Location"), "/investments/inicio");
+  assert.match(signIn.headers.get("Set-Cookie"), /Max-Age=0/);
 });

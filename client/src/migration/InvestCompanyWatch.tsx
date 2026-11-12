@@ -2,7 +2,8 @@ import { useState } from "react";
 import { ArrowLeft, Bell, Mail } from "lucide-react";
 import { Link } from "wouter";
 
-import { previewCreditRates, type PreviewCreditEvent } from "./invest-preview-credits";
+import { previewCreditRates, type ConfirmPreviewCredit } from "./invest-preview-credits";
+import { usePreviewCreditConfirmation } from "./use-preview-credit-wallet";
 const alertExamples = [
   {
     id: "ri",
@@ -70,10 +71,11 @@ export default function InvestCompanyWatch({ following, setFollowing, balance, o
   following: boolean;
   setFollowing: (value: boolean) => void;
   balance: number;
-  onConfirm: (event: PreviewCreditEvent) => void;
+  onConfirm: ConfirmPreviewCredit;
 }) {
   const [reviewing, setReviewing] = useState(false);
   const [orderId, setOrderId] = useState("");
+  const { confirm, pending, error } = usePreviewCreditConfirmation(onConfirm);
   const cost = previewCreditRates.monitorCompanyMonth;
   const remaining = balance - cost;
   const [selected, setSelected] = useState<AlertExample["id"]>("ri");
@@ -90,9 +92,11 @@ export default function InvestCompanyWatch({ following, setFollowing, balance, o
     setReviewing(true);
   }
 
-  function confirmFollowing() {
+  async function confirmFollowing() {
     if (remaining < 0 || !reviewing) return;
-    onConfirm({ id: orderId, type: "spend", credits: cost, label: "Acompanhamento de BBSE3 por 30 dias" });
+    const wallet = await confirm({ id: orderId, type: "spend", credits: cost,
+      label: "Acompanhamento de BBSE3 por 30 dias", usage: { kind: "monitor" } });
+    if (!wallet) return;
     setFollowing(true);
     setReviewing(false);
   }
@@ -125,13 +129,14 @@ export default function InvestCompanyWatch({ following, setFollowing, balance, o
       <p className="text-sm">Período de teste de 30 dias · {cost} créditos · Alerta no Invest e prévia opcional de e-mail.</p>
       <p className="text-sm" role="status">{remaining < 0 ? `Faltam ${-remaining} créditos de teste.` : `Saldo de teste após confirmar: ${remaining} créditos.`}</p>
       <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={remaining < 0} onClick={confirmFollowing}
+        <button type="button" disabled={remaining < 0 || pending} onClick={() => void confirmFollowing()}
           className="min-h-11 rounded-lg bg-[#245e46] px-4 text-sm font-semibold text-white disabled:opacity-50">
-          Confirmar acompanhamento de teste
+          {pending ? "Registrando créditos…" : "Confirmar acompanhamento de teste"}
         </button>
-        <button type="button" onClick={() => setReviewing(false)} className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold">Voltar</button>
+        <button type="button" disabled={pending} onClick={() => setReviewing(false)} className="min-h-11 rounded-lg border border-border px-4 text-sm font-semibold">Voltar</button>
         {remaining < 0 && <Link href="/investments/credits" className="inline-flex min-h-11 items-center text-sm underline">Adicionar créditos de teste</Link>}
       </div>
+      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     </section>}
 
     <section aria-labelledby="simulate-watch-title" className="rounded-xl border border-border bg-card p-4 sm:p-5">

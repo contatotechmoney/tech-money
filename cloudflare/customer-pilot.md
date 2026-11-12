@@ -1,13 +1,13 @@
 # Piloto do Invest por convite
 
-O piloto serve uma demonstração autenticada em um Worker separado. O convidado entra com código por e-mail e experimenta a pesquisa, os relatórios, o comitê, a carteira fictícia e o saldo demonstrativo. Os dados de teste da sessão são descartados ao sair ou recarregar. O Worker do piloto responde com acesso negado para APIs da conta do proprietário, dados de carteira, custos internos, pagamentos e execução real.
+O piloto serve uma demonstração autenticada em um Worker separado. O convidado entra com código por e-mail e experimenta a pesquisa, os relatórios, o comitê, a carteira fictícia e o saldo demonstrativo. O saldo e o histórico de créditos persistem por conta no banco D1 do piloto. As pesquisas, a carteira e os outros exemplos são temporários. O Worker do piloto responde com acesso negado para APIs da conta do proprietário, dados de carteira, custos internos, pagamentos e execução real.
 
 ## Publicar o piloto com Cloudflare Access
 
-1. Execute `npm run build:cloudflare-client` e publique com `wrangler deploy --config wrangler.customer-pilot.json`. Esse Worker só vincula os arquivos estáticos da demonstração. O endereço definitivo do Invest usa outro Worker.
+1. Aplique as migrações de `techmoney-invest-pilot-credits` pelo arquivo `wrangler.customer-pilot.json`. Execute `npm run build:cloudflare-client` e publique com `wrangler deploy --config wrangler.customer-pilot.json`. Esse Worker vincula os arquivos da demonstração e o banco exclusivo de créditos de teste. O endereço definitivo do Invest usa outro Worker.
 2. Em **Workers & Pages → techmoney-invest-customer-pilot → Access**, proteja todo o tráfego desse Worker. Crie uma política dedicada que permita somente o e-mail do convidado e ofereça código de uso único por e-mail.
 3. Nas variáveis do Worker, configure `INVEST_CUSTOMER_PILOT_ACCESS_ISSUER` com a origem HTTPS da equipe do Access e `INVEST_CUSTOMER_PILOT_ACCESS_AUDIENCE` com o valor de audiência da aplicação. Configure `INVEST_CUSTOMER_PILOT_ACCESS_EMAIL` como segredo. O Worker valida assinatura, emissor, audiência e e-mail em cada solicitação. Sem esses parâmetros, responde com erro de configuração.
-4. Em uma janela sem sessão, confirme o redirecionamento ao login e a recusa de identidade fora da política. Com o convidado autenticado, confira a jornada fictícia e o encerramento da sessão. As rotas de pagamento, análise real e dados do proprietário devem responder com acesso negado mesmo após o login.
+4. Em uma janela sem sessão, confirme o redirecionamento ao login e a recusa de identidade fora da política. Com o convidado autenticado, confirme um consumo de teste, saia do piloto, entre novamente e consulte **Créditos & Planos**. A saída é restrita ao piloto. A Cloudflare pode dispensar um novo código enquanto sua autenticação continuar válida. As rotas de pagamento, análise real e dados do proprietário devem responder com acesso negado mesmo após o login.
 
 ## Alternativa com autenticação Supabase isolada
 

@@ -1,14 +1,10 @@
 import type { ConsultationOffer } from "@shared/invest-consultation-offers";
+import { initialPreviewPrepaidCredits, type PreviewCreditUsage } from "@shared/invest-preview-credit-policy";
+export { previewCreditRates } from "@shared/invest-preview-credit-policy";
 
-export const previewCreditRates = {
-  analysis: 20,
-  voiceMinute: 2,
-  monitorCompanyMonth: 30,
-} as const;
-
-export type PreviewCreditEvent = { id: string } & (
+export type PreviewCreditEvent = { id: string; recordedAt?: string } & (
   | { type: "load"; offer: ConsultationOffer }
-  | { type: "spend"; credits: number; label: string }
+  | { type: "spend"; credits: number; label: string; usage: PreviewCreditUsage }
 );
 
 export type PreviewCreditWallet = {
@@ -19,11 +15,13 @@ export type PreviewCreditWallet = {
 };
 
 export const initialPreviewCreditWallet: PreviewCreditWallet = {
-  prepaid: 100,
+  prepaid: initialPreviewPrepaidCredits,
   monthly: 0,
   entries: [],
   notice: "",
 };
+
+export type ConfirmPreviewCredit = (event: PreviewCreditEvent) => Promise<PreviewCreditWallet>;
 
 export function previewCreditBalance(wallet: PreviewCreditWallet) {
   return wallet.prepaid + wallet.monthly;

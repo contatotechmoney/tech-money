@@ -171,10 +171,12 @@ test("preview shares balance across resources and uses monthly credits before pr
   assert.equal(previewCreditBalance(wallet), 500);
   wallet = reducePreviewCreditWallet(wallet, load);
   assert.equal(previewCreditBalance(wallet), 500);
-  wallet = reducePreviewCreditWallet(wallet, { id: "spend", type: "spend", credits: 450, label: "Combined use" });
+  wallet = reducePreviewCreditWallet(wallet, { id: "spend", type: "spend", credits: 450, label: "Combined use",
+    usage: { kind: "combined", units: { analysis: 21, voiceMinute: 0, monitorCompanyMonth: 1 } } });
   assert.equal(wallet.monthly, 0);
   assert.equal(wallet.prepaid, 50);
-  wallet = reducePreviewCreditWallet(wallet, { id: "denied", type: "spend", credits: 51, label: "Denied" });
+  wallet = reducePreviewCreditWallet(wallet, { id: "denied", type: "spend", credits: 60, label: "Denied",
+    usage: { kind: "combined", units: { analysis: 3, voiceMinute: 0, monitorCompanyMonth: 0 } } });
   assert.equal(wallet.prepaid, 50);
   wallet = reducePreviewCreditWallet(wallet, { id: "topup", type: "load", offer: consultationOffers[0] });
   assert.equal(wallet.prepaid, 150);

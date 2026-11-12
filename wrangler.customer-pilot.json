@@ -11,6 +11,14 @@
     "not_found_handling": "single-page-application",
     "html_handling": "none"
   },
+  "d1_databases": [
+    {
+      "binding": "INVEST_PILOT_CREDITS",
+      "database_name": "techmoney-invest-pilot-credits",
+      "database_id": "3b00458c-f64c-44cc-801a-36f2579c82bc",
+      "migrations_dir": "cloudflare/pilot-credit-migrations"
+    }
+  ],
   "vars": {
     "INVEST_CUSTOMER_PILOT_ORIGIN": "https://techmoney-invest-customer-pilot.techmoney.workers.dev"
   }
