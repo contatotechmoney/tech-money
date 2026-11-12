@@ -1,6 +1,7 @@
 import {statementImport,StatementError} from './statement-import';
 import {b3ConnectionStatus} from './b3-connection';
 import {budgetCatalogue} from './portfolio-budget';
+import {equityBudgetPreview} from './equity-budget';
 import {writeRecord,RecordError,transactionRow} from './record-write';
 import {calculatePortfolioSnapshot} from '../shared/portfolio-ledger';
 import {createDemo,DemoError} from './simulation-write';
@@ -19,6 +20,11 @@ export async function migrationPortal(request:Request,env:any,services:any={veri
  const identity=await services.verify(request,env);if(!identity)return json({error:'VERIFIED_OWNER_SIGN_IN_REQUIRED'},401);
  const binding=await services.binding(identity,env);if(!binding.bound||!binding.originalOwnerPreserved)return json({error:'OWNER_LINK_REQUIRED'},403);
  const path=new URL(request.url).pathname;
+ if(path==='/api/investments/equity-budget'){
+  if(request.method!=='GET')return json({error:'REAL_ANALYSIS_DISABLED'},423);
+  const quote=await equityBudgetPreview(new URL(request.url));
+  return quote?json(quote):json({error:'INVALID_EQUITY_BUDGET'},400);
+ }
  if(path==='/api/investments/portfolio-budget/models')return request.method==='GET'?json(await budgetCatalogue()):json({error:'BUDGET_EXECUTION_DISABLED'},423);
  if(path==='/api/investments/b3/connection')return request.method==='GET'?json(b3ConnectionStatus()):json({error:'B3_CONNECTION_NOT_ENABLED'},423);
  if(/^\/api\/investments\/statement-imports(?:\/[0-9a-f-]{36})?$/.test(path)){try{return json(await statementImport(request,env,env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,identity.subject,services))}catch(e){return e instanceof StatementError?json({error:e.code},e.status):json({error:'STATEMENT_UNAVAILABLE'},503)}}

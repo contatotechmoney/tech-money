@@ -6,6 +6,7 @@ import {
   BrainCircuit,
   ChartNoAxesCombined,
   CreditCard,
+  House,
   LogOut,
   Menu,
   Settings,
@@ -14,7 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSelector } from "@/components/language-selector";
 import { useClerk, useUser } from "@clerk/react";
@@ -23,7 +24,7 @@ import { apiRequest } from "@/lib/queryClient";
 import type { PendingReviews } from "@shared/review-pending";
 import { TechMoneyBrand } from "@/components/tech-money-brand";
 
-export default function InvestmentLayout({ children }: { children: React.ReactNode }) {
+export default function InvestmentLayout({ children, showOverview = false }: { children: React.ReactNode; showOverview?: boolean }) {
   const [location] = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { t } = useLanguage();
@@ -61,7 +62,8 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
     .toUpperCase();
 
   const navItems = [
-    { label: t("aiAgents"), icon: BrainCircuit, href: "/investments/agents" },
+    ...(showOverview ? [{ label: "Início", icon: House, href: "/investments/inicio" }] : []),
+    { label: showOverview ? "Análises e comitês" : t("aiAgents"), icon: BrainCircuit, href: "/investments/agents" },
     { label: t("portfolio"), icon: BriefcaseBusiness, href: "/investments/portfolio" },
     { label: t("investmentReports"), icon: ChartNoAxesCombined, href: "/investments/reports" },
     { label: "Perfil do investidor", icon: ShieldCheck, href: "/investments/suitability" },
@@ -80,14 +82,14 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
   const SidebarContent = () => (
     <div className="flex h-full flex-col border-r border-[#143d31] bg-[#1b4d3e] text-white">
       <div className="p-6">
-        <Link href="/areas" className="block">
-          <TechMoneyBrand areaLabel="INVESTIMENTOS" className="tm-brand-on-dark" />
+        <Link href={showOverview ? "/investments/inicio" : "/areas"} className="block">
+          <TechMoneyBrand areaLabel={showOverview ? "INVEST" : "INVESTIMENTOS"} className="tm-brand-on-dark" />
         </Link>
       </div>
 
       <div className="flex-1 space-y-1 px-3 py-4">
         {navItems.map((item) => (
-          <Link key={item.href} href={item.href} onClick={() => setIsMobileOpen(false)}>
+          <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={() => setIsMobileOpen(false)}>
             <div
               className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive(item.href)
@@ -143,18 +145,20 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
 
       <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
         <SheetContent side="left" className="w-64 p-0">
+          <SheetTitle className="sr-only">Menu do Invest</SheetTitle>
+          <SheetDescription className="sr-only">Navegação do portal de investimentos.</SheetDescription>
           <SidebarContent />
         </SheetContent>
       </Sheet>
 
       <main className="flex min-w-0 min-h-screen flex-1 flex-col md:ml-64">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur md:px-6">
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileOpen(true)} aria-label="Open menu">
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileOpen(true)} aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="md:hidden"><TechMoneyBrand areaLabel="INVESTIMENTOS" className="tm-brand-mobile" /></div>
-            <span className="hidden md:inline text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">INVESTIMENTOS</span>
+            <div className="md:hidden"><TechMoneyBrand areaLabel={showOverview ? "INVEST" : "INVESTIMENTOS"} className="tm-brand-mobile" /></div>
+            <span className="hidden md:inline text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{showOverview ? "INVEST" : "INVESTIMENTOS"}</span>
           </div>
           <LanguageSelector />
         </header>

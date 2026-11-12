@@ -23,3 +23,30 @@ test('budget catalogue sends only a public GET and never sends positions or enab
  assert.equal((await migrationPortal(request('/api/investments/portfolio-budget/models'),env,{...noDb,verify:async()=>null})).status,401);assert.equal(calls,1);
  }finally{globalThis.fetch=original;}
 });
+test('equity quote is owner-only, read-only and demonstrates ten separately metered fictional calls',async()=>{
+ const original=globalThis.fetch;let calls=0;
+ globalThis.fetch=async(url,options)=>{
+  calls++;assert.equal(String(url),'https://inference-api.nousresearch.com/v1/models');
+  assert.equal(options?.method,'GET');assert.equal(options?.body,undefined);
+  assert.equal(new Headers(options?.headers).has('Authorization'),false);
+  return Response.json({data:[{id:'deepseek/deepseek-v4.1-flash',name:'Fixture',canonical_slug:'fixture',supported_parameters:['max_tokens'],pricing:{prompt:'0.0000001060',completion:'0.0000005130'}}]});
+ };
+ try{
+  const noDb=services(()=>{throw Error('must not query or write')});
+  const path='/api/investments/equity-budget?ticker=BBAS3&model=deepseek%2Fdeepseek-v4.1-flash';
+  const denial=await migrationPortal(request(path),env,{...noDb,verify:async()=>null});
+  assert.equal(denial.status,401);
+  assert.equal((await migrationPortal(request(path,'POST'),env,noDb)).status,423);
+  assert.equal((await migrationPortal(request('/api/investments/equity-budget?ticker=BBAS3&model=unlisted'),env,noDb)).status,400);
+  assert.equal(calls,0);
+  const response=await migrationPortal(request(path),env,noDb);
+  assert.equal(response.status,200);
+  const d=await response.json();
+  assert.equal(d.agents.length,10);assert.equal(d.example.length,10);
+  assert.equal(d.example.at(-1).agentId,'rafael');
+  assert.equal(d.actualTokens,0);assert.equal(d.creditsDebited,0);
+  assert.equal(d.executable,false);assert.equal(d.approvalAvailable,false);
+  assert.equal(d.tariff.accountPricingVerified,false);
+  assert.equal(calls,1);
+ }finally{globalThis.fetch=original;}
+});
