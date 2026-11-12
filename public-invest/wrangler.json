@@ -20,6 +20,14 @@
       "id": "090bdfc5d2a8489eb1ccb8ea766e8566"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "INVEST_ENTERPRISE_REQUESTS",
+      "database_name": "techmoney-invest-enterprise-requests",
+      "database_id": "e8f0d885-9e64-4528-8d48-72b27b10b465",
+      "migrations_dir": "enterprise-migrations"
+    }
+  ],
   "vars": {
     "INTEREST_ORIGIN": "https://techmoney-invest-interest.techmoney.workers.dev",
     "INTEREST_TEST_MODE": "false"

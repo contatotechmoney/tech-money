@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proposta empresarial | Tech Money Invest</title>
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/empresarial.js"></script>
+</head>
+<body>
+  <main class="contact-section enterprise-page">
+    <div class="wrap contact-grid">
+      <div>
+        <p class="eyebrow">TECH MONEY INVEST</p>
+        <h1>Invest para sua empresa</h1>
+        <p>Conte como sua equipe pretende usar o Invest. Com isso, podemos preparar uma proposta para vocês.</p>
+        <a class="email-link" data-return href="/">Voltar à apresentação</a>
+      </div>
+      <form id="enterprise-form">
+        <h2>Solicitar proposta empresarial</h2>
+        <label>Seu nome<input name="name" autocomplete="name" minlength="2" maxlength="120" required></label>
+        <label>Nome da empresa<input name="companyName" autocomplete="organization" minlength="2" maxlength="150" required></label>
+        <label>E-mail para contato<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+        <label>Quantas pessoas devem usar o Invest?
+          <select name="teamSize" required>
+            <option value="">Selecione uma opção</option>
+            <option value="1-5">De 1 a 5</option>
+            <option value="6-20">De 6 a 20</option>
+            <option value="21-50">De 21 a 50</option>
+            <option value="51+">Mais de 50</option>
+            <option value="unknown">Ainda não sei</option>
+          </select>
+        </label>
+        <label>Como sua empresa pretende usar o Invest? <small>Opcional</small>
+          <textarea name="enterpriseGoal" rows="3" maxlength="500"></textarea>
+        </label>
+        <label class="hp" aria-hidden="true">Site<input name="website" tabindex="-1" autocomplete="off"></label>
+        <p class="form-foot">Ao enviar, você autoriza a Tech Money a entrar em contato por e-mail sobre esta proposta.</p>
+        <button class="cta" type="submit">Enviar pedido</button>
+        <p id="enterprise-feedback" role="alert"></p>
+      </form>
+      <section id="enterprise-success" hidden aria-labelledby="enterprise-success-title">
+        <h2 id="enterprise-success-title" tabindex="-1">Recebemos seu pedido de proposta</h2>
+        <p>A equipe da Tech Money vai entrar em contato pelo e-mail informado para entender o que sua empresa precisa e conversar sobre a proposta.</p>
+        <a class="cta" data-return href="/">Voltar à apresentação</a>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

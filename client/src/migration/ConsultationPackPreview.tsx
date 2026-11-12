@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { InvestSandboxBilling, SandboxInvoiceLink, useInvestSandboxBilling } from "./InvestSandboxBilling";
-import { BarChart3, Building2, CreditCard, Mail, Plus, ShieldCheck, Wallet } from "lucide-react";
+import { ArrowUpRight, BarChart3, Building2, CreditCard, Plus, ShieldCheck, Wallet } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { ConsultationOffer } from "@shared/invest-consultation-offers";
 import { consultationCurrency as brl, consultationOffers as offers } from "@shared/invest-consultation-offers";
@@ -115,17 +115,16 @@ export default function ConsultationPackPreview({ wallet, onConfirm, customerPil
       <article className="flex flex-col overflow-hidden rounded-xl border border-teal-200 bg-white shadow-sm">
         <div className="bg-[#163c30] p-4 text-white">
           <Building2 aria-hidden="true" className="mb-2 h-5 w-5" />
-          <h2 className="text-lg font-bold">Enterprise</h2>
+          <h2 className="text-lg font-bold">Empresarial</h2>
           <p className="mt-1 text-sm text-[#d8eee3]">Para empresas e equipes</p>
-          <p className="mt-3 text-2xl font-bold">Sob consulta</p>
+          <p className="mt-3 text-2xl font-bold">Preço sob consulta</p>
         </div>
         <div className="flex flex-1 flex-col gap-3 p-4">
-          <p className="text-sm text-slate-700">Converse sobre o tamanho da equipe, a franquia de créditos e os recursos mais usados pela sua empresa.</p>
-          <a href="mailto:contato@techmoney.com.br?subject=Plano%20Enterprise"
+          <p className="text-sm text-slate-700">Conte como sua equipe pretende usar o Invest e receba uma proposta para sua empresa.</p>
+          <a href={`https://techmoney-invest-interest.techmoney.workers.dev/empresarial${customerPilot ? "?origem=piloto" : ""}`}
             className="mt-auto inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-teal-700 px-3 py-2 text-sm font-semibold text-teal-900 hover:bg-teal-50">
-            <Mail aria-hidden="true" className="h-4 w-4" /> Solicitar conversa
+            Solicitar proposta <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
           </a>
-          <p className="text-xs text-slate-600">Abre um e-mail para você enviar à Tech Money.</p>
         </div>
       </article>
     </div>
