@@ -31,9 +31,27 @@ CREATE TABLE IF NOT EXISTS public.invest_sandbox_billing_payments (
   recorded_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.invest_sandbox_credit_usage (
+  account_id uuid NOT NULL,
+  customer_id text NOT NULL,
+  id uuid NOT NULL,
+  units jsonb NOT NULL,
+  monthly_payment_id text REFERENCES public.invest_sandbox_billing_payments (provider_payment_id),
+  monthly_debit integer NOT NULL CHECK (monthly_debit >= 0),
+  prepaid_debit integer NOT NULL CHECK (prepaid_debit >= 0),
+  recorded_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (account_id, customer_id, id),
+  CHECK (monthly_debit + prepaid_debit > 0),
+  CHECK ((monthly_payment_id IS NOT NULL) = (monthly_debit > 0))
+);
+
+CREATE INDEX IF NOT EXISTS invest_sandbox_usage_history
+  ON public.invest_sandbox_credit_usage (account_id, customer_id, recorded_at DESC, id);
+
 ALTER TABLE public.invest_sandbox_billing_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invest_sandbox_billing_payments ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.invest_sandbox_billing_orders, public.invest_sandbox_billing_payments
+ALTER TABLE public.invest_sandbox_credit_usage ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.invest_sandbox_billing_orders, public.invest_sandbox_billing_payments, public.invest_sandbox_credit_usage
   FROM PUBLIC, anon, authenticated, service_role;
 
 COMMIT;

@@ -1,12 +1,15 @@
 import { timingSafeEqual } from "node:crypto";
+import type { Client } from "pg";
 import { z } from "zod";
 import { consultationOffers } from "../shared/invest-consultation-offers";
+import { combinedPreviewCreditCost } from "../shared/invest-preview-credit-policy";
 import { withDatabase } from "./supabase-auth/store.mjs";
 
 const apiBase = "https://api-sandbox.asaas.com/v3";
 const paymentId = /^pay_[a-z\d_]+$/i;
 const subscriptionId = /^sub_[a-z\d_]+$/i;
 const checkoutInput = z.object({ id: z.string().uuid(), offer: z.string().max(20) }).strict();
+const usageInput = z.object({ id: z.string().uuid(), units: z.unknown() }).strict();
 const webhookInput = z.object({ event: z.string(), payment: z.object({ id: z.string().regex(paymentId) }) });
 const settlementEvents = new Set([
   "PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAYMENT_REFUNDED", "PAYMENT_REFUND_IN_PROGRESS",
@@ -115,6 +118,91 @@ const dateInBrazil = () => new Intl.DateTimeFormat("sv-SE", {
   timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
 }).format(new Date());
 
+async function billingWallet(client: Client, accountId: string, customer: string, date: string) {
+  const { rows: [balance] } = await client.query(
+    `WITH payments AS (
+       SELECT p.provider_payment_id, p.due_date, p.recorded_at, p.revoked, o.credits, o.monthly
+       FROM public.invest_sandbox_billing_payments p
+       JOIN public.invest_sandbox_billing_orders o ON o.id=p.order_id
+       WHERE o.account_id=$1 AND o.customer_id=$2
+     ), cycle AS (
+       SELECT provider_payment_id, due_date, CASE WHEN revoked THEN 0 ELSE credits END AS credits
+       FROM payments
+       WHERE monthly AND due_date <= $3::date AND $3::date < due_date + interval '1 month'
+       ORDER BY due_date DESC, recorded_at DESC, provider_payment_id DESC LIMIT 1
+     ), usage AS (
+       SELECT id, units, monthly_payment_id, monthly_debit, prepaid_debit, recorded_at
+       FROM public.invest_sandbox_credit_usage WHERE account_id=$1 AND customer_id=$2
+     ), recent AS (
+       SELECT * FROM usage ORDER BY recorded_at DESC, id DESC LIMIT 50
+     )
+     SELECT (SELECT provider_payment_id FROM cycle) AS cycle_id,
+       COALESCE((SELECT credits FROM cycle), 0) AS confirmed_monthly,
+       COALESCE((SELECT sum(credits) FROM payments WHERE NOT monthly AND NOT revoked), 0) AS confirmed_prepaid,
+       COALESCE((SELECT sum(monthly_debit) FROM usage WHERE monthly_payment_id IN (
+         SELECT provider_payment_id FROM payments WHERE monthly AND due_date=(SELECT due_date FROM cycle)
+       )), 0) AS spent_monthly,
+       COALESCE((SELECT sum(prepaid_debit) FROM usage), 0) AS spent_prepaid,
+       COALESCE((SELECT json_agg(json_build_object(
+         'id', id, 'type', 'spend', 'credits', monthly_debit + prepaid_debit, 'label', 'Uso combinado de recursos',
+         'usage', json_build_object('kind', 'combined', 'units', units), 'recordedAt', recorded_at
+       ) ORDER BY recorded_at, id) FROM recent), '[]'::json) AS entries`,
+    [accountId, customer, date]);
+  const confirmedPrepaid = Number(balance.confirmed_prepaid);
+  const confirmedMonthly = Number(balance.confirmed_monthly);
+  return { cycleId: balance.cycle_id as string | null, confirmedPrepaid, confirmedMonthly, wallet: {
+    prepaid: Math.max(0, confirmedPrepaid - Number(balance.spent_prepaid)),
+    monthly: Math.max(0, confirmedMonthly - Number(balance.spent_monthly)),
+    entries: balance.entries,
+    notice: "",
+  } };
+}
+
+export async function sandboxCreditUsage(request: Request, env: SandboxEnv, accountId: string, connect: SandboxDb) {
+  const cfg = config(request, env);
+  if (!cfg) throw new SandboxBillingError("ASAAS_SANDBOX_DISABLED", 423);
+  if (request.method !== "POST") throw new SandboxBillingError("METHOD_NOT_ALLOWED", 405);
+  if (request.headers.get("Origin") !== cfg.origin) throw new SandboxBillingError("ORIGIN_NOT_ALLOWED", 403);
+  const input = usageInput.safeParse(await readJson(request, 1024));
+  const cost = input.success && combinedPreviewCreditCost(input.data.units);
+  if (!input.success || !cost) throw new SandboxBillingError("INVALID_CREDIT_EVENT", 400);
+  const key = [accountId, cfg.customer];
+  const payload = JSON.stringify(cost.units);
+
+  return connect(env, async client => {
+    await client.query("BEGIN");
+    try {
+      // The same orders are updated by settlements. Lock before reading the balance to
+      // serialize debits and ensure each debit sees the latest committed settlements.
+      await client.query(
+        "SELECT id FROM public.invest_sandbox_billing_orders WHERE account_id=$1 AND customer_id=$2 ORDER BY id FOR UPDATE", key);
+      const { rows: [previous] } = await client.query(
+        "SELECT units=$4::jsonb AS same FROM public.invest_sandbox_credit_usage WHERE account_id=$1 AND customer_id=$2 AND id=$3",
+        [...key, input.data.id, payload]);
+      const date = dateInBrazil();
+      const balance = await billingWallet(client, accountId, cfg.customer, date);
+      let wallet = balance.wallet;
+      if (previous) {
+        if (!previous.same) throw new SandboxBillingError("CREDIT_EVENT_CONFLICT", 409);
+      } else {
+        if (cost.credits > wallet.monthly + wallet.prepaid) throw new SandboxBillingError("INSUFFICIENT_CREDITS", 409);
+        const monthlyDebit = Math.min(wallet.monthly, cost.credits);
+        await client.query(
+          `INSERT INTO public.invest_sandbox_credit_usage
+            (account_id,customer_id,id,units,monthly_payment_id,monthly_debit,prepaid_debit)
+           VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7)`,
+          [...key, input.data.id, payload, monthlyDebit ? balance.cycleId : null, monthlyDebit, cost.credits - monthlyDebit]);
+        wallet = (await billingWallet(client, accountId, cfg.customer, date)).wallet;
+      }
+      await client.query("COMMIT");
+      return { wallet: { ...wallet, notice: previous ? "Este uso já foi registrado." : `${cost.credits} créditos usados na simulação.` } };
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw error;
+    }
+  });
+}
+
 export async function sandboxBilling(
   request: Request, env: SandboxEnv, accountId: string, connect: SandboxDb, fetcher = fetch,
 ) {
@@ -125,16 +213,10 @@ export async function sandboxBilling(
       const { rows: orders } = await client.query(
         `SELECT id,offer_id,state,invoice_url,created_at FROM public.invest_sandbox_billing_orders
           WHERE account_id=$1 AND customer_id=$2 ORDER BY created_at DESC LIMIT 10`, [accountId, cfg.customer]);
-      const { rows: [totals] } = await client.query(
-        `SELECT
-           COALESCE(sum(o.credits) FILTER (WHERE NOT o.monthly AND NOT p.revoked), 0) AS prepaid,
-           COALESCE((array_agg(CASE WHEN p.revoked THEN 0 ELSE o.credits END ORDER BY p.due_date DESC,p.recorded_at DESC)
-             FILTER (WHERE o.monthly AND p.due_date <= $3::date AND $3::date < p.due_date + interval '1 month'))[1], 0) AS monthly
-         FROM public.invest_sandbox_billing_payments p JOIN public.invest_sandbox_billing_orders o ON o.id=p.order_id
-         WHERE o.account_id=$1 AND o.customer_id=$2`, [accountId, cfg.customer, dateInBrazil()]);
+      const { confirmedPrepaid, confirmedMonthly, wallet } = await billingWallet(client, accountId, cfg.customer, dateInBrazil());
       return { enabled: true, orders: orders.map(order => ({ id: order.id, offer: order.offer_id, state: order.state,
         invoiceUrl: order.state === "pending" ? sandboxInvoiceUrl(order.invoice_url) : null })),
-        confirmedPrepaid: Number(totals.prepaid), confirmedMonthly: Number(totals.monthly) };
+        confirmedPrepaid, confirmedMonthly, wallet };
     });
   }
   if (!cfg) throw new SandboxBillingError("ASAAS_SANDBOX_DISABLED", 423);

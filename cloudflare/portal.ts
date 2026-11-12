@@ -1,4 +1,4 @@
-import {sandboxBilling,SandboxBillingError,sandboxDatabase} from "./asaas-sandbox";
+import {sandboxBilling,sandboxCreditUsage,SandboxBillingError,sandboxDatabase} from "./asaas-sandbox";
 import {statementImport,StatementError} from './statement-import';
 import {b3ConnectionStatus} from './b3-connection';
 import {budgetCatalogue} from './portfolio-budget';
@@ -21,8 +21,9 @@ export async function migrationPortal(request:Request,env:any,services:any={veri
  const identity=await services.verify(request,env);if(!identity)return json({error:'VERIFIED_OWNER_SIGN_IN_REQUIRED'},401);
  const binding=await services.binding(identity,env);if(!binding.bound||!binding.originalOwnerPreserved)return json({error:'OWNER_LINK_REQUIRED'},403);
  const path=new URL(request.url).pathname;
- if(path==='/api/investments/billing/sandbox'){
-  try{return json(await sandboxBilling(request,env,identity.subject,services.sandboxDb??sandboxDatabase))}
+ if(path==='/api/investments/billing/sandbox'||path==='/api/investments/billing/sandbox/usage'){
+  const operation=path.endsWith('/usage')?sandboxCreditUsage:sandboxBilling;
+  try{return json(await operation(request,env,identity.subject,services.sandboxDb??sandboxDatabase))}
   catch(error){return error instanceof SandboxBillingError?json({error:error.code},error.status):json({error:'ASAAS_SANDBOX_UNAVAILABLE'},503)}
  }
  if(path==='/api/investments/equity-budget'){

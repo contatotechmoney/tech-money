@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { PGlite } from "@electric-sql/pglite";
-import { sandboxBilling, sandboxBillingWebhook, sandboxInvoiceUrl } from "./asaas-sandbox";
+import { sandboxBilling, sandboxBillingWebhook, sandboxCreditUsage, sandboxInvoiceUrl } from "./asaas-sandbox";
 import { migrationPortal } from "./portal";
 import { consultationOffers } from "../shared/invest-consultation-offers";
 import { initialPreviewCreditWallet, previewCreditBalance, reducePreviewCreditWallet } from "../client/src/migration/invest-preview-credits";
@@ -22,6 +22,8 @@ const otherAccount = "2c85fa58-48dc-49f4-9f09-9e405fd4d827";
 const topUpId = "fa302677-5a9f-437d-b67d-96ec6394029a";
 const planId = "ed4d1aae-4ea3-4acd-b69a-0e20756107d1";
 const uncertainId = "501518b5-c0e8-490a-a7a9-61c3d7f6872a";
+const firstUseId = "40000000-0000-4000-8000-000000000001";
+const laterUseId = "40000000-0000-4000-8000-000000000002";
 const asaasBase = "https://api-sandbox.asaas.com/v3";
 const paymentUrl = "https://sandbox.asaas.com/i/test_invoice";
 const subscriptionInvoiceUrl = "https://sandbox.asaas.com/i/plan_invoice";
@@ -29,6 +31,13 @@ const subscriptionInvoiceUrl = "https://sandbox.asaas.com/i/plan_invoice";
 function order(id: string, offer: string, headerOrigin = origin) {
   return new Request(origin + billingPath, { method: "POST", headers: { "Content-Type": "application/json", Origin: headerOrigin },
     body: JSON.stringify({ id, offer }) });
+}
+
+function spend(id: string, analysis = 1, monitorCompanyMonth = 0, headerOrigin = origin) {
+  return new Request(origin + billingPath + "/usage", {
+    method: "POST", headers: { "Content-Type": "application/json", Origin: headerOrigin },
+    body: JSON.stringify({ id, units: { analysis, voiceMinute: 0, monitorCompanyMonth } }),
+  });
 }
 
 function webhook(id: string, event: string, token = env.INVEST_ASAAS_SANDBOX_WEBHOOK_TOKEN) {
@@ -43,6 +52,9 @@ test("production, unauthorized identities and wrong origins cannot access sandbo
   const base = { verify: async () => ({ subject: account }), binding: async () => ({ bound: true, originalOwnerPreserved: true }), db, sandboxDb: db };
   const prod = { ...env, INVEST_PORTAL_MODE: "owner-production" };
   assert.equal((await migrationPortal(order(topUpId, "avulso"), prod, base)).status, 423);
+  assert.equal((await migrationPortal(spend(firstUseId), prod, base)).status, 423);
+  assert.equal((await migrationPortal(spend(firstUseId, 1, 0, "https://example.org"), env, base)).status, 403);
+  assert.equal((await migrationPortal(spend(firstUseId), env, { ...base, verify: async () => null })).status, 401);
   const wrongKey = { ...env, INVEST_ASAAS_SANDBOX_API_KEY: "$aact_prod_dummy-fixture" };
   assert.equal((await migrationPortal(order(topUpId, "avulso"), wrongKey, base)).status, 423);
   assert.equal((await sandboxBillingWebhook(webhook("pay_test", "PAYMENT_CONFIRMED"), wrongKey, db)).status, 404);
@@ -108,12 +120,15 @@ test("sandbox settlements isolate the wallet, renew monthly credits, and preserv
   const read = (accountId = account) => sandboxBilling(new Request(origin + billingPath), env, accountId, connect, fetcher);
   const start = (id: string, offer: string) => sandboxBilling(order(id, offer), env, account, connect, fetcher);
   const deliver = (id: string, event: string) => sandboxBillingWebhook(webhook(id, event), env, connect, fetcher);
+  const use = (id: string, analysis = 1, monitor = 0, accountId = account) =>
+    sandboxCreditUsage(spend(id, analysis, monitor), env, accountId, connect);
 
   try {
     const first = await Promise.all([start(topUpId, "avulso"), start(topUpId, "avulso")]);
     assert.equal(paymentPosts, 1);
     assert.ok(first.some(result => result.invoiceUrl === paymentUrl));
     assert.equal((await read()).confirmedPrepaid, 0);
+    await assert.rejects(use(firstUseId), { code: "INSUFFICIENT_CREDITS" });
     payments.set("pay_test", payment("pay_test", 29.9, "PENDING"));
     assert.equal((await deliver("pay_test", "PAYMENT_CONFIRMED")).status, 200);
     assert.equal((await read()).confirmedPrepaid, 0);
@@ -128,6 +143,19 @@ test("sandbox settlements isolate the wallet, renew monthly credits, and preserv
     payments.set("pay_month", payment("pay_month", 109.9, "RECEIVED", { subscription: "sub_test" }));
     assert.equal((await deliver("pay_month", "PAYMENT_RECEIVED")).status, 200);
     assert.equal((await read()).confirmedMonthly, 400);
+    const usageResponse = await migrationPortal(spend(firstUseId), env, {
+      verify: async () => ({ subject: account }),
+      binding: async () => ({ bound: true, originalOwnerPreserved: true }),
+      sandboxDb: connect,
+    });
+    assert.equal(usageResponse.status, 200);
+    const used = await usageResponse.json();
+    assert.equal(used.realAnalysisEnabled, false);
+    assert.equal(used.wallet.monthly, 380);
+    assert.equal(used.wallet.prepaid, 100);
+    assert.equal((await use(firstUseId)).wallet.entries.length, 1);
+    await assert.rejects(use(firstUseId, 2), { code: "CREDIT_EVENT_CONFLICT" });
+    await assert.rejects(use(firstUseId, 1, 0, otherAccount), { code: "INSUFFICIENT_CREDITS" });
     payments.set("pay_bad_value", payment("pay_bad_value", 200, "CONFIRMED", { subscription: "sub_test" }));
     await deliver("pay_bad_value", "PAYMENT_CONFIRMED");
     assert.equal((await database.query("SELECT * FROM public.invest_sandbox_billing_payments")).rows.length, 2);
@@ -138,6 +166,7 @@ test("sandbox settlements isolate the wallet, renew monthly credits, and preserv
     assert.equal((await deliver("pay_renewal", "PAYMENT_CONFIRMED")).status, 200);
     assert.equal((await read()).confirmedMonthly, 0);
     assert.equal((await read()).confirmedPrepaid, 100);
+    assert.equal((await read()).wallet.monthly, 0);
 
     payments.set("pay_renewal", payment("pay_renewal", 109.9, "CONFIRMED", renewal));
     assert.equal((await deliver("pay_renewal", "PAYMENT_CONFIRMED")).status, 200);
@@ -149,17 +178,29 @@ test("sandbox settlements isolate the wallet, renew monthly credits, and preserv
     const renewed = await read();
     assert.equal(renewed.confirmedMonthly, 400);
     assert.equal(renewed.confirmedPrepaid, 100);
+    assert.equal(renewed.wallet.monthly, 400);
+    assert.equal(renewed.wallet.prepaid, 100);
     assert.equal((await database.query("SELECT * FROM public.invest_sandbox_billing_payments")).rows.length, 3);
 
+    const combined = await use(laterUseId, 21, 1);
+    assert.equal(combined.wallet.monthly, 0);
+    assert.equal(combined.wallet.prepaid, 50);
+    assert.equal((await read()).wallet.entries.length, 2);
+    assert.equal((await read(otherAccount)).wallet.entries.length, 0);
     payments.set("pay_test", payment("pay_test", 29.9, "REFUNDED"));
     assert.equal((await deliver("pay_test", "PAYMENT_REFUNDED")).status, 200);
     payments.set("pay_test", payment("pay_test", 29.9, "CONFIRMED"));
     await deliver("pay_test", "PAYMENT_CONFIRMED");
     assert.equal((await read()).confirmedPrepaid, 0);
+    assert.equal((await read()).wallet.prepaid, 0);
+    assert.equal((await use(laterUseId, 21, 1)).wallet.entries.length, 2);
 
     assert.equal((await start(uncertainId, "avulso")).state, "review");
     assert.equal((await start(uncertainId, "avulso")).invoiceUrl, paymentUrl);
     assert.equal(paymentPosts, 2);
+    payments.set("pay_recovered", payment("pay_recovered", 29.9, "CONFIRMED"));
+    assert.equal((await deliver("pay_recovered", "PAYMENT_CONFIRMED")).status, 200);
+    assert.equal((await read()).wallet.prepaid, 50);
   } finally {
     await database.close();
   }

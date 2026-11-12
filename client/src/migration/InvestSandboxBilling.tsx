@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { consultationOffers as offers, type ConsultationOffer } from "@shared/invest-consultation-offers";
+import type { ConfirmPreviewCredit, PreviewCreditWallet } from "./invest-preview-credits";
 
 const path = "/api/investments/billing/sandbox";
+const queryKey = [path] as const;
 const statusLabels = {
   creating: "Preparando fatura",
   pending: "Aguardando pagamento de teste",
@@ -24,16 +26,18 @@ type SandboxState = {
   orders?: SandboxOrder[];
   confirmedPrepaid?: number;
   confirmedMonthly?: number;
+  wallet?: PreviewCreditWallet;
 };
 
 type SandboxAction = { id: string; offer: ConsultationOffer["id"] };
 
 export function useInvestSandboxBilling(enabled = true) {
+  const queryClient = useQueryClient();
   const state = useQuery({
-    queryKey: [path],
+    queryKey,
     enabled,
-    queryFn: async (): Promise<SandboxState> => {
-      const response = await fetch(path, { cache: "no-store" });
+    queryFn: async ({ signal }): Promise<SandboxState> => {
+      const response = await fetch(path, { cache: "no-store", signal });
       if (response.status === 404) return { enabled: false };
       if (!response.ok) throw new Error("Não foi possível consultar o Asaas Sandbox.");
       return response.json();
@@ -73,7 +77,30 @@ export function useInvestSandboxBilling(enabled = true) {
     setInvoice(null);
   }
 
-  return { state, processing, feedback, invoice, startOrder, resetPayment };
+  const spend: ConfirmPreviewCredit = async event => {
+    if (!state.data?.wallet || event.type !== "spend" || event.usage.kind !== "combined") {
+      throw new Error("O saldo de teste do Asaas está indisponível.");
+    }
+    const response = await fetch(`${path}/usage`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: event.id, units: event.usage.units }),
+    });
+    const result: { wallet?: PreviewCreditWallet; error?: string } = await response.json();
+    if (response.ok && result.wallet) {
+      const wallet = result.wallet;
+      await queryClient.cancelQueries({ queryKey, exact: true });
+      queryClient.setQueryData<SandboxState>(queryKey, current => current && { ...current, wallet });
+      return wallet;
+    }
+    if (result.error === "INSUFFICIENT_CREDITS") {
+      await state.refetch();
+      throw new Error("O saldo confirmado no Asaas é insuficiente para este uso.");
+    }
+    if (result.error === "CREDIT_EVENT_CONFLICT") throw new Error("Esta confirmação já foi registrada com outras quantidades.");
+    throw new Error("Não foi possível registrar o uso. Tente novamente para verificar a mesma operação.");
+  };
+
+  return { state, processing, feedback, invoice, startOrder, resetPayment, spend };
 }
 
 export function SandboxInvoiceLink({ href }: { href: string | null }) {
@@ -96,7 +123,7 @@ export function InvestSandboxBilling({ billing }: { billing: ReturnType<typeof u
         Atualizar pagamentos de teste
       </button>
     </div>
-    <p className="text-sm text-muted-foreground">Use um cartão de teste na fatura do Asaas. Os créditos confirmados aqui pertencem ao ambiente de pagamentos de teste.</p>
+    <p className="text-sm text-muted-foreground">Use um cartão de teste na fatura do Asaas. Depois da confirmação, os créditos entram no saldo desta tela.</p>
     <p className="text-sm">Créditos confirmados pelo Asaas no teste: <strong>{data.confirmedPrepaid ?? 0} avulsos · {data.confirmedMonthly ?? 0} mensais</strong></p>
     {state.isError && <p role="alert" className="text-sm">A consulta falhou. Use “Atualizar pagamentos de teste” para tentar novamente.</p>}
     {feedback && <p role="status" className="text-sm">{feedback}</p>}

@@ -1,10 +1,9 @@
 import { consultationOffers } from "../shared/invest-consultation-offers.ts";
-import { initialPreviewPrepaidCredits, previewCreditRates } from "../shared/invest-preview-credit-policy.ts";
+import { combinedPreviewCreditCost, initialPreviewPrepaidCredits, previewCreditRates } from "../shared/invest-preview-credit-policy.ts";
 
 export const pilotCreditsPath = "/api/migration/customer-pilot/credits";
 const tickerPattern = /^[A-Z0-9]{1,12}$/;
 const eventIdPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
-const rateEntries = Object.entries(previewCreditRates);
 const recent = `SELECT event_json, recorded_at, prepaid_after, monthly_after
   FROM pilot_credit_events WHERE account_key = ? ORDER BY sequence DESC LIMIT 50`;
 
@@ -36,14 +35,11 @@ function usageDetails(usage) {
       break;
     case "monitor":
       return [{ kind }, previewCreditRates.monitorCompanyMonth, "Acompanhamento de BBSE3 por 30 dias"];
-    case "combined":
-      if (units && typeof units === "object" && rateEntries.every(([key]) =>
-        Number.isSafeInteger(units[key]) && units[key] >= 0 && units[key] <= 1000)) {
-        const quantities = Object.fromEntries(rateEntries.map(([key]) => [key, units[key]]));
-        const credits = rateEntries.reduce((total, [key, rate]) => total + units[key] * rate, 0);
-        if (credits > 0) return [{ kind, units: quantities }, credits, "Uso combinado de recursos"];
-      }
+    case "combined": {
+      const cost = combinedPreviewCreditCost(units);
+      if (cost) return [{ kind, units: cost.units }, cost.credits, "Uso combinado de recursos"];
       break;
+    }
   }
   return null;
 }
