@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ArrowLeft,
+  Bell,
   BriefcaseBusiness,
   BrainCircuit,
   ChartNoAxesCombined,
   CreditCard,
+  House,
   LogOut,
   Menu,
   Settings,
@@ -14,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSelector } from "@/components/language-selector";
 import { useClerk, useUser } from "@clerk/react";
@@ -23,7 +25,7 @@ import { apiRequest } from "@/lib/queryClient";
 import type { PendingReviews } from "@shared/review-pending";
 import { TechMoneyBrand } from "@/components/tech-money-brand";
 
-export default function InvestmentLayout({ children }: { children: React.ReactNode }) {
+export default function InvestmentLayout({ children, showOverview = false, localPreview = false, customerPilot = false }: { children: React.ReactNode; showOverview?: boolean; localPreview?: boolean; customerPilot?: boolean }) {
   const [location] = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { t } = useLanguage();
@@ -31,7 +33,7 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
   const { user } = useUser();
   const reviewAccess = useQuery<{ assignments: { clientId: string }[]; canManageAssignments?: boolean }>({
     queryKey: ["/api/investments/review-access", user?.id ?? ""],
-    enabled: !!user?.id,
+    enabled: !!user?.id && !localPreview,
     staleTime: 0,
     queryFn: async () => (await apiRequest("GET", "/api/investments/review-access")).json(),
     refetchInterval: 60_000,
@@ -39,7 +41,7 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
   });
   const pendingReviews = useQuery<PendingReviews>({
     queryKey: ["/api/investments/review-pending", user?.id ?? ""],
-    enabled: !!user?.id && reviewAccess.isSuccess && !reviewAccess.isError && (reviewAccess.data?.assignments?.length ?? 0) > 0,
+    enabled: !!user?.id && !localPreview && reviewAccess.isSuccess && !reviewAccess.isError && (reviewAccess.data?.assignments?.length ?? 0) > 0,
     staleTime: 0,
     queryFn: async () => (await apiRequest("GET", "/api/investments/review-pending")).json(),
     refetchInterval: 60_000,
@@ -49,10 +51,10 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
   const pendingCount = pendingReviews.isSuccess && !pendingReviews.isError
     ? pendingReviews.data.items.filter((item) => assignedClientIds.has(item.clientId)).length
     : undefined;
-  const userName =
+  const userName = customerPilot ? "Convidado do piloto" : localPreview ? "Sessão de demonstração" : (
     user?.fullName ||
     user?.primaryEmailAddress?.emailAddress ||
-    "Conta Tech Money";
+    "Conta Tech Money");
   const userInitials = userName
     .split(" ")
     .map((part) => part[0])
@@ -61,9 +63,11 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
     .toUpperCase();
 
   const navItems = [
-    { label: t("aiAgents"), icon: BrainCircuit, href: "/investments/agents" },
+    ...(showOverview ? [{ label: "Início", icon: House, href: "/investments/inicio" }] : []),
+    { label: showOverview ? "Análises e comitês" : t("aiAgents"), icon: BrainCircuit, href: "/investments/agents" },
     { label: t("portfolio"), icon: BriefcaseBusiness, href: "/investments/portfolio" },
     { label: t("investmentReports"), icon: ChartNoAxesCombined, href: "/investments/reports" },
+    ...(localPreview ? [{ label: "Acompanhar BBSE3", icon: Bell, href: "/investments/acompanhar/bbse3" }] : []),
     { label: "Perfil do investidor", icon: ShieldCheck, href: "/investments/suitability" },
     ...(reviewAccess.isSuccess && !reviewAccess.isError && reviewAccess.data?.assignments?.length
       ? [{ label: "Revisão profissional", icon: ShieldCheck, href: "/investments/review", count: pendingCount }]
@@ -76,22 +80,23 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
   ];
 
   const isActive = (href: string) => location === href || location.startsWith(`${href}/`);
+  const mobileNav = navItems.slice(0, 4);
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col border-r border-[#143d31] bg-[#1b4d3e] text-white">
       <div className="p-6">
-        <Link href="/areas" className="block">
-          <TechMoneyBrand areaLabel="INVESTIMENTOS" className="tm-brand-on-dark" />
+        <Link href={showOverview ? "/investments/inicio" : "/areas"} className="block">
+          <TechMoneyBrand areaLabel={showOverview ? "INVEST" : "INVESTIMENTOS"} className="tm-brand-on-dark" />
         </Link>
       </div>
 
-      <div className="flex-1 space-y-1 px-3 py-4">
+      <nav aria-label="Navegação do Invest" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {navItems.map((item) => (
-          <Link key={item.href} href={item.href} onClick={() => setIsMobileOpen(false)}>
+          <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={() => setIsMobileOpen(false)}>
             <div
               className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive(item.href)
-                  ? "bg-[#2a9d8f] text-white shadow-md"
+                  ? "bg-[#d9f2e5] text-[#12372c]"
                   : "text-white/80 hover:bg-white/10 hover:text-white"
               }`}
             >
@@ -105,15 +110,15 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
             </div>
           </Link>
         ))}
-      </div>
+      </nav>
 
       <div className="border-t border-[#143d31] p-4">
-        <Link href="/areas" onClick={() => setIsMobileOpen(false)}>
+        {!localPreview && <Link href="/areas" onClick={() => setIsMobileOpen(false)}>
           <div className="mb-4 flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-xs text-white/70 transition-colors hover:bg-white/10 hover:text-white">
             <ArrowLeft className="h-3.5 w-3.5" />
             {t("chooseAnotherArea")}
           </div>
-        </Link>
+        </Link>}
         <div className="flex items-center gap-3 rounded-md p-2">
           <Avatar className="h-8 w-8 rounded-lg border border-[#2a9d8f]/30">
             <AvatarFallback className="bg-[#2a9d8f] text-white">{userInitials}</AvatarFallback>
@@ -122,14 +127,14 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
             <span className="truncate text-sm font-medium">{userName}</span>
             <span className="text-xs text-white/60">{t("investmentArea")}</span>
           </div>
-          <button
+          {(!localPreview || customerPilot) && <button
             type="button"
             className="ml-auto rounded p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
             aria-label={t("logout")}
             onClick={() => void signOut({ redirectUrl: "/" })}
           >
             <LogOut className="h-4 w-4" />
-          </button>
+          </button>}
         </div>
       </div>
     </div>
@@ -137,29 +142,38 @@ export default function InvestmentLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="flex min-h-screen w-full bg-background">
+      <a href="#invest-main" className="sr-only z-50 rounded bg-card px-3 py-2 font-semibold text-foreground focus:not-sr-only focus:fixed focus:left-3 focus:top-3">Ir para o conteúdo</a>
       <aside className="fixed z-30 hidden h-full w-64 md:block">
         <SidebarContent />
       </aside>
 
       <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
         <SheetContent side="left" className="w-64 p-0">
+          <SheetTitle className="sr-only">Menu do Invest</SheetTitle>
+          <SheetDescription className="sr-only">Navegação do portal de investimentos.</SheetDescription>
           <SidebarContent />
         </SheetContent>
       </Sheet>
 
-      <main className="flex min-w-0 min-h-screen flex-1 flex-col md:ml-64">
+      <main id="invest-main" className="flex min-w-0 min-h-screen flex-1 flex-col md:ml-64">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur md:px-6">
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileOpen(true)} aria-label="Open menu">
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileOpen(true)} aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="md:hidden"><TechMoneyBrand areaLabel="INVESTIMENTOS" className="tm-brand-mobile" /></div>
-            <span className="hidden md:inline text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">INVESTIMENTOS</span>
+            <div className="md:hidden"><TechMoneyBrand areaLabel={showOverview ? "INVEST" : "INVESTIMENTOS"} className="tm-brand-mobile" /></div>
+            <span className="hidden md:inline text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{showOverview ? "INVEST" : "INVESTIMENTOS"}</span>
           </div>
           <LanguageSelector />
         </header>
-        <div className="mx-auto w-full max-w-7xl flex-1 p-4 pt-6 md:p-8">{children}</div>
+        <div className={`mx-auto w-full max-w-7xl flex-1 p-4 pt-6 md:p-8 ${localPreview ? "max-md:pb-24" : ""}`}>{children}</div>
       </main>
+      {localPreview && <nav aria-label="Atalhos principais do Invest" className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
+        {mobileNav.map(({ href, icon: Icon }, index) => <Link key={href} href={href} aria-current={isActive(href) ? "page" : undefined}
+          className={`flex min-h-14 flex-col items-center justify-center gap-1 px-1 text-xs font-semibold ${isActive(href) ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100" : "text-muted-foreground"}`}>
+          <Icon aria-hidden="true" className="h-4 w-4" /> {["Início", "Comitês", "Carteira", "Relatórios"][index]}
+        </Link>)}
+      </nav>}
     </div>
   );
 }

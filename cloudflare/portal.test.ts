@@ -1,0 +1,73 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {migrationPortal,historicalReport} from './portal';
+import { BCB_USD_SELL_RATE, parseBcbExchangeRate } from './equity-exchange-rate';
+import { equityBrlCents } from '../shared/equity-committee-budget';
+const env={PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE:'original-server-owner'};
+const identity={subject:'new-verified-subject',email:'owner@example.invalid'};
+const request=(path:string,method='GET')=>new Request('https://migration.example.invalid'+path,{method});
+const services=(query:any)=>({verify:async()=>identity,binding:async()=>({bound:true,originalOwnerPreserved:true}),db:async(_e:any,fn:any)=>fn({query})});
+test('unverified or unlinked session cannot query any record',async()=>{let called=false;for(const s of [{verify:async()=>null},{verify:async()=>identity,binding:async()=>({bound:false})}]){const r=await migrationPortal(request('/api/investments/reports'),env,{...s,db:async()=>{called=true}});assert.ok([401,403].includes(r.status))}assert.equal(called,false)});
+test('real analysis, billing and profile mutations stay blocked after owner verification',async()=>{for(const path of ['/api/investments/agents/run','/api/investments/reports/BBAS3/refresh','/api/investments/billing/checkout','/api/investments/portfolio-pilot/execute','/api/suitability/perfil']){const r=await migrationPortal(request(path,'POST'),env,services(()=>{throw Error('must not write')}));assert.equal(r.status,423);assert.equal((await r.json()).realAnalysisEnabled,false)}});
+test('browser owner parameter cannot change server-scoped query',async()=>{let params:any;const r=await migrationPortal(request('/api/investments/reports?user_id=foreign'),env,services(async(sql:string,p:any)=>{assert.match(sql,/WHERE user_id=\$1/);params=p;return {rows:[]}}));assert.equal(r.status,200);assert.deepEqual(params,['original-server-owner'])});
+test('historical presentation never restores an approval or exposes legacy owner',()=>{const r=historicalReport({id:'x',user_id:'legacy',ticker:'BBAS3',generated_at:'2026-01-01T00:00:00Z',risk_score:'2',price:'10',change_percent:'1',signal:'buy',summary:'Unverified advice',strengths:[],risks:[],outlook:'Buy now',source:'archive'});assert.equal(r.recommendation.status,'pending');assert.equal(r.historical,true);assert.equal(r.riskScore,null);assert.equal('userId' in r,false);assert.notEqual(r.outlook,'Buy now')});
+test('session returns only verified new identity and closed execution flags',async()=>{const r=await migrationPortal(request('/api/migration/session'),env,services(()=>{}));const d=await r.json();assert.equal(d.user.id,identity.subject);assert.equal(d.canViewInternalCosts,true);assert.equal(d.executable,false);assert.equal(JSON.stringify(d).includes(env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE),false)});
+test('missing database or failed query returns unavailable, never fabricated empty history',async()=>{const r=await migrationPortal(request('/api/investments/reports'),env,services(async()=>{throw Error('db unavailable')}));assert.equal(r.status,503)});
+test('B3 preparation reports disconnected and cannot accept consent or trigger sync',async()=>{
+ const noDb=services(()=>{throw Error('must not query or persist')});
+ const status=await migrationPortal(request('/api/investments/b3/connection'),env,noDb);
+ assert.equal(status.status,200);const body=await status.json();assert.equal(body.connected,false);assert.equal(body.automaticImportEnabled,false);assert.equal(body.consentGranted,false);assert.equal(body.lastSyncAt,null);assert.equal(body.realAnalysisEnabled,false);
+ for(const method of ['POST','DELETE','PUT'])assert.equal((await migrationPortal(request('/api/investments/b3/connection',method),env,noDb)).status,423);
+ const denied=await migrationPortal(request('/api/investments/b3/connection'),env,{...noDb,verify:async()=>null});assert.equal(denied.status,401);
+});
+test('budget catalogue sends only a public GET and never sends positions or enables approval',async()=>{
+ const original=globalThis.fetch;let calls=0;globalThis.fetch=async(url,options)=>{calls++;assert.equal(String(url),'https://inference-api.nousresearch.com/v1/models');assert.equal(options?.method,'GET');assert.equal(options?.body,undefined);assert.equal(new Headers(options?.headers).has('Authorization'),false);return Response.json({data:[{id:'deepseek/deepseek-v4.1-flash',name:'Fixture',canonical_slug:'fixture',supported_parameters:['max_tokens'],pricing:{prompt:'0.0000001060',completion:'0.0000005130'}}]});};
+ try{const noDb=services(()=>{throw Error('must not query')});const response=await migrationPortal(request('/api/investments/portfolio-budget/models'),env,noDb);const d=await response.json();assert.equal(response.status,200);assert.equal(d.models.length,1);assert.equal(d.accountPricingVerified,false);assert.equal(d.creditPolicyConfigured,false);assert.equal(d.realAnalysisEnabled,false);assert.equal(d.executable,false);assert.equal(calls,1);
+ assert.equal((await migrationPortal(request('/api/investments/portfolio-budget/models','POST'),env,noDb)).status,423);assert.equal(calls,1);
+ assert.equal((await migrationPortal(request('/api/investments/portfolio-budget/models'),env,{...noDb,verify:async()=>null})).status,401);assert.equal(calls,1);
+ }finally{globalThis.fetch=original;}
+});
+test('equity quote is owner-only, read-only and demonstrates ten separately metered fictional calls',async()=>{
+ const original=globalThis.fetch;let calls=0;
+ globalThis.fetch=async(url,options)=>{
+  calls++;
+  assert.equal(options?.method,'GET');assert.equal(options?.body,undefined);
+  assert.equal(new Headers(options?.headers).has('Authorization'),false);
+  if(String(url)===BCB_USD_SELL_RATE){
+   const today=new Date().toISOString().slice(0,10).split('-').reverse().join('/');
+   return Response.json([{data:today,valor:'5.5606'}]);
+  }
+  assert.equal(String(url),'https://inference-api.nousresearch.com/v1/models');
+  return Response.json({data:[{id:'deepseek/deepseek-v4.1-flash',name:'Fixture',canonical_slug:'fixture',supported_parameters:['max_tokens'],pricing:{prompt:'0.0000001060',completion:'0.0000005130'}}]});
+ };
+ try{
+  const noDb=services(()=>{throw Error('must not query or write')});
+  const path='/api/investments/equity-budget?ticker=BBAS3&model=deepseek%2Fdeepseek-v4.1-flash';
+  const denial=await migrationPortal(request(path),env,{...noDb,verify:async()=>null});
+  assert.equal(denial.status,401);
+  const unbound=await migrationPortal(request(path),env,{...noDb,binding:async()=>({bound:false,originalOwnerPreserved:false})});
+  assert.equal(unbound.status,403);
+  assert.equal((await migrationPortal(request(path,'POST'),env,noDb)).status,423);
+  assert.equal((await migrationPortal(request('/api/investments/equity-budget?ticker=BBAS3&model=unlisted'),env,noDb)).status,400);
+  assert.equal(calls,0);
+  const response=await migrationPortal(request(path),env,noDb);
+  assert.equal(response.status,200);
+  const d=await response.json();
+  assert.equal(d.agents.length,10);assert.equal(d.example.length,10);
+  assert.equal(d.example.at(-1).agentId,'rafael');
+  assert.equal(d.actualTokens,0);assert.equal(d.creditsDebited,0);
+  assert.equal(d.executable,false);assert.equal(d.approvalAvailable,false);
+  assert.equal(d.tariff.accountPricingVerified,false);
+  assert.equal(d.brlReference.brlPerUsdMicros,5_560_600);
+  assert.equal(d.brlReference.maxBrlCents,equityBrlCents(d.maxUsdMicros,5_560_600));
+  assert.equal(calls,2);
+ }finally{globalThis.fetch=original;}
+});
+
+test('BRL conversion rounds the aggregate ceiling upward and rejects unavailable or stale rates', () => {
+ const now=Date.UTC(2026,10,11);
+ assert.deepEqual(parseBcbExchangeRate([{data:'06/11/2026',valor:'5.5606'}],now),{referenceDate:'2026-11-06',brlPerUsdMicros:5_560_600});
+ for(const date of ['30/10/2026','12/11/2026','31/10/2026','31/02/2026']) assert.equal(parseBcbExchangeRate([{data:date,valor:'5.5606'}],now),null);
+ assert.equal(parseBcbExchangeRate([{data:'11/11/2026',valor:'0.0000'}],now),null);
+ assert.equal(parseBcbExchangeRate([],now),null);
+ assert.equal(equityBrlCents(100_000,5_560_600),56);
+ assert.equal(equityBrlCents(200_000,5_500_000),110);
+});

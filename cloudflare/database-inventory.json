@@ -52,8 +52,15 @@
     "investment_authorization_renewal",
     "investment_review_immutable"
   ],
-  "productionIntrospectionRequired": true,
-  "productionExportCompleted": false,
+  "productionIntrospectionRequired": false,
+  "productionExportCompleted": true,
   "supabaseProjectCreated": true,
-  "realAnalysisEnabled": false
+  "realAnalysisEnabled": false,
+  "existingSourceTables": 16,
+  "sourceDatabaseRestoredExact": true,
+  "verifiedAt": "2026-10-16",
+  "sourceAbsentTables": [
+    "users",
+    "report_delivery_provider_events"
+  ]
 }
