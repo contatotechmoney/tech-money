@@ -1,15 +1,14 @@
-const PROJECT_URL='https://igxtlcbyucshupsldijj.supabase.co';
+import {readVerifiedSupabaseUser,sessionCookie} from "./supabase-user.mjs";
+export const OWNER_SUPABASE_PROJECT_URL='https://igxtlcbyucshupsldijj.supabase.co';
 export function authConfiguration(env){
- if(env.INVEST_SUPABASE_URL!==PROJECT_URL||!env.INVEST_SUPABASE_PUBLISHABLE_KEY?.startsWith('sb_publishable_')||!env.INVEST_MIGRATION_ORIGIN?.startsWith('https://')||!env.INVEST_MIGRATION_OWNER_EMAIL||!env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE)throw new Error('AUTH_CONFIGURATION_REQUIRED');
- return {url:PROJECT_URL,key:env.INVEST_SUPABASE_PUBLISHABLE_KEY,origin:env.INVEST_MIGRATION_ORIGIN,owner:env.INVEST_MIGRATION_OWNER_EMAIL.toLowerCase()};
+ if(env.INVEST_SUPABASE_URL!==OWNER_SUPABASE_PROJECT_URL||!env.INVEST_SUPABASE_PUBLISHABLE_KEY?.startsWith('sb_publishable_')||!env.INVEST_MIGRATION_ORIGIN?.startsWith('https://')||!env.INVEST_MIGRATION_OWNER_EMAIL||!env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE)throw new Error('AUTH_CONFIGURATION_REQUIRED');
+ return {url:OWNER_SUPABASE_PROJECT_URL,key:env.INVEST_SUPABASE_PUBLISHABLE_KEY,origin:env.INVEST_MIGRATION_ORIGIN,owner:env.INVEST_MIGRATION_OWNER_EMAIL.toLowerCase()};
 }
 export async function verifiedSupabaseIdentity(request,env,fetcher=fetch){
  const config=authConfiguration(env);if(new URL(request.url).origin!==config.origin)return null;
- const cookies=request.headers.get('Cookie')||'';const matches=[...cookies.matchAll(/(?:^|;\s*)__Host-invest-migration=([^;]+)/g)];if(matches.length!==1)return null;
- const token=matches[0][1];if(!/^[A-Za-z0-9_.-]{20,8192}$/.test(token))return null;
- try{const response=await fetcher(config.url+'/auth/v1/user',{headers:{apikey:config.key,Authorization:'Bearer '+token},redirect:'manual',signal:AbortSignal.timeout(5000)});if(!response.ok)return null;const user=await response.json();
- if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id)||user.role!=='authenticated'||user.is_anonymous===true||!user.email_confirmed_at||!Number.isFinite(Date.parse(user.email_confirmed_at))||Date.parse(user.email_confirmed_at)>Date.now()||user.email?.toLowerCase()!==config.owner)return null;
- return {provider:'supabase',subject:user.id,email:user.email.toLowerCase(),verifiedAt:user.email_confirmed_at};}catch{return null;}
+ const token=sessionCookie(request,'__Host-invest-migration');if(!token)return null;
+ const identity=await readVerifiedSupabaseUser(config,token,fetcher);
+ return identity?.email===config.owner?identity:null;
 }
 const closed={realAnalysisEnabled:false,costApprovalRequired:true,executable:false};
 export async function supabaseMigrationStatus(request,env,services){

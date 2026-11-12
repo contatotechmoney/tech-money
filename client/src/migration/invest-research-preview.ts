@@ -5,7 +5,6 @@ export const previewCompanies = [
   { ticker: "HORIZ3", name: "Indústria Horizonte S.A.", reportDate: "06/11/2026", reportIso: "2026-11-06" },
 ] as const;
 export type PreviewCompany = (typeof previewCompanies)[number];
-export type PreviewBudget = { ticker: string; modelId: string; maxUsdMicros: number; validUntil: number };
 export const previewSpecialists = COMITE_RV.filter(id => id !== "rafael");
 export const previewResearchPhases = [
   { id: "sources", label: "Coleta de fontes", activity: "Separando os documentos fictícios da empresa.", done: "Fontes de exemplo coletadas", intervalMs: 1_200 },
@@ -17,12 +16,14 @@ export type PreviewResearchPhase = (typeof previewResearchPhases)[number]["id"] 
 export type PreviewRun = {
   id: string;
   company: PreviewCompany;
-  budget: PreviewBudget;
   phase: PreviewResearchPhase;
   completedInPhase: number;
 };
 export const previewReportPath = "/investments/reports/previa";
-export const previewBudgetPath = "/investments/agents/equity-budget";
+export const internalEquityBudgetPath = "/investments/gestao/orcamento";
+export const previewCompanyWatchPath = "/investments/acompanhar/bbse3";
 export const formatPreviewUsd = (micros: number) => new Intl.NumberFormat("pt-BR", {
   style: "currency", currency: "USD", minimumFractionDigits: 6, maximumFractionDigits: 6,
 }).format(micros / 1e6);
+const equityBrl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+export const formatEquityBrl = (cents: number) => equityBrl.format(cents / 100);

@@ -1,4 +1,5 @@
-import { equityBudget, EQUITY_MODELS } from "../shared/equity-committee-budget";
+import { equityBrlCents, equityBudget, EQUITY_MODELS } from "../shared/equity-committee-budget";
+import { fetchBcbExchangeRate } from "./equity-exchange-rate";
 import { fetchPublicNousCatalogue } from "../server/portfolio-pilot-models";
 import { runMeteredEquityCommittee, type EquityCallEvent } from "../server/equity-committee-meter";
 
@@ -6,7 +7,8 @@ export async function equityBudgetPreview(url: URL) {
   const ticker = url.searchParams.get("ticker") ?? "";
   const modelId = url.searchParams.get("model") ?? "";
   if (!/^[A-Z0-9]{1,12}$/.test(ticker) || !(EQUITY_MODELS as readonly string[]).includes(modelId)) return null;
-  const model = (await fetchPublicNousCatalogue()).find(row => row.modelId === modelId);
+  const [catalogue, exchangeRate] = await Promise.all([fetchPublicNousCatalogue(), fetchBcbExchangeRate()]);
+  const model = catalogue.find(row => row.modelId === modelId);
   if (!model) throw Error("PRICE_UNAVAILABLE");
   const tariff = {
     modelId, priceVersion: model.priceVersion, verifiedAt: model.verifiedAt, validUntil: model.validUntil,
@@ -29,5 +31,8 @@ export async function equityBudgetPreview(url: URL) {
   const example = events.flatMap(event => event.status === "metered" ? [{
     agentId: event.agentId, inputTokens: event.inputTokens, outputTokens: event.outputTokens, costUsdMicros: event.costUsdMicros,
   }] : []);
-  return { ...quote, source: model.source, example, actualTokens: 0, creditsDebited: 0 };
+  const brlReference = exchangeRate
+    ? { ...exchangeRate, maxBrlCents: equityBrlCents(quote.maxUsdMicros, exchangeRate.brlPerUsdMicros) }
+    : null;
+  return { ...quote, brlReference, source: model.source, example, actualTokens: 0, creditsDebited: 0 };
 }

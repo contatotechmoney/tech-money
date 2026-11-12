@@ -1,3 +1,4 @@
+import {sandboxBilling,SandboxBillingError,sandboxDatabase} from "./asaas-sandbox";
 import {statementImport,StatementError} from './statement-import';
 import {b3ConnectionStatus} from './b3-connection';
 import {budgetCatalogue} from './portfolio-budget';
@@ -20,6 +21,10 @@ export async function migrationPortal(request:Request,env:any,services:any={veri
  const identity=await services.verify(request,env);if(!identity)return json({error:'VERIFIED_OWNER_SIGN_IN_REQUIRED'},401);
  const binding=await services.binding(identity,env);if(!binding.bound||!binding.originalOwnerPreserved)return json({error:'OWNER_LINK_REQUIRED'},403);
  const path=new URL(request.url).pathname;
+ if(path==='/api/investments/billing/sandbox'){
+  try{return json(await sandboxBilling(request,env,identity.subject,services.sandboxDb??sandboxDatabase))}
+  catch(error){return error instanceof SandboxBillingError?json({error:error.code},error.status):json({error:'ASAAS_SANDBOX_UNAVAILABLE'},503)}
+ }
  if(path==='/api/investments/equity-budget'){
   if(request.method!=='GET')return json({error:'REAL_ANALYSIS_DISABLED'},423);
   const quote=await equityBudgetPreview(new URL(request.url));
@@ -31,7 +36,7 @@ export async function migrationPortal(request:Request,env:any,services:any={veri
  if(request.method==='POST'&&['/api/investments/simulations','/api/investments/portfolio-simulations'].includes(path)){try{return json(await createDemo(request,env,env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,services),202)}catch(e){return e instanceof DemoError?json({error:e.code},e.status):json({error:'SIMULATION_UNAVAILABLE'},503)}}
  if(request.method!=='GET'&&(path==='/api/suitability/perfil'||/^\/api\/investments\/portfolio\/transactions(?:\/[^/]+)?$/.test(path))){try{const value=await writeRecord(request,env,env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE,services);const {userId,...safeValue}=value as any;return json(path==='/api/suitability/perfil'?{perfil:safeValue}:safeValue,request.method==='POST'?201:200)}catch(e){return e instanceof RecordError?json({error:e.code},e.status):json({error:'RECORD_UNAVAILABLE'},503)}}
  if(request.method!=='GET')return json({error:'MIGRATION_READ_ONLY',message:'Alterações e análises reais estão bloqueadas nesta prévia. Use o portal atual.'},423);
- if(path==='/api/migration/session')return json({ownerBound:true,user:{id:identity.subject,email:identity.email}});
+ if(path==='/api/migration/session')return json({ownerBound:true,canViewInternalCosts:true,user:{id:identity.subject,email:identity.email}});
  const owner=env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE;
  const query=async(sql:string,args:any[]=[owner])=>services.db(env,async(c:any)=>(await c.query(sql,args)).rows);
  if(path==='/api/investments/review-access')return json({assignments:[],canManageAssignments:false});

@@ -18,6 +18,22 @@ export const reportSources = {
 } as const;
 export type ReportSourceId = keyof typeof reportSources;
 
+export type ReportRisk = {
+  title: string;
+  severity: "high" | "medium" | "undetermined";
+  impact: string;
+  sources: readonly [ReportSourceId, ...ReportSourceId[]];
+  review: string;
+};
+
+const volatilityRisk: ReportRisk = {
+  title: "Oscilações no preço",
+  severity: "undetermined",
+  impact: "A amostra cobre poucos pregões. Ainda faltam dados para estimar a amplitude das oscilações e das quedas.",
+  sources: ["cotacoes"],
+  review: "Com uma série diária de 12 meses ajustada por eventos corporativos, medir a volatilidade e a maior queda acumulada desde um pico.",
+};
+
 type SynthesisPoint = {
   title: string;
   text: string;
@@ -99,10 +115,28 @@ export function reportExampleFor(ticker: string): {
   sources: ReportSources;
   summary: string;
   synthesis: ReportSynthesis;
+  risks: readonly ReportRisk[];
 } {
   if (ticker !== "HORIZ3") return {
     opinions: reportOpinions, sources: reportSources,
     summary: "No exemplo, o resultado operacional melhorou e surgiu um alerta sobre concentração de clientes. Ainda falta confirmar se a melhora é recorrente e medir a concentração.",
+    risks: [
+      {
+        title: "Concentração de clientes",
+        severity: "high",
+        impact: "A perda de um cliente relevante pode reduzir a receita. O comunicado cita dependência de poucos clientes, com a parcela da receita ainda a medir.",
+        sources: ["comunicado"],
+        review: "Conferir a receita por cliente em períodos comparáveis. Reavaliar se a participação dos maiores clientes mudar de forma sustentada ou se um contrato relevante mudar.",
+      },
+      {
+        title: "Recorrência do resultado",
+        severity: "medium",
+        impact: "Se efeitos pontuais explicarem parte do avanço, o próximo trimestre pode mostrar um ganho operacional menor.",
+        sources: ["demonstrativo", "comunicado"],
+        review: "Separar os efeitos pontuais nas notas explicativas. Reavaliar quando o trimestre seguinte mostrar se o resultado recorrente se sustentou em base comparável.",
+      },
+      volatilityRisk,
+    ],
     synthesis: {
       agreement: {
         title: "O resultado operacional avançou",
@@ -124,6 +158,23 @@ export function reportExampleFor(ticker: string): {
   return {
     sources: horizonSources,
     summary: "No exemplo, a margem industrial subiu e as perdas de produção caíram. Ainda falta separar o ganho de eficiência do efeito dos produtos vendidos e medir a dependência de distribuidores.",
+    risks: [
+      {
+        title: "Concentração da distribuição",
+        severity: "high",
+        impact: "A perda de um distribuidor relevante pode reduzir o volume vendido. O peso dos maiores distribuidores na receita ainda precisa ser medido.",
+        sources: ["comunicado"],
+        review: "Conferir a receita por distribuidor e os prazos dos contratos. Reavaliar se a participação dos maiores distribuidores mudar de forma sustentada ou se houver mudança em um contrato relevante.",
+      },
+      {
+        title: "Sustentação da margem",
+        severity: "medium",
+        impact: "Se a alta da margem depender de uma composição de vendas temporariamente favorável, parte do ganho pode se desfazer.",
+        sources: ["demonstrativo", "comunicado"],
+        review: "Separar em pontos percentuais os efeitos de perdas, preços e composição das vendas. Reavaliar quando o próximo trimestre mostrar se a melhora se sustentou.",
+      },
+      volatilityRisk,
+    ],
     synthesis: {
       agreement: {
         title: "A margem industrial melhorou",

@@ -1,4 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {migrationPortal,historicalReport} from './portal';
+import { BCB_USD_SELL_RATE, parseBcbExchangeRate } from './equity-exchange-rate';
+import { equityBrlCents } from '../shared/equity-committee-budget';
 const env={PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE:'original-server-owner'};
 const identity={subject:'new-verified-subject',email:'owner@example.invalid'};
 const request=(path:string,method='GET')=>new Request('https://migration.example.invalid'+path,{method});
@@ -7,7 +9,7 @@ test('unverified or unlinked session cannot query any record',async()=>{let call
 test('real analysis, billing and profile mutations stay blocked after owner verification',async()=>{for(const path of ['/api/investments/agents/run','/api/investments/reports/BBAS3/refresh','/api/investments/billing/checkout','/api/investments/portfolio-pilot/execute','/api/suitability/perfil']){const r=await migrationPortal(request(path,'POST'),env,services(()=>{throw Error('must not write')}));assert.equal(r.status,423);assert.equal((await r.json()).realAnalysisEnabled,false)}});
 test('browser owner parameter cannot change server-scoped query',async()=>{let params:any;const r=await migrationPortal(request('/api/investments/reports?user_id=foreign'),env,services(async(sql:string,p:any)=>{assert.match(sql,/WHERE user_id=\$1/);params=p;return {rows:[]}}));assert.equal(r.status,200);assert.deepEqual(params,['original-server-owner'])});
 test('historical presentation never restores an approval or exposes legacy owner',()=>{const r=historicalReport({id:'x',user_id:'legacy',ticker:'BBAS3',generated_at:'2026-01-01T00:00:00Z',risk_score:'2',price:'10',change_percent:'1',signal:'buy',summary:'Unverified advice',strengths:[],risks:[],outlook:'Buy now',source:'archive'});assert.equal(r.recommendation.status,'pending');assert.equal(r.historical,true);assert.equal(r.riskScore,null);assert.equal('userId' in r,false);assert.notEqual(r.outlook,'Buy now')});
-test('session returns only verified new identity and closed execution flags',async()=>{const r=await migrationPortal(request('/api/migration/session'),env,services(()=>{}));const d=await r.json();assert.equal(d.user.id,identity.subject);assert.equal(d.executable,false);assert.equal(JSON.stringify(d).includes(env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE),false)});
+test('session returns only verified new identity and closed execution flags',async()=>{const r=await migrationPortal(request('/api/migration/session'),env,services(()=>{}));const d=await r.json();assert.equal(d.user.id,identity.subject);assert.equal(d.canViewInternalCosts,true);assert.equal(d.executable,false);assert.equal(JSON.stringify(d).includes(env.PORTFOLIO_PILOT_PRODUCTION_OWNER_REFERENCE),false)});
 test('missing database or failed query returns unavailable, never fabricated empty history',async()=>{const r=await migrationPortal(request('/api/investments/reports'),env,services(async()=>{throw Error('db unavailable')}));assert.equal(r.status,503)});
 test('B3 preparation reports disconnected and cannot accept consent or trigger sync',async()=>{
  const noDb=services(()=>{throw Error('must not query or persist')});
@@ -26,9 +28,14 @@ test('budget catalogue sends only a public GET and never sends positions or enab
 test('equity quote is owner-only, read-only and demonstrates ten separately metered fictional calls',async()=>{
  const original=globalThis.fetch;let calls=0;
  globalThis.fetch=async(url,options)=>{
-  calls++;assert.equal(String(url),'https://inference-api.nousresearch.com/v1/models');
+  calls++;
   assert.equal(options?.method,'GET');assert.equal(options?.body,undefined);
   assert.equal(new Headers(options?.headers).has('Authorization'),false);
+  if(String(url)===BCB_USD_SELL_RATE){
+   const today=new Date().toISOString().slice(0,10).split('-').reverse().join('/');
+   return Response.json([{data:today,valor:'5.5606'}]);
+  }
+  assert.equal(String(url),'https://inference-api.nousresearch.com/v1/models');
   return Response.json({data:[{id:'deepseek/deepseek-v4.1-flash',name:'Fixture',canonical_slug:'fixture',supported_parameters:['max_tokens'],pricing:{prompt:'0.0000001060',completion:'0.0000005130'}}]});
  };
  try{
@@ -36,6 +43,8 @@ test('equity quote is owner-only, read-only and demonstrates ten separately mete
   const path='/api/investments/equity-budget?ticker=BBAS3&model=deepseek%2Fdeepseek-v4.1-flash';
   const denial=await migrationPortal(request(path),env,{...noDb,verify:async()=>null});
   assert.equal(denial.status,401);
+  const unbound=await migrationPortal(request(path),env,{...noDb,binding:async()=>({bound:false,originalOwnerPreserved:false})});
+  assert.equal(unbound.status,403);
   assert.equal((await migrationPortal(request(path,'POST'),env,noDb)).status,423);
   assert.equal((await migrationPortal(request('/api/investments/equity-budget?ticker=BBAS3&model=unlisted'),env,noDb)).status,400);
   assert.equal(calls,0);
@@ -47,6 +56,18 @@ test('equity quote is owner-only, read-only and demonstrates ten separately mete
   assert.equal(d.actualTokens,0);assert.equal(d.creditsDebited,0);
   assert.equal(d.executable,false);assert.equal(d.approvalAvailable,false);
   assert.equal(d.tariff.accountPricingVerified,false);
-  assert.equal(calls,1);
+  assert.equal(d.brlReference.brlPerUsdMicros,5_560_600);
+  assert.equal(d.brlReference.maxBrlCents,equityBrlCents(d.maxUsdMicros,5_560_600));
+  assert.equal(calls,2);
  }finally{globalThis.fetch=original;}
+});
+
+test('BRL conversion rounds the aggregate ceiling upward and rejects unavailable or stale rates', () => {
+ const now=Date.UTC(2026,10,11);
+ assert.deepEqual(parseBcbExchangeRate([{data:'06/11/2026',valor:'5.5606'}],now),{referenceDate:'2026-11-06',brlPerUsdMicros:5_560_600});
+ for(const date of ['30/10/2026','12/11/2026','31/10/2026','31/02/2026']) assert.equal(parseBcbExchangeRate([{data:date,valor:'5.5606'}],now),null);
+ assert.equal(parseBcbExchangeRate([{data:'11/11/2026',valor:'0.0000'}],now),null);
+ assert.equal(parseBcbExchangeRate([],now),null);
+ assert.equal(equityBrlCents(100_000,5_560_600),56);
+ assert.equal(equityBrlCents(200_000,5_500_000),110);
 });

@@ -19,6 +19,17 @@ export type EquityTariff = {
   accountPricingVerified: boolean;
 };
 
+export type EquityBrlReference = {
+  referenceDate: string;
+  brlPerUsdMicros: number;
+  maxBrlCents: number;
+};
+
+export function equityBrlCents(usdMicros: number, brlPerUsdMicros: number) {
+  const denominator = BigInt(10_000_000_000);
+  return Number((BigInt(usdMicros) * BigInt(brlPerUsdMicros) + denominator - BigInt(1)) / denominator);
+}
+
 export function equityCostMicros(input: number, output: number, tariff: EquityTariff): number {
   const values = [input, output, tariff.inputUsdMicrosPerMillion, tariff.outputUsdMicrosPerMillion];
   if (values.some(x => !Number.isSafeInteger(x) || x < 0 || x > 1e12)) throw Error("INVALID_USAGE_OR_RATE");

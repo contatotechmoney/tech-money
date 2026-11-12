@@ -30,17 +30,30 @@ function RoundTally({ title, prioritize, total }: { title: string; prioritize: n
   </div>;
 }
 
-export default function InvestReportVoting({ ticker, sources }: { ticker: string; sources: ReportSources }) {
-  const voting = reportVotingFor(ticker);
-  const rows = previewSpecialists.map(id => {
+function voteRows(voting: ReturnType<typeof reportVotingFor>) {
+  return previewSpecialists.map(id => {
     const first = voting.firstVotes[id];
     const revision = voting.arguments.find(argument => argument.specialist === id && argument.newVote && argument.newVote !== first);
     return { id, first, second: revision?.newVote ?? first, revision };
   });
+}
+
+function majority(total: number, prioritize: number): VotePosition {
+  return prioritize > total / 2 ? "prioritize" : "wait";
+}
+
+export function reportFinalVoteLabel(ticker: string) {
+  const rows = voteRows(reportVotingFor(ticker));
+  return voteLabels[majority(rows.length, rows.filter(row => row.second === "prioritize").length)];
+}
+
+export default function InvestReportVoting({ ticker, sources }: { ticker: string; sources: ReportSources }) {
+  const voting = reportVotingFor(ticker);
+  const rows = voteRows(voting);
   const firstPrioritize = rows.filter(row => row.first === "prioritize").length;
   const secondPrioritize = rows.filter(row => row.second === "prioritize").length;
-  const firstMajority = firstPrioritize > rows.length / 2 ? "prioritize" : "wait";
-  const secondMajority = secondPrioritize > rows.length / 2 ? "prioritize" : "wait";
+  const firstMajority = majority(rows.length, firstPrioritize);
+  const secondMajority = majority(rows.length, secondPrioritize);
   const revisedAgents = rows.filter(row => row.revision).map(row => CVS[row.id].nome);
   const changedNames = new Intl.ListFormat("pt-BR").format(revisedAgents);
   const accepted = voting.arguments.filter(argument => argument.decision === "accepted").length;
@@ -62,7 +75,7 @@ export default function InvestReportVoting({ ticker, sources }: { ticker: string
           </h3>
           <p className="text-xs font-medium tabular-nums text-muted-foreground">{accepted} {accepted === 1 ? "aceito" : "aceitos"} · {refuted} {refuted === 1 ? "refutado" : "refutados"}</p>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">Argumentos que os especialistas avaliaram antes de votar de novo.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Rafael conduz esta etapa. Os especialistas confrontam os argumentos com as fontes antes de votar de novo.</p>
         <div className={`mt-3 grid gap-2 ${voting.arguments.length === 2 ? "md:grid-cols-2" : "xl:grid-cols-3"}`}>
           {voting.arguments.map(argument => {
             const isAccepted = argument.decision === "accepted";
@@ -103,59 +116,6 @@ export default function InvestReportVoting({ ticker, sources }: { ticker: string
       <p className="mt-2 text-sm leading-relaxed">{voting.verdictReason}</p>
     </section>
 
-    <section id="rever-veredito" aria-labelledby="review-verdict-title" className="mt-4 scroll-mt-20 rounded-lg border border-border bg-background p-3 sm:p-4">
-      <h3 id="review-verdict-title" className="flex items-center gap-2 text-base font-bold">
-        <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-amber-800 dark:text-amber-300" /> Onde o comitê pode estar errado
-      </h3>
-      <p className="mt-1 text-sm text-muted-foreground">Critérios da simulação para rever o veredito quando houver novos dados.</p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        {voting.review.map(({ condition, evidence, effect }) => (
-          <article key={condition} className="min-w-0 rounded-lg border border-border bg-card p-3 sm:p-4">
-            <h4 className="text-sm font-bold leading-snug">{condition}</h4>
-            <dl className="mt-3 space-y-3 text-sm leading-relaxed">
-              <div>
-                <dt className="text-xs font-semibold text-muted-foreground">Dados a conferir</dt>
-                <dd className="mt-1">{evidence}</dd>
-              </div>
-              <div className="border-t border-border pt-2">
-                <dt className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">Como mudaria o veredito</dt>
-                <dd className="mt-1">{effect}</dd>
-              </div>
-            </dl>
-          </article>
-        ))}
-      </div>
-      <div className="mt-3 border-t border-border pt-2">
-        <p className="mb-1 text-xs font-semibold text-muted-foreground">Fontes fictícias de partida</p>
-        <SourceLinks ids={voting.reviewSources} sources={sources} />
-      </div>
-    </section>
-
-    <section id="indicacao-por-perfil" aria-labelledby="investor-profiles-title" className="mt-4 scroll-mt-20 rounded-lg border border-border bg-background p-3 sm:p-4">
-      <h3 id="investor-profiles-title" className="flex items-center gap-2 text-base font-bold">
-        <Users aria-hidden="true" className="h-4 w-4 shrink-0 text-emerald-800 dark:text-emerald-300" /> Indicação por perfil de investidor
-      </h3>
-      <p className="mt-2 text-sm">Veredito do Rafael · <strong>{voteLabels[secondMajority]}</strong></p>
-      <p className="mt-1 text-sm text-muted-foreground">Leitura de um estudo fictício. A adequação individual depende dos objetivos, do horizonte e da carteira do investidor.</p>
-      <div className="mt-3 grid gap-3 lg:grid-cols-3">
-        {investorProfiles.map(profile => {
-          const { takeaway, rationale, evidence } = voting.profiles[profile];
-          return <article key={profile} className="flex min-w-0 flex-col rounded-lg border border-border bg-card p-3 sm:p-4">
-            <h4 className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">{profile}</h4>
-            <p className="mt-2 text-sm font-bold">{takeaway}</p>
-            <p className="mb-3 mt-1 text-sm leading-relaxed">{rationale}</p>
-            <dl className="mt-auto border-t border-border pt-2 text-sm leading-relaxed">
-              <dt className="text-xs font-semibold text-muted-foreground">Dados para reavaliar</dt>
-              <dd className="mt-1">{evidence}</dd>
-            </dl>
-          </article>;
-        })}
-      </div>
-      <a href="#rever-veredito" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-emerald-800 underline underline-offset-2 dark:text-emerald-300">
-        Ver condições de revisão do veredito <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" />
-      </a>
-    </section>
-
     <h3 className="mt-5 text-base font-bold">Votos por especialista</h3>
     {revisedAgents.length > 0 && <p className="mt-1 text-sm text-muted-foreground">
       <strong className="text-foreground">{changedNames}</strong> {revisedAgents.length === 1 ? "revisou seu voto." : "revisaram seus votos."}
@@ -184,4 +144,63 @@ export default function InvestReportVoting({ ticker, sources }: { ticker: string
       </li>)}
     </ul>
   </section>;
+}
+
+export function InvestVerdictReview({ ticker, sources }: { ticker: string; sources: ReportSources }) {
+  const voting = reportVotingFor(ticker);
+  return <section id="rever-veredito" aria-labelledby="review-verdict-title" className="scroll-mt-20 rounded-xl border border-border bg-card p-4 sm:p-5">
+      <h3 id="review-verdict-title" className="flex items-center gap-2 text-base font-bold">
+        <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-amber-800 dark:text-amber-300" /> Onde o comitê pode estar errado
+      </h3>
+      <p className="mt-1 text-sm text-muted-foreground">Critérios da simulação para rever o veredito quando houver novos dados.</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {voting.review.map(({ condition, evidence, effect }) => (
+          <article key={condition} className="min-w-0 rounded-lg border border-border bg-card p-3 sm:p-4">
+            <h4 className="text-sm font-bold leading-snug">{condition}</h4>
+            <dl className="mt-3 space-y-3 text-sm leading-relaxed">
+              <div>
+                <dt className="text-xs font-semibold text-muted-foreground">Dados a conferir</dt>
+                <dd className="mt-1">{evidence}</dd>
+              </div>
+              <div className="border-t border-border pt-2">
+                <dt className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">Como mudaria o veredito</dt>
+                <dd className="mt-1">{effect}</dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+      </div>
+      <div className="mt-3 border-t border-border pt-2">
+        <p className="mb-1 text-xs font-semibold text-muted-foreground">Fontes fictícias de partida</p>
+        <SourceLinks ids={voting.reviewSources} sources={sources} />
+      </div>
+    </section>;
+}
+
+export function InvestReportProfiles({ ticker, demoProfile }: { ticker: string; demoProfile?: (typeof investorProfiles)[number] }) {
+  const voting = reportVotingFor(ticker);
+  return <section id="indicacao-por-perfil" aria-labelledby="investor-profiles-title" className="scroll-mt-20 rounded-xl border border-border bg-card p-4 sm:p-5">
+      <h3 id="investor-profiles-title" className="flex items-center gap-2 text-base font-bold">
+        <Users aria-hidden="true" className="h-4 w-4 shrink-0 text-emerald-800 dark:text-emerald-300" /> Indicação por perfil de investidor
+      </h3>
+      <p className="mt-2 text-sm">Veredito do Rafael · <strong>{reportFinalVoteLabel(ticker)}</strong></p>
+      <p className="mt-1 text-sm text-muted-foreground">Leitura de um estudo fictício. A adequação individual depende dos objetivos, do horizonte e da carteira do investidor.</p>
+      <div className="mt-3 grid gap-3 lg:grid-cols-3">
+        {investorProfiles.map(profile => {
+          const { takeaway, rationale, evidence } = voting.profiles[profile];
+          return <article key={profile} className={`flex min-w-0 flex-col rounded-lg border bg-card p-3 sm:p-4 ${demoProfile === profile ? "border-emerald-600" : "border-border"}`}>
+            <h4 className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">{profile}{demoProfile === profile && <span className="ml-2 text-muted-foreground">· Perfil escolhido</span>}</h4>
+            <p className="mt-2 text-sm font-bold">{takeaway}</p>
+            <p className="mb-3 mt-1 text-sm leading-relaxed">{rationale}</p>
+            <dl className="mt-auto border-t border-border pt-2 text-sm leading-relaxed">
+              <dt className="text-xs font-semibold text-muted-foreground">Dados para reavaliar</dt>
+              <dd className="mt-1">{evidence}</dd>
+            </dl>
+          </article>;
+        })}
+      </div>
+      <a href="#rever-veredito" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-emerald-800 underline underline-offset-2 dark:text-emerald-300">
+        Ver condições de revisão do veredito <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" />
+      </a>
+    </section>;
 }

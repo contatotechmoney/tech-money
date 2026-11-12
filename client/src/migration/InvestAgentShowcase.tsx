@@ -112,7 +112,9 @@ export default function InvestAgentShowcase() {
         </div>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">As perguntas a {cv.nome} sobre uma empresa começam quando o relatório dela está pronto. Assim, a conversa tem fontes e datas para consultar.</p>
         {LENTES[activeId] && <p className="mt-3 text-sm leading-relaxed"><strong>O que este agente avalia:</strong> {LENTES[activeId].foco}.</p>}
-        <Link href="/investments/reports/previa" className={`${outlined} mt-4`}>Testar o fluxo do relatório <ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
+        <Link href={groupIndex === 2 ? "/investments/portfolio/simulation" : "/investments/agents/estudos"} className={`${outlined} mt-4`}>
+          {groupIndex === 2 ? "Simular comitê da carteira" : "Ver estudos de exemplo"} <ArrowRight aria-hidden="true" className="h-4 w-4" />
+        </Link>
       </section>
     </div>
   </div>;

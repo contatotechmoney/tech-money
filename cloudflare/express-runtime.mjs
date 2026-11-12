@@ -1,3 +1,5 @@
+import { customerPilotResponse } from "./supabase-auth/customer-pilot.mjs";
+import {sandboxBillingWebhook} from "./asaas-sandbox.ts";
 import {migrationPortal} from './portal.ts';
 import {supabaseMigrationStatus} from './supabase-auth/identity.mjs';
 import {supabaseIdentityStore,authMigrationRate} from './supabase-auth/store.mjs';
@@ -31,12 +33,22 @@ const expressHandler = httpServerHandler(server);
 
 export default {
   async fetch(request, env, context) {
+    const pilot = await customerPilotResponse(request, env, fetch, promise => context.waitUntil(promise));
+    if (pilot) return pilot;
+    if (env.INVEST_PORTAL_MODE === 'customer-pilot') {
+      const asset = await stagingGateway.fetch(request, env, context);
+      const headers = new Headers(asset.headers);
+      headers.set('X-Robots-Tag', 'noindex, nofollow');
+      headers.set('Referrer-Policy', 'no-referrer');
+      return new Response(asset.body, { status: asset.status, headers });
+    }
     const pathname = new URL(request.url).pathname;
     if(env.INVEST_PORTAL_MODE==='owner-production'&&pathname==='/'&&['GET','HEAD'].includes(request.method))return Response.redirect(new URL('/migration/login',request.url),302);
     if (['/migration/login','/migration/callback','/migration/login.js','/migration/login.css'].includes(pathname)) {
       if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405});
       return migrationLoginAsset(request,env);
     }
+    if(pathname==='/api/migration/asaas-sandbox/webhook')return sandboxBillingWebhook(request,env);
     if(pathname.startsWith('/api/migration/auth/'))return loginRequest(request,env,{rate:authMigrationRate});
     if(pathname==='/api/migration/confirm-owner')return confirmSupabaseOwner(request,env,supabaseIdentityStore);
     if (pathname === '/api/__clerk' || pathname.startsWith('/api/__clerk/')) {
